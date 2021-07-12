@@ -1,0 +1,64 @@
+---
+title: "Jount Survival and Marker Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{VAJointSurv}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+$$
+\begin{align*}
+\vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
+\epsilon_{ij} &\sim N^{(K)}(\vec 0, \Sigma) \\
+\mu_{i1}(s, U) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
+  \vec m_1(s)^\top\vec U_{i1} \\
+\vdots &\hphantom{=}\vdots\\\
+\mu_{iL}(s, \vec U_i) &= \vec x_{iL}^\top\vec\gamma_L + \vec g_L(s)^\top\vec\beta_L + 
+  \vec m_L(s)^\top\vec U_{iL} \\
+\vec U_i  &= \begin{pmatrix}
+    \vec U_{i1} \\ \vdots \\ \vec U_{iL}
+  \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) \\
+h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
+  \vec z_i^\top\delta_1 + 
+  \omega_1^\top b(t) + 
+  \vec\alpha_1^\top\vec\mu_i(t, \vec U_i) + \xi_{i1}
+  \right) \\
+\vdots &\hphantom{=}\vdots \\
+h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(  
+  \vec z_i^\top\delta_H + 
+  \omega_H^\top b(t) + 
+  \vec\alpha_H^\top\vec\mu_i(t, \vec U_i) + \xi_{iH}
+  \right) \\
+\vec\xi_i &\sim N^{(H)}(\vec 0, \Xi)
+\end{align*}
+$$
+where $\vec 1$ is vector with ones.
+We define the concatenated covariate vector to be
+
+$$
+\vec \theta = \begin{pmatrix}
+  \vec\gamma_1 \\ \vec\beta_1 \\
+  \vdots \\
+  \vec\gamma_L \\ \vec\beta_L \\
+  \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\
+  \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
+  \vdots \\
+  \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
+  \text{vec}(\Psi)
+\end{pmatrix}
+$$
+
+How to implement: 
+ 1. implement the model with markers only. First one marker and then more.
+ 2. implement the model with the survival outcomes only. First one process and 
+    then more. 
+ 3. implement with both parts.
