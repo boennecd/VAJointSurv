@@ -3,9 +3,13 @@
 #include "VA-joint-config.h"
 #include "vector"
 
-/// handles finding parameters vector elements. Zero-based indices are used for
-/// all class members
+/**
+ * handles finding parameters vector elements. Zero-based indices are used for
+ * all class members. The template argument show whether it is with the
+ * parameterization where the covariance matrices are triangular matrices. */
 class subset_params {
+  static constexpr bool is_traingular_default = false;
+
 public:
   struct marker {
     vajoint_uint n_fix, n_variying, n_rng;
@@ -32,10 +36,23 @@ private:
   std::vector<survival> survival_info;
 
   vajoint_uint idx_error_term = 0,
-              idx_shared_effect = 0,
-              idx_shared_survival = 0,
-              n_params = 0,
-              n_shared_effect = 0;
+               idx_shared_effect = 0,
+               idx_shared_survival = 0,
+               idx_va_mean = 0,
+               idx_va_vcov = 0,
+
+               n_params = 0,
+               n_parms_w_va = 0,
+               n_shared_effect = 0,
+               // using the triangular parameterization
+               idx_error_term_triangular = 0,
+               idx_shared_effect_triangular = 0,
+               idx_shared_survival_triangular = 0,
+               idx_va_mean_triangular = 0,
+               idx_va_vcov_triangular = 0,
+
+               n_params_triangular = 0,
+               n_parms_w_va_triangular = 0;
 
   inline void re_compute_indices(){
     /// fill in the indices from the markers and the shared effect
@@ -50,11 +67,6 @@ private:
       n_shared_effect += info.n_rng;
     }
 
-    idx_error_term = idx;
-    idx += marker_info.size() * marker_info.size();
-    idx_shared_effect = idx;
-    idx += n_shared_effect * n_shared_effect;
-
     /// fill in the indices from the survival outcomes
     for(auto &info : survival_info){
       info.idx_fix = idx;
@@ -62,11 +74,45 @@ private:
       info.idx_varying = idx;
       idx += info.n_variying;
       info.idx_association = idx;
-      idx += marker_info.size();
+      idx += static_cast<vajoint_uint>(marker_info.size()); // -Wconversion
     }
 
-    idx_shared_survival = idx;
-    n_params = idx + survival_info.size() * survival_info.size();
+    /// fill in the indices for the covariance matrices
+    ([&,idx]() mutable {
+      idx_error_term = idx;
+      idx += static_cast<vajoint_uint>(
+        marker_info.size() * marker_info.size()); // -Wconversion
+      idx_shared_effect = idx;
+      idx += n_shared_effect * n_shared_effect;
+      idx_shared_survival = idx;
+      idx += static_cast<vajoint_uint>(
+        survival_info.size() * survival_info.size()); // -Wconversion
+      n_params = idx;
+
+      idx_va_mean = idx;
+      vajoint_uint const va_dim = n_shared_effect + static_cast<vajoint_uint>(
+        survival_info.size());  // -Wconversion
+      idx += va_dim;
+      idx_va_vcov = idx;
+      n_parms_w_va = idx + va_dim * va_dim;
+    })();
+
+    idx_error_term_triangular = idx;
+    idx += static_cast<vajoint_uint>(
+      (marker_info.size() * (marker_info.size() + 1)) / 2); // -Wconversion
+    idx_shared_effect_triangular = idx;
+    idx += (n_shared_effect * (n_shared_effect + 1)) / 2;
+    idx_shared_survival_triangular = idx;
+    idx += static_cast<vajoint_uint>(
+      (survival_info.size() * (survival_info.size() + 1)) / 2); // -Wconversion
+    n_params_triangular = idx;
+
+    idx_va_mean_triangular = idx;
+    vajoint_uint const va_dim = n_shared_effect + static_cast<vajoint_uint>(
+      survival_info.size());  // -Wconversion
+    idx += va_dim;
+    idx_va_vcov_triangular = idx;
+    n_parms_w_va_triangular = idx + (va_dim * (va_dim + 1)) / 2;
   }
 
 public:
@@ -91,6 +137,7 @@ public:
   }
 
   /// returns the index of the fixed effect coefficients for a given marker
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_fixef_idx_marker(vajoint_uint const idx) const {
     return marker_info[idx].idx_fix;
   }
@@ -99,24 +146,28 @@ public:
    * returns the index of the fixed varying effect's coefficients for a given
    * marker
    */
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_varying_idx_marker(vajoint_uint const idx) const {
     return marker_info[idx].idx_varying;
   }
 
-  /// returns the index of the covarinace matrix for the markers' residual
+  /// returns the index of the covariance matrix for the markers' residual
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_idx_error_term() const {
-    return idx_error_term;
+    return is_traingular ? idx_error_term_triangular : idx_error_term;
   }
 
-  /// returns the index of the covarinace matrix for the shared effect
+  /// returns the index of the covariance matrix for the shared effect
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_idx_shared_effect() const{
-    return idx_shared_effect;
+    return is_traingular ? idx_shared_effect_triangular : idx_shared_effect;
   }
 
   /**
    * returns the index of the fixed effect coefficients for a given survival
    * outcome
    */
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_fixef_idx_survival(vajoint_uint const idx) const {
     return survival_info[idx].idx_fix;
   }
@@ -125,6 +176,7 @@ public:
    * returns the index of the fixed varying effect's coefficients for a given
    * survival outcome
    */
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_varying_idx_survival(vajoint_uint const idx) const {
     return survival_info[idx].idx_varying;
   }
@@ -132,19 +184,52 @@ public:
   /**
    * returns the index of the association parameter for a given survival outcome
    */
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_idx_association_parameter(vajoint_uint const idx)
   const {
     return survival_info[idx].idx_association;
   }
 
   /// returns the index of the covarinace matrix for the frailties
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_idx_shared_survival() const {
-    return idx_shared_survival;
+    return is_traingular ? idx_shared_survival_triangular : idx_shared_survival;
   }
 
   /// returns the number of parameters
+  template<bool is_traingular = is_traingular_default>
   inline vajoint_uint get_n_params() const {
-    return n_params;
+    return is_traingular ? n_params_triangular : n_params;
+  }
+
+  /// returns the location of the mean of the VA distribution
+  template<bool is_traingular = is_traingular_default>
+  inline vajoint_uint get_idx_va_mean() const {
+    return is_traingular ? idx_va_mean_triangular : idx_va_mean;
+  }
+
+  /// returns the location of the covariance of the VA distribution
+  template<bool is_traingular = is_traingular_default>
+  inline vajoint_uint get_idx_va_vcov() const {
+    return is_traingular ? idx_va_vcov_triangular : idx_va_vcov;
+  }
+
+  /// returns the number of shared random effects
+  inline vajoint_uint get_n_shared() const {
+    return n_shared_effect;
+  }
+
+  /// returns the number of shared random effects for the survival outcomes
+  inline vajoint_uint get_n_shared_survival() const {
+    return static_cast<vajoint_uint>(survival_info.size()); // -Wconversion
+  }
+
+  /**
+   * returns the number parameters including the variational parameters for one
+   * cluster. */
+  template<bool is_traingular = is_traingular_default>
+  inline vajoint_uint get_n_parms_w_va() const {
+    return is_traingular ? n_parms_w_va_triangular : n_parms_w_va;
   }
 };
 

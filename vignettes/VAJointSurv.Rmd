@@ -28,32 +28,31 @@ $$
     \vec U_{i1} \\ \vdots \\ \vec U_{iL}
   \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) \\
 h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
-  \vec z_i^\top\delta_1 + 
-  \omega_1^\top b(t) + 
+  \vec z_{i1}^\top\vec \delta_1 + 
+  \omega_1^\top \vec b_1(t) + 
   \vec\alpha_1^\top\vec\mu_i(t, \vec U_i) + \xi_{i1}
   \right) \\
 \vdots &\hphantom{=}\vdots \\
 h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(  
-  \vec z_i^\top\delta_H + 
-  \omega_H^\top b(t) + 
+  \vec z_{iL}^\top\vec \delta_H + 
+  \omega_H^\top\vec b_H(t) + 
   \vec\alpha_H^\top\vec\mu_i(t, \vec U_i) + \xi_{iH}
   \right) \\
 \vec\xi_i &\sim N^{(H)}(\vec 0, \Xi)
 \end{align*}
 $$
 where $\vec 1$ is vector with ones.
-We define the concatenated covariate vector to be
+We define the concatenated coefficient vector to be
 
 $$
 \vec \theta = \begin{pmatrix}
   \vec\gamma_1 \\ \vec\beta_1 \\
   \vdots \\
   \vec\gamma_L \\ \vec\beta_L \\
-  \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
   \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
-  \text{vec}(\Psi)
+    \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
 \end{pmatrix}
 $$
 
@@ -62,3 +61,197 @@ How to implement:
  2. implement the model with the survival outcomes only. First one process and 
     then more. 
  3. implement with both parts.
+ 
+We use a Gaussian variational approximation for 
+$(\vec U_i^\top, \vec\xi_i^\top)^\top$ which we parameterize as 
+$N^{(R + H)}(\zeta_i, \Omega_i)$. 
+
+## Kullback–Leibler Divergence Term
+The Kullback–Leibler (KL) divergence term is given by 
+
+$$
+\begin{multline*}
+\frac 12\Big(\log\lvert\Omega_i\rvert - 
+  \log\lvert\Psi\rvert - \log\lvert\Xi\rvert 
+  -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}
+  -\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\
+  - \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}
+  - \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}
+  + R + H\Big)
+\end{multline*}
+$$
+
+Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, and $\Xi$ are
+
+$$
+\frac 12\left(\Omega_i^{-1} - 
+  \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right) 
+$$
+
+$$
+\frac 12
+   \Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top
+   + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}
+$$
+
+$$
+\frac 12
+   \Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top
+   + \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}
+$$
+
+## Marker Terms
+
+Let $\vec\gamma = (\gamma_1^\top, \dots, \gamma_L^\top)^\top$, 
+$\vec\beta = (\beta_1^\top, \dots, \beta_L^\top)^\top$, and
+
+$$G(s) = \begin{pmatrix} 
+  \vec g_1(s)^\top & 0 & \cdots & 0 \\
+  0 & \vec g_2(s)^\top & \ddots & \dots \\
+  \vdots & \ddots & \ddots & \ddots 0 \\
+  0 & \cdots & 0 & \vec g_L(s)^\top \end{pmatrix}$$
+
+Define $X_i$ and  $M(s)$ similarly in terms of 
+$\vec x_{ik}$ and $\vec m_k(s)$.
+Then the lower bound term from the 
+conditional density of observation $j$ of individual $i$ at time $s_{ij}$ is
+
+$$
+\int \log\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
+  + M(s_{ij})\vec w, \Sigma\right)
+  \phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
+$$
+which gives
+
+$$
+\begin{multline*}
+-\frac L2\log 2\pi  -\frac 12 \log\lvert\Sigma \rvert 
+  - \frac 12\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
+  - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
+  \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
+  - M(s_{ij})\vec\zeta_{i,1:R}\right) - 
+  \frac 12\text{tr}\Sigma^{-1}\Omega_{i,1:R,1:R}
+\end{multline*}
+$$
+
+Let 
+$\vec\eta_{ij} = \vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}$. 
+Then the derivatives w.r.t. $\Sigma$ and $\Omega_{i,1:R,1:R}$ are 
+
+$$
+\frac 12
+   \Sigma^{-1}\left(\vec\eta_{ij}\vec\eta_{ij}^\top
+   + \Omega_{i,1:R,1:R} - \Sigma\right)\Sigma^{-1}
+$$
+
+TODO: this is wrong
+
+$$
+-\frac 12\Sigma^{-1}
+$$
+
+For the remaining parameters, we can use that the derivative w.r.t. 
+$\vec\eta_{ij}$ is 
+
+$$
+-\Sigma^{-1}\vec\eta_{ij}
+$$
+
+Thus, the derivatives w.r.t. $\vec\gamma$, $\vec\beta$, and $\vec\zeta_{i,1:R}$
+are given by $X_i^\top\Sigma^{-1}\vec\eta_{ij}$, 
+$G(s_{ij})^\top\Sigma^{-1}\vec\eta_{ij}$, and
+$M(s_{ij})^\top\Sigma^{-1}\vec\eta_{ij}$. We can omit an index in all of 
+the above equations if an element of $\vec y_{ij}$ is not observed. 
+
+## Survival Outcomes
+Let $T_{i1}, \dots, T_{iL}$ be either the minimum of the censoring time or 
+the observed event time and $D_{i1}, \dots, D_{iL}$ be event indicators. The 
+the lower bound terms for the $k$th time to event is
+
+$$
+\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})
+  -\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds
+  \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w
+$$
+
+The log hazard term gives the following lower bound terms
+
+$$
+\begin{multline*}
+d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
+  \omega_k^\top \vec b_k(t_{ik}) + 
+  \vec\alpha_k^\top\vec\mu_i(t_{ik}, \vec\zeta_{i,1:R}) + \zeta_{i,R + k}\right) \\
+  = d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
+  \omega_k^\top \vec b_k(t_{ik}) + 
+  \vec\alpha_k^\top\left(X_i\vec\gamma + G(t_{ik})\vec\beta 
+  + M(t_{ik})\vec\zeta_{i,1:R}\right)
+  + \zeta_{i,R + k}\right)
+\end{multline*}
+$$
+The derivatives follow easily as all terms are linear in the unknown 
+parameters.
+
+As for the expected cumulative hazard, assume that we can interchange the order 
+of integration. Then the lower bounds term is
+
+$$
+\xi_{ik} = -\exp(\vec z_{ik}^\top\vec\delta_k)\int_0^{t_{ij}}
+  \exp\left(\omega_k^\top \vec b_k(s) + \vec\alpha_k^\top\vec\mu_i(s, \vec\zeta_{i,1:R})
+  + \zeta_{R + k } +\frac 12 
+  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
+    \vec\alpha_k \\ 1
+  \end{pmatrix}\right) ds
+$$
+
+where 
+
+$$
+O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
+  \Omega_{(1:R, R + k), (1:R, R + k)}
+    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}
+$$
+
+This can be re-written as
+
+$$
+\begin{align*}
+\xi_{ik} &= q_1 \int_0^{t_{ik}} q_2(s) ds \\
+ q_1 &= -\exp(\vec z_{ik}^\top\vec\delta_k + \vec\alpha_k^\top X_i\vec\gamma) \\
+ q_2(s) &= \exp\Bigg(
+    \omega_k^\top \vec b_k(s) + \vec\alpha_k^\top G(s)\vec\beta +
+    \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} 
+  + \zeta_{R + k } \\ 
+&\hspace{40pt} +\frac 12 
+  (\vec\alpha_k^\top M(s), 1) \Omega_{(1:R, R + k), (1:R, R + k)}\begin{pmatrix}
+    M(s)\vec\alpha_k \\ 1
+  \end{pmatrix}\Bigg) 
+\end{align*}
+$$
+
+The derivatives w.r.t. 
+$\vec\delta_k$ and $\vec\gamma$ are $\vec z_{ik}\xi_{ik}$ and
+$X_i^\top \vec\alpha_k\xi_{ik}$. The derivatives w.r.t. 
+$(\vec\omega_k^\top, \vec\beta^\top, \vec\zeta_{i,1:R}^\top, \zeta_{R + k})^\top$ 
+are
+
+$$
+q_1 \int_0^{t_{ik}} \begin{pmatrix}
+    \vec b_k(s) \\  G(s)^\top\vec\alpha_k \\ M(s)^\top\vec\alpha_k \\ 1
+  \end{pmatrix}q_2(s) ds
+$$
+
+The derivatives w.r.t. $\vec\alpha_k$ are 
+
+$$
+X_i\vec\gamma\xi + q_1\int_0^{t_{ik}}
+  \left(G(s)\vec\beta + M(s)\vec\zeta_{i,1:R} + \frac 12...\right)q_2(s) ds
+$$
+
+The derivative w.r.t. $\Omega_{(1:R, R + k), (1:R, R + k)}$ is 
+
+$$
+q_1 \int_0^{t_{ik}}
+  \begin{pmatrix}
+    M(s)\vec\alpha_k \\ 1
+  \end{pmatrix}(\vec\alpha_k^\top M(s), 1)q(s) ds
+$$

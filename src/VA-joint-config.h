@@ -3,6 +3,6 @@
 
 #include <cstddef>
 
-using vajoint_uint = std::size_t;
+using vajoint_uint = unsigned;
 
 #endif
