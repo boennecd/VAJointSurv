@@ -81,7 +81,7 @@ $$
 \end{multline*}
 $$
 
-Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, and $\Xi$ are
+Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta$ are
 
 $$
 \frac 12\left(\Omega_i^{-1} - 
@@ -98,6 +98,13 @@ $$
 \frac 12
    \Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top
    + \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}
+$$
+
+$$
+-\begin{pmatrix}
+  \Psi^{-1} & 0 \\
+  0 & \Xi^{-1} 
+\end{pmatrix}\vec\zeta
 $$
 
 ## Marker Terms

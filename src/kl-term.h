@@ -13,12 +13,12 @@ class kl_term {
   /// objects used by setup
   arma::mat vcov_inv,
             vcov_inv_chol,
-            vcov_survival_inv,
-            vcov_survival_inv_chol;
+            vcov_surv_inv,
+            vcov_surv_inv_chol;
   double eval_constant = std::numeric_limits<double>::quiet_NaN();
 
   bool has_vcov = false,
-       has_vcov_survival = false;
+       has_vcov_surv = false;
 
 public:
   kl_term(subset_params const &idx);
@@ -50,7 +50,7 @@ public:
   }
 
   size_t get_n_dmen() {
-    return n_vars * n_vars;
+    return 2 * n_vars * n_vars;
   }
 };
 

@@ -42,6 +42,48 @@ inline double submat_trace
   return out;
 }
 
+/// computes x <- x + Ab. It is assumed that A is a n x n matrix.
+inline void mat_vec_prod
+(double const * __restrict__ a, double const * __restrict__ b,
+ double * __restrict__ res, vajoint_uint const n) noexcept {
+  for(vajoint_uint j = 0; j < n; ++j)
+    for(vajoint_uint i = 0; i < n; ++i)
+      res[i] += *a++ * b[j];
+}
+
+/**
+ * computes A[1:k + l, 1:k + l] <- A[1:k + l, 1:k + l] + v * B where A is a
+ * n x n matrix and B is a k x k matrix with n > k.
+ */
+inline void mat_add
+(double * __restrict__ A, double const * __restrict__ B,
+ vajoint_uint const k, vajoint_uint const n, vajoint_uint const offset,
+ double const v)
+noexcept {
+  A += offset * (n + 1);
+  for(vajoint_uint j = 0; j < k; ++j, A += n - k)
+    for(vajoint_uint i = 0; i < k; ++i)
+      *A++ += v * *B++;
+}
+
+/// computes x <- x + v * b.
+inline void add(double * __restrict__ x, double const * b,
+                vajoint_uint const dim, double const v) noexcept {
+  for(vajoint_uint i = 0; i < dim; ++i)
+    *x++ += v * *b++;
+}
+
+/// computes X <- X + sign bb^T.
+template<bool do_add>
+inline void rank_one
+  (double * __restrict__ x, double const *b, vajoint_uint const n) noexcept {
+  for(vajoint_uint j = 0; j < n; ++j, x += n)
+    for(vajoint_uint i = 0; i < n; ++i){
+      double const val = b[i] * b[j];
+      x[i] += do_add ? val : -val;
+    }
+}
+
 } // namespace lp_joint
 
 #endif

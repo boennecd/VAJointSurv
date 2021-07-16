@@ -1,6 +1,5 @@
-#include <testthat.h>
+#include "testthat-wrapper.h"
 #include "bases.h"
-#include <limits>
 #include <array>
 
 template<class Basis, bool do_optimize, size_t N>
@@ -14,24 +13,23 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
   arma::vec y = bas(xx_val, 0);
 
   expect_true(y .size() == yy_val.size());
-  double const eps = std::sqrt(std::numeric_limits<double>::epsilon());
   for(unsigned i = 0; i < y.size(); ++i)
-    expect_true(std::abs(y[i] - yy_val[i]) < eps);
+    expect_true(pass_rel_err(y[i], yy_val[i]));
 
   arma::vec dx = bas(xx_val, 1);
   for(unsigned i = 0; i < y.size(); ++i)
-    expect_true(std::abs(dx[i] - dx_val[i]) < eps);
+    expect_true(pass_rel_err(dx[i], dx_val[i]));
 
   // work when a pointer is passed
   y.zeros();
   bas(y.memptr(), xx_val, 0);
   for(unsigned i = 0; i < y.size(); ++i)
-    expect_true(std::abs(y[i] - yy_val[i]) < eps);
+    expect_true(pass_rel_err(y[i], yy_val[i]));
 
   dx.zeros();
   bas(dx.memptr(), xx_val, 1);
   for(unsigned i = 0; i < y.size(); ++i)
-    expect_true(std::abs(dx[i] - dx_val[i]) < eps);
+    expect_true(pass_rel_err(dx[i], dx_val[i]));
 }
 
 context("bases unit tests") {
@@ -428,26 +426,25 @@ context("bases unit tests") {
     joint_bases::orth_poly const obj =
       joint_bases::orth_poly::get_poly_basis(x, 3L, Xout);
 
-    double const eps = std::sqrt(std::numeric_limits<double>::epsilon());
     expect_true(obj.alpha.n_elem == alpha.n_elem);
     for(unsigned i = 0; i < alpha.n_elem; ++i)
-      expect_true(std::abs(obj.alpha[i] - alpha[i]) < eps);
+      expect_true(pass_rel_err(obj.alpha[i], alpha[i]));
 
     expect_true(obj.norm2.n_elem == norm2.n_elem);
     for(unsigned i = 0; i < norm2.n_elem; ++i)
-      expect_true(std::abs(obj.norm2[i] - norm2[i]) < eps);
+      expect_true(pass_rel_err(obj.norm2[i], norm2[i]));
 
     expect_true(basis.n_cols == Xout.n_cols);
     expect_true(basis.n_rows == Xout.n_rows);
     for(unsigned j = 0; j < Xout.n_cols; ++j)
       for(unsigned i = 0; i < Xout.n_rows; ++i)
-        expect_true(std::abs(Xout.at(i, j) - basis.at(i, j)) < eps);
+        expect_true(pass_rel_err(Xout.at(i, j), basis.at(i, j)));
 
     for(unsigned i = 0; i < Xout.n_rows; ++i){
       arma::vec const b = obj(x[i]);
       expect_true(b.n_elem == Xout.n_cols);
       for(unsigned j = 0; j < Xout.n_cols; ++j)
-        expect_true(std::abs(Xout.at(i, j) - b[j])  < eps);
+        expect_true(pass_rel_err(Xout.at(i, j), b[j]));
     }
   }
 }

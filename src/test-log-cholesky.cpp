@@ -1,6 +1,5 @@
-#include <testthat.h>
+#include "testthat-wrapper.h"
 #include "log-cholesky.h"
-#include <limits.h>
 #include <algorithm>
 #include <iterator>
 
@@ -21,9 +20,8 @@ context("log-cholesky works as expected") {
     double res[dim * dim];
 
     log_chol::pd_mat::get(theta, dim, res);
-    double const eps = std::sqrt(std::numeric_limits<double>::epsilon());
     for(vajoint_uint i = 0; i < dim * dim; ++i)
-      expect_true(std::abs(res[i] - X[i]) < eps);
+      expect_true(pass_rel_err(res[i], X[i]));
 
     // with working memory supplied
     std::unique_ptr<double[]>
@@ -32,7 +30,7 @@ context("log-cholesky works as expected") {
     std::fill(std::begin(res), std::end(res), 0);
     log_chol::pd_mat::get(theta, dim, res, mem.get());
     for(vajoint_uint i = 0; i < dim * dim; ++i)
-      expect_true(std::abs(res[i] - X[i]) < eps);
+      expect_true(pass_rel_err(res[i], X[i]));
   }
 
   test_that("log_chol::dpd_mat works as expected") {
@@ -73,25 +71,25 @@ context("log-cholesky works as expected") {
     log_chol::dpd_mat::get(theta, dim, output, derivs);
     double const eps = std::sqrt(std::numeric_limits<double>::epsilon());
     for(vajoint_uint i = 0; i < dim_ltri; ++i)
-      expect_true(std::abs(output[i] - res[i]) < eps * std::abs(res[i]));
+      expect_true(pass_rel_err(output[i], res[i]));
 
     // works correctly if add a value to output
     std::fill(std::begin(output), std::end(output), 100);
     log_chol::dpd_mat::get(theta, dim, output, derivs);
     for(vajoint_uint i = 0; i < dim_ltri; ++i)
-      expect_true(std::abs(output[i] - 100 - res[i]) < eps * std::abs(res[i]));
+      expect_true(pass_rel_err(output[i] - 100, res[i]));
 
     // works when only the upper triangular matrix has elements
     std::fill(std::begin(output), std::end(output), 0);
     log_chol::dpd_mat::get(theta, dim, output, derivs_half);
     for(vajoint_uint i = 0; i < dim_ltri; ++i)
-      expect_true(std::abs(output[i] - res[i]) < eps * std::abs(res[i]));
+      expect_true(pass_rel_err(output[i], res[i]));
 
     // works with pre-allocated memory
     std::unique_ptr<double[]> mem(new double[log_chol::dpd_mat::get_n_dmen(dim)]);
     std::fill(std::begin(output), std::end(output), 0);
     log_chol::dpd_mat::get(theta, dim, output, derivs, mem.get());
     for(vajoint_uint i = 0; i < dim_ltri; ++i)
-      expect_true(std::abs(output[i] - res[i]) < eps * std::abs(res[i]));
+      expect_true(pass_rel_err(output[i], res[i]));
   }
 }

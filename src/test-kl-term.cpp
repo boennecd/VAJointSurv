@@ -1,47 +1,106 @@
-#include <testthat.h>
+#include "testthat-wrapper.h"
 #include "kl-term.h"
 #include <memory.h>
+#include "log-cholesky.h"
+
+namespace {
+constexpr vajoint_uint tri_dim(vajoint_uint const x){
+  return (x * (x + 1)) / 2;
+}
+}
 
 context("testing kl-terms") {
   test_that("eval gives the right result") {
     /*
      set.seed(1)
      n_shared <- 2L
-     n_shared_survival <- 3L
-     n_vars <- n_shared + n_shared_survival
+     n_shared_surv <- 3L
+     n_vars <- n_shared + n_shared_surv
 
      Omega <- drop(rWishart(1, n_vars, diag(n_vars)))
-     Xi <- drop(rWishart(1, n_shared_survival, diag(n_shared_survival)))
+     Xi <- drop(rWishart(1, n_shared_surv, diag(n_shared_surv)))
      Psi <- drop(rWishart(1, n_shared, diag(n_shared)))
      zeta <- rnorm(n_vars)
 
-     val <- -determinant(Omega)$modulus + determinant(Xi)$modulus +
+     f <- function(Omega, Xi, Psi, zeta)
+     (-determinant(Omega)$modulus + determinant(Xi)$modulus +
      determinant(Psi)$modulus +
      drop(zeta[1:n_shared] %*% solve(Psi, zeta[1:n_shared])) +
      drop(zeta[-(1:n_shared)] %*% solve(Xi, zeta[-(1:n_shared)])) +
      sum(diag(solve(Psi, Omega[1:n_shared, 1:n_shared]))) +
      sum(diag(solve(Xi, Omega[-(1:n_shared), -(1:n_shared)]))) -
-     n_shared - n_shared_survival
-     dput(val / 2)
+     n_shared - n_shared_surv)/2
+
+     dput(f(Omega, Xi, Psi, zeta))
      dput(Xi)
      dput(Psi)
      dput(Omega)
      dput(zeta)
+
+     log_chol <- function(x){
+     x <- chol(x)
+     diag(x) <- log(diag(x))
+     x[upper.tri(x, TRUE)]
+     }
+     log_chol_inv <- function(x){
+     n <- (sqrt(8 * length(x) + 1) - 1) / 2
+     out <- matrix(0, n, n)
+     out[upper.tri(out, TRUE)] <- x
+     diag(out) <- exp(diag(out))
+     crossprod(out)
+     }
+     dput(Xi_chol <- log_chol(Xi))
+     dput(Psi_chol <- log_chol(Psi))
+     dput(Omega_chol <- log_chol(Omega))
+
+     g <- function(x){
+     Xi_chol <- x[seq_along(Xi_chol)]
+     Psi_chol <- x[seq_along(Psi_chol) + length(Xi_chol)]
+     Omega_chol <- x[seq_along(Omega_chol) + length(Xi_chol) + length(Psi_chol)]
+     zeta <- tail(x, length(zeta))
+     f(Omega = log_chol_inv(Omega_chol), Psi = log_chol_inv(Psi_chol),
+     Xi = log_chol_inv(Xi_chol), zeta = zeta)
+     }
+
+     g(c(Xi_chol, Psi_chol, Omega_chol, zeta))
+     deriv <- numDeriv::grad(g, c(Xi_chol, Psi_chol, Omega_chol, zeta))
+     dput(Xi_deriv <- deriv[seq_along(Xi_chol)])
+     dput(Psi_deriv <- deriv[seq_along(Psi_chol) + length(Xi_chol)])
+     dput(Omega_deriv <- deriv[
+     seq_along(Omega_chol) + length(Xi_chol) + length(Psi_chol)])
+     dput(zeta_deriv <- tail(deriv, length(zeta)))
      */
     constexpr vajoint_uint n_shared = 2,
-                  n_shared_survival = 3,
-                             n_vars = n_shared + n_shared_survival;
-    constexpr double Xi[n_shared_survival * n_shared_survival] = { 1.96775053611171, -1.73597597741474, 0.529397523176239, -1.73597597741474, 3.24256054526995, -0.292627703276501, 0.529397523176239, -0.292627703276501, 0.634396281932773 },
+                  n_shared_surv = 3,
+                             n_vars = n_shared + n_shared_surv;
+    constexpr double Xi[n_shared_surv * n_shared_surv] = { 1.96775053611171, -1.73597597741474, 0.529397523176239, -1.73597597741474, 3.24256054526995, -0.292627703276501, 0.529397523176239, -0.292627703276501, 0.634396281932773 },
                     Psi[n_shared * n_shared] = { 2.4606560951913, 0.789983565757713, 0.789983565757713, 0.892097273439034},
                   Omega[n_vars * n_vars] = { 2.42434323779257, 1.9812109601339, -2.3977488177111, 0.896508989006271, -0.967290384087283, 1.9812109601339, 8.7605890723572, -4.44094380859342, -0.0834669056878007, -6.70896207863171, -2.3977488177111, -4.44094380859342, 6.14892949801278, 1.97812834810877, 4.9338943130402, 0.896508989006271, -0.0834669056878007, 1.97812834810877, 3.33690095112284, 1.98372476564407, -0.967290384087283, -6.70896207863171, 4.9338943130402, 1.98372476564407, 7.74887957345459 },
-                  zeta[n_vars] = { 1.08576936214569, -0.69095383969683, -1.28459935387219, 0.046726172188352, -0.235706556439501 };
+                  zeta[n_vars] = { 1.08576936214569, -0.69095383969683, -1.28459935387219, 0.046726172188352, -0.235706556439501 },
+               Xi_chol[tri_dim(n_shared_surv)] = { 0.338445515244742, -1.23753842192996, 0.268556296839291, 0.377395645981701, 0.133336360814841, -0.373073361500074 },
+              Psi_chol[tri_dim(n_shared)] = { 0.450214009873517, 0.503607972233726, -0.224335373954299 },
+            Omega_chol[tri_dim(n_vars)] = { 0.442780328966089, 1.2724293214294, 0.982962307931023, -1.53995004190371, -0.928567034713538, 0.534977211455984, 0.575781351653492, -0.305388387156356, 1.51178116845085, -0.23369758278885, -0.621240580541804, -2.2146998871775, 1.12493091814311, -0.0449336090152294, 0.0872100127375849 };
+
+    constexpr double true_kl_term = 14.58945197638;
+
+    constexpr double Xi_deriv[tri_dim(n_shared_surv)] = { -5.80311449958224, -3.32225269517676, -5.84896643091192, -3.36986740874183,
+                                                          -4.70975985678572, -9.17044789534625 },
+                    Psi_deriv[tri_dim(n_shared)] = { -0.427035663737666, -0.0740751249053278, -12.8125448527808 },
+                  Omega_deriv[tri_dim(n_vars)] = { -0.61960594919438, 1.20999189744859, 10.1852434869524, -1.08994359451185,
+                                                   0.348923601855757, 2.67579154568366, -0.430153063324311, -0.259508809540019,
+                                                   1.68692480260345, -0.612398324838771, -0.268131842823628, -3.90191228270156,
+                                                   0.754827608496878, -0.264923488296771, 1.51071293143399 },
+                  zeta_deriv[n_vars] = { 0.963963111992338, -1.62815076284324, -1.38009039095917, -0.682457259304228,
+                                         0.465330561405237 };
+
+    double const eps = std::sqrt(std::numeric_limits<double>::epsilon());
 
     subset_params params;
     params.add_marker({ 2, 2, 1 });
     params.add_marker({ 1, 4, 1 });
-    params.add_survival({ 5, 2 });
-    params.add_survival({ 1, 4 });
-    params.add_survival({ 5, 2 });
+    params.add_surv({ 5, 2 });
+    params.add_surv({ 1, 4 });
+    params.add_surv({ 5, 2 });
 
     // create and fill parameter vector
     vajoint_uint const n_params_w_va = params.get_n_parms_w_va();
@@ -52,8 +111,8 @@ context("testing kl-terms") {
                        double *out){
       std::copy(value, value + n_ele, out);
     };
-    fill_par(Xi, n_shared_survival * n_shared_survival,
-             par.get() + params.get_idx_shared_survival());
+    fill_par(Xi, n_shared_surv * n_shared_surv,
+             par.get() + params.get_idx_shared_surv());
     fill_par(Psi, n_shared * n_shared,
              par.get() + params.get_idx_shared_effect());
     fill_par(Omega, n_vars * n_vars,
@@ -62,17 +121,54 @@ context("testing kl-terms") {
              par.get() + params.get_idx_va_mean());
 
     // compute the kl term
-    {
-      kl_term term(params);
-      std::unique_ptr<double[]> mem(new double[term.get_n_dmen()]);
-      term.setup(par.get(), mem.get());
-      constexpr double truth = 14.58945197638;
-      expect_true(
-        std::abs(term.eval(par.get()) - truth) < std::abs(truth) * 1e-8);
+    kl_term term(params);
+    std::unique_ptr<double[]> mem(new double[term.get_n_dmen()]);
+    term.setup(par.get(), mem.get());
+    expect_true(pass_rel_err(term.eval(par.get()), true_kl_term));
 
-      // also works when provided with the working memory
-      expect_true(std::abs(term.eval(par.get(), mem.get()) - truth) <
-        std::abs(truth) * 1e-8);
+    // also works when provided with the working memory
+    expect_true(pass_rel_err(term.eval(par.get(), mem.get()), true_kl_term));
+
+    // check the gradient
+    std::unique_ptr<double[]> gr(new double[n_params_w_va]),
+                          gr_res(new double[params.get_n_parms_w_va<true>()]);
+    std::fill(gr.get(), gr.get() + n_params_w_va, 0.);
+    std::fill(gr_res.get(), gr_res.get() + params.get_n_parms_w_va<true>(), 0.);
+
+    double const val = term.grad(gr.get(), par.get(), mem.get());
+    expect_true(pass_rel_err(val, true_kl_term));
+
+    {
+      double *g_out = gr_res.get() + params.get_idx_shared_surv<true>();
+      double const *g_in = gr.get() + params.get_idx_shared_surv();
+      log_chol::dpd_mat::get(Xi_chol, n_shared_surv, g_out, g_in);
+
+      for(vajoint_uint i = 0; i < tri_dim(n_shared_surv); ++i)
+        expect_true(pass_rel_err(g_out[i], Xi_deriv[i]));
+    }
+
+    {
+      double *g_out = gr_res.get() + params.get_idx_shared_effect<true>();
+      double const *g_in = gr.get() + params.get_idx_shared_effect();
+      log_chol::dpd_mat::get(Psi_chol, n_shared, g_out, g_in);
+
+      for(vajoint_uint i = 0; i < tri_dim(n_shared); ++i)
+        expect_true(pass_rel_err(g_out[i], Psi_deriv[i]));
+    }
+
+    {
+      double *g_out = gr_res.get() + params.get_idx_va_vcov<true>();
+      double const *g_in = gr.get() + params.get_idx_va_vcov();
+      log_chol::dpd_mat::get(Omega_chol, n_vars, g_out, g_in);
+
+      for(vajoint_uint i = 0; i < tri_dim(n_vars); ++i)
+        expect_true(pass_rel_err(g_out[i], Omega_deriv[i]));
+    }
+
+    {
+      double const *g_out = gr.get() + params.get_idx_va_mean();
+      for(vajoint_uint i = 0; i < n_vars; ++i)
+        expect_true(pass_rel_err(g_out[i], zeta_deriv[i]));
     }
   }
 }
