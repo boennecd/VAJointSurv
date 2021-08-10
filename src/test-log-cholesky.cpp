@@ -31,6 +31,9 @@ context("log-cholesky works as expected") {
     log_chol::pd_mat::get(theta, dim, res, mem.get());
     for(vajoint_uint i = 0; i < dim * dim; ++i)
       expect_true(pass_rel_err(res[i], X[i]));
+
+    // clean up
+    wmem::clear_all();
   }
 
   test_that("log_chol::dpd_mat works as expected") {
@@ -91,5 +94,8 @@ context("log-cholesky works as expected") {
     log_chol::dpd_mat::get(theta, dim, output, derivs, mem.get());
     for(vajoint_uint i = 0; i < dim_ltri; ++i)
       expect_true(pass_rel_err(output[i], res[i]));
+
+    // clean up
+    wmem::clear_all();
   }
 }

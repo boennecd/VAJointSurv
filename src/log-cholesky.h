@@ -4,6 +4,7 @@
 #include "arma-wrap.h"
 #include <memory.h>
 #include <algorithm>
+#include "wmem.h"
 
 namespace log_chol {
 struct pd_mat {
@@ -35,8 +36,7 @@ struct pd_mat {
   /// same as the above but perform the allocation of working memory
   static inline void get(double const *theta, vajoint_uint const dim,
                          double * res){
-    std::unique_ptr<double[]> wk_mem(new double[get_n_dmen(dim)]);
-    get(theta, dim, res, wk_mem.get());
+    get(theta, dim, res, wmem::get_double_mem(get_n_dmen(dim)));
   }
 };
 
@@ -86,8 +86,7 @@ struct dpd_mat {
   static inline void get(double const *theta, vajoint_uint const dim,
                          double * __restrict__ res,
                          double const * derivs){
-    std::unique_ptr<double[]> wk_mem(new double[get_n_dmen(dim)]);
-    get(theta, dim, res, derivs, wk_mem.get());
+    get(theta, dim, res, derivs, wmem::get_double_mem(get_n_dmen(dim)));
   }
 };
 } // namespace log_chol

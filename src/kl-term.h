@@ -5,6 +5,7 @@
 #include <memory>
 #include <limits.h>
 #include "arma-wrap.h"
+#include "wmem.h"
 
 class kl_term {
   subset_params const &idx;
@@ -33,8 +34,7 @@ public:
 
   /// Allocates the needed working memory on each call
   inline double eval(double const *param){
-    std::unique_ptr<double[]> mem(new double[get_n_dmen()]);
-    return eval(param, mem.get());
+    return eval(param, wmem::get_double_mem(get_n_dmen()));
   }
 
   /**
@@ -46,7 +46,7 @@ public:
   /// Allocates the needed working memory on each call
   inline double grad(double *g, double const *param){
     std::unique_ptr<double[]> mem(new double[get_n_dmen()]);
-    return grad(g, param, mem.get());
+    return grad(g, param, wmem::get_double_mem(get_n_dmen()));
   }
 
   size_t get_n_dmen() {

@@ -22,4 +22,5 @@ Suggests:
     testthat (>= 3.0.0),
     xml2
 VignetteBuilder: knitr
+SystemRequirements: C++17
 Config/testthat/edition: 3
