@@ -426,14 +426,6 @@ context("bases unit tests") {
     joint_bases::orth_poly const obj =
       joint_bases::orth_poly::get_poly_basis(x, 3L, Xout);
 
-    expect_true(obj.alpha.n_elem == alpha.n_elem);
-    for(unsigned i = 0; i < alpha.n_elem; ++i)
-      expect_true(pass_rel_err(obj.alpha[i], alpha[i]));
-
-    expect_true(obj.norm2.n_elem == norm2.n_elem);
-    for(unsigned i = 0; i < norm2.n_elem; ++i)
-      expect_true(pass_rel_err(obj.norm2[i], norm2[i]));
-
     expect_true(basis.n_cols == Xout.n_cols);
     expect_true(basis.n_rows == Xout.n_rows);
     for(unsigned j = 0; j < Xout.n_cols; ++j)
@@ -445,6 +437,72 @@ context("bases unit tests") {
       expect_true(b.n_elem == Xout.n_cols);
       for(unsigned j = 0; j < Xout.n_cols; ++j)
         expect_true(pass_rel_err(Xout.at(i, j), b[j]));
+    }
+  }
+
+  test_that("orth_poly works with raw == true") {
+    // with the intercept
+    for(unsigned i = 1; i < 4; ++i){
+      joint_bases::orth_poly const obj{i, true};
+
+      constexpr double x{2};
+      arma::vec res = obj(x);
+      double true_val{1};
+      for(unsigned j = 0; j <= i; ++j){
+        expect_true(pass_rel_err(res[j], true_val));
+        true_val *= x;
+      }
+
+      expect_true(obj.get_n_basis() == i + 1);
+    }
+
+    // without the intercept
+    for(unsigned i = 1; i < 4; ++i){
+      joint_bases::orth_poly const obj{i, false};
+
+      constexpr double x{3};
+      arma::vec res = obj(x);
+      double true_val{x};
+      for(unsigned j = 0; j < i; ++j){
+        expect_true(pass_rel_err(res[j], true_val));
+        true_val *= x;
+      }
+
+      expect_true(obj.get_n_basis() == i);
+    }
+
+    test_that("orth_poly works with raw == false") {
+      /*
+       dput(obj <- poly((-2):3, degree = 4))
+       dput(predict(obj, 1.5))
+       */
+      arma::vec alpha{0.5, 0.5, 0.5, 0.5},
+                norm2{1, 6, 17.5, 37.3333333333333, 64.8, 82.2857142857144};
+      constexpr double x{1.5},
+                 truth[]{0.239045721866879, -0.313688217214239, -0.503115294937452, -0.0797268810253839};
+      constexpr size_t n_res{4};
+
+      // with intercept
+      {
+        joint_bases::orth_poly const obj(alpha, norm2, true);
+        arma::vec res = obj(x);
+
+        expect_true(res[0] == 1);
+        for(size_t i = 0; i < n_res; ++i)
+          expect_true(pass_rel_err(res[i + 1], truth[i]));
+
+        expect_true(obj.get_n_basis() == n_res + 1);
+      }
+      // without an intercept
+      {
+        joint_bases::orth_poly const obj(alpha, norm2, false);
+        arma::vec res = obj(x);
+
+        for(size_t i = 0; i < n_res; ++i)
+          expect_true(pass_rel_err(res[i], truth[i]));
+
+        expect_true(obj.get_n_basis() == n_res);
+      }
     }
   }
 }

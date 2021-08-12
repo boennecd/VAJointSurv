@@ -8,7 +8,7 @@
 #include "wmem.h"
 
 class kl_term {
-  subset_params const &idx;
+  subset_params const idx;
   vajoint_uint const n_vars;
 
   /// objects used by setup
@@ -34,7 +34,7 @@ public:
 
   /// Allocates the needed working memory on each call
   inline double eval(double const *param){
-    return eval(param, wmem::get_double_mem(get_n_dmen()));
+    return eval(param, wmem::get_double_mem(get_n_wmem()));
   }
 
   /**
@@ -45,11 +45,11 @@ public:
 
   /// Allocates the needed working memory on each call
   inline double grad(double *g, double const *param){
-    std::unique_ptr<double[]> mem(new double[get_n_dmen()]);
-    return grad(g, param, wmem::get_double_mem(get_n_dmen()));
+    std::unique_ptr<double[]> mem(new double[get_n_wmem()]);
+    return grad(g, param, wmem::get_double_mem(get_n_wmem()));
   }
 
-  size_t get_n_dmen() {
+  size_t get_n_wmem() {
     return 2 * n_vars * n_vars;
   }
 };

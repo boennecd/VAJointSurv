@@ -113,10 +113,10 @@ Let $\vec\gamma = (\gamma_1^\top, \dots, \gamma_L^\top)^\top$,
 $\vec\beta = (\beta_1^\top, \dots, \beta_L^\top)^\top$, and
 
 $$G(s) = \begin{pmatrix} 
-  \vec g_1(s)^\top & 0 & \cdots & 0 \\
-  0 & \vec g_2(s)^\top & \ddots & \dots \\
-  \vdots & \ddots & \ddots & \ddots 0 \\
-  0 & \cdots & 0 & \vec g_L(s)^\top \end{pmatrix}$$
+  \vec g_1(s)^\top & 0^\top & \cdots & \vec 0^\top \\
+  \vec 0^\top & \vec g_2(s)^\top & \ddots & \vdots \\
+  \vdots & \ddots & \ddots & \vec 0^\top \\
+  \vec 0^\top & \cdots & \vec 0^\top & \vec g_L(s)^\top \end{pmatrix}$$
 
 Define $X_i$ and  $M(s)$ similarly in terms of 
 $\vec x_{ik}$ and $\vec m_k(s)$.
@@ -137,7 +137,7 @@ $$
   - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
   \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
   - M(s_{ij})\vec\zeta_{i,1:R}\right) - 
-  \frac 12\text{tr}\Sigma^{-1}\Omega_{i,1:R,1:R}
+  \frac 12\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top
 \end{multline*}
 $$
 

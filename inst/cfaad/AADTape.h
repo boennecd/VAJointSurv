@@ -49,6 +49,9 @@ class Tape
 
     //  Storage for the nodes
 	blocklist<Node, BLOCKSIZE>		    myNodes;
+    
+    //  Storage for working memory
+    blocklist<double, DATASIZE>         myWKMem;
 
 	//	Padding so tapes in a vector don't interfere
     char                                myPad[64];
@@ -62,7 +65,7 @@ class Tape
 public:
 
     //  Build note in place and return a pointer
-	  //	N : number of childs (arguments)
+    //	N : number of childs (arguments)
     template <size_t N>
     Node* recordNode()
     {
@@ -112,6 +115,11 @@ public:
 
       return node;
     }
+    
+    // returns the working memory 
+    double * getWKMem(const size_t N){
+        return myWKMem.emplace_back_multi(N);
+    }
 
     //  Reset all adjoints to 0
 	void resetAdjoints()
@@ -138,6 +146,7 @@ public:
 		myDers.clear();
 		myArgPtrs.clear();
         myNodes.clear();
+        myWKMem.clear();
     }
 
     //  Rewind
@@ -163,6 +172,7 @@ public:
 		myDers.rewind();
 		myArgPtrs.rewind();
 		myNodes.rewind();
+        myWKMem.rewind();
 
 #endif
 
@@ -180,6 +190,7 @@ public:
 		myDers.setmark();
 		myArgPtrs.setmark();
 		myNodes.setmark();
+        myWKMem.setmark();
     }
 
     //  Rewind to mark
@@ -194,6 +205,7 @@ public:
 		myDers.rewind_to_mark();
 		myArgPtrs.rewind_to_mark();
 		myNodes.rewind_to_mark();
+        myWKMem.rewind_to_mark();
     }
 
     //  Iterators

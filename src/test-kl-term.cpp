@@ -122,7 +122,7 @@ context("testing kl-terms") {
 
     // compute the kl term
     kl_term term(params);
-    std::unique_ptr<double[]> mem(new double[term.get_n_dmen()]);
+    std::unique_ptr<double[]> mem(new double[term.get_n_wmem()]);
     term.setup(par.get(), mem.get());
     expect_true(pass_rel_err(term.eval(par.get()), true_kl_term));
 

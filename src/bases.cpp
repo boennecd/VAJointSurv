@@ -5,7 +5,7 @@
 
 inline void check_splines
   (const arma::vec &boundary_knots, const arma::vec &interior_knots,
-   const unsigned order) {
+   const vajoint_uint order) {
 #ifdef DO_CHECKS
   if(order<1)
     throw std::invalid_argument("order<1");
@@ -20,7 +20,7 @@ inline void check_splines
 }
 
 inline void throw_invalid_out(
-    std::string const &cl, unsigned const dim, unsigned const dim_ex){
+    std::string const &cl, vajoint_uint const dim, vajoint_uint const dim_ex){
 #ifdef DO_CHECKS
   std::stringstream msg;
   msg << cl << ": invalid 'out' (dim is " << dim << "; expected "
@@ -31,7 +31,7 @@ inline void throw_invalid_out(
 
 namespace joint_bases {
 
-SplineBasis::SplineBasis(const unsigned order): order(order), knots() {
+SplineBasis::SplineBasis(const vajoint_uint order): order(order), knots() {
 #ifdef DO_CHECKS
   if (order<1)
     throw std::invalid_argument("order<1");
@@ -39,7 +39,7 @@ SplineBasis::SplineBasis(const unsigned order): order(order), knots() {
 }
 
 
-SplineBasis::SplineBasis(const vec knots, const unsigned order):
+SplineBasis::SplineBasis(const vec knots, const vajoint_uint order):
   order(order), knots(knots) {
 #ifdef DO_CHECKS
   if (order<1)
@@ -50,23 +50,23 @@ SplineBasis::SplineBasis(const vec knots, const unsigned order):
 
 inline arma::vec get_SplineBasis_knots
 (vec const &boundary_knots, vec const &interior_knots,
- unsigned const order) {
+ vajoint_uint const order) {
   check_splines(boundary_knots, interior_knots, order);
 
-  unsigned const nknots = interior_knots.size() + 2 * order;
+  vajoint_uint const nknots = interior_knots.size() + 2 * order;
   vec knots(nknots);
-  for(unsigned i = 0; i < order; i++) {
+  for(vajoint_uint i = 0; i < order; i++) {
     knots[i] = boundary_knots[0];
     knots[nknots - i - 1] = boundary_knots[1];
   }
   if (interior_knots.size() > 0)
-    for(unsigned i = 0; i < interior_knots.size(); i++)
+    for(vajoint_uint i = 0; i < interior_knots.size(); i++)
       knots[i + order] = interior_knots[i];
 
   return knots;
 }
 
-bs::bs(const vec &bk, const vec &ik, const bool inter, const unsigned ord):
+bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord):
   SplineBasis(get_SplineBasis_knots(bk, ik, ord), ord),
   boundary_knots(bk), interior_knots(ik),
   intercept(inter),
@@ -75,7 +75,7 @@ bs::bs(const vec &bk, const vec &ik, const bool inter, const unsigned ord):
 }
 
 ns::ns(const vec &boundary_knots, const vec &interior_knots,
-       const bool intercept, const unsigned order):
+       const bool intercept, const vajoint_uint order):
   bspline(boundary_knots, interior_knots, true, order),
   intercept(intercept),
   tl0(trans(bspline(boundary_knots(0), 0))),
@@ -85,20 +85,26 @@ ns::ns(const vec &boundary_knots, const vec &interior_knots,
   { }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,
-                 const bool intercept, const unsigned order):
+                 const bool intercept, const vajoint_uint order):
   intercept(intercept), order(order),
   bspline(boundary_knots, interior_knots, false, order + 1) { }
 
 
 mSpline::mSpline(const vec &boundary_knots, const vec &interior_knots,
-                 const bool intercept, const unsigned order) :
+                 const bool intercept, const vajoint_uint order) :
   bspline(boundary_knots, interior_knots, true, order),
   intercept(intercept) { }
 
-orth_poly::orth_poly(vec const &alpha, vec const &norm2):
-alpha(alpha), norm2(norm2) {
+orth_poly::orth_poly(vajoint_uint const degree, bool const intercept):
+alpha(), norm2(), raw(true), intercept(intercept),
+n_basis(degree + intercept) { }
+
+orth_poly::orth_poly(vec const &alpha, vec const &norm2,
+                     bool const intercept):
+alpha(alpha), norm2(norm2), raw(false), intercept(intercept),
+n_basis(norm2.size() - 2 + intercept) {
 #ifdef DO_CHECKS
-  for(unsigned i = 0; i < norm2.size(); ++i)
+  for(vajoint_uint i = 0; i < norm2.size(); ++i)
     if(norm2[i] <= 0.)
       throw std::invalid_argument("invalid norm2");
     if(alpha.n_elem + 2L != norm2.n_elem)
@@ -107,16 +113,16 @@ alpha(alpha), norm2(norm2) {
 }
 
 orth_poly orth_poly::get_poly_basis(vec x, uword const degree, mat &X){
-  unsigned const n = x.n_elem,
-                nc = degree + 1L;
+  vajoint_uint const n = x.n_elem,
+                    nc = degree + 1L;
   double const x_bar = mean(x);
   x -= x_bar;
   mat XX(n, nc);
   XX.col(0).ones();
-  for(unsigned d = 1L; d < nc; d++){
+  for(vajoint_uint d = 1L; d < nc; d++){
     double       * xx_new = XX.colptr(d);
     double const * xx_old = XX.colptr(d - 1);
-    for(unsigned i = 0; i < n; ++i, ++xx_new, ++xx_old)
+    for(vajoint_uint i = 0; i < n; ++i, ++xx_new, ++xx_old)
       *xx_new = *xx_old * x[i];
   }
 
@@ -126,17 +132,17 @@ orth_poly orth_poly::get_poly_basis(vec x, uword const degree, mat &X){
     throw std::runtime_error(
         "orth_poly::get_poly_basis(): QR decomposition failed");
 
-  for(unsigned c = 0; c < nc; ++c)
+  for(vajoint_uint c = 0; c < nc; ++c)
     X.col(c) *= R.at(c, c);
 
   vec norm2(nc + 1L),
   alpha(nc - 1L);
   norm2[0] = 1.;
-  for(unsigned c = 0; c < nc; ++c){
+  for(vajoint_uint c = 0; c < nc; ++c){
     double z_sq(0),
     x_z_sq(0);
     double const *X_i = X.colptr(c);
-    for(unsigned i = 0; i < n; ++i, ++X_i){
+    for(vajoint_uint i = 0; i < n; ++i, ++X_i){
       double const z_sq_i = *X_i * *X_i;
       z_sq += z_sq_i;
       if(c < degree)
@@ -148,7 +154,7 @@ orth_poly orth_poly::get_poly_basis(vec x, uword const degree, mat &X){
   }
 
   norm2 /= static_cast<double>(n);
-  orth_poly out(alpha, norm2);
+  orth_poly out(alpha, norm2, true);
   X.each_row() /= out.sqrt_norm2.subvec(1L, out.sqrt_norm2.n_elem - 1L).t();
   return out;
 }

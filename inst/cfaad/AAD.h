@@ -24,6 +24,10 @@ As long as this comment is preserved at the top of the file
 #include "AADVectorFuncs.h"
 
 namespace cfaad {
+//  definition of the function to return working memory for the linear algebra
+inline double *getLPWKMem(const size_t n){
+    return Number::tape->getWKMem(n);
+}
 
 //  Routines for multi-dimensional AAD (chapter 14)
 //  Set static context for multi-dimensional AAD

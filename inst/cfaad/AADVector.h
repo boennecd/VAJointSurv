@@ -2,13 +2,10 @@
 
 #include <iterator>
 #include <type_traits>
+#include "AADLp.h"
+#include <algorithm>
 
 namespace cfaad {
-template<class T>
-using it_value_type = typename std::iterator_traits<T>::value_type;
-
-template<class T, class U>
-using is_it_value_type = std::is_same<it_value_type<T>, U>;
 
 template<class T>
 struct vectorOps {
@@ -352,6 +349,318 @@ struct vectorOps {
                 }
             }
     }
+    
+#if AADLAPACK
+
+    /**
+     * computes the quadratic form a^TB^{-1}b where B is a symmetric positive 
+     * definite matrix where a Cholesky factorization has already been computed.
+     *
+     * Here, B is an iterator for Ts while a is an iterator for doubles.
+     */
+    template<class I1, class I2>
+    static T quadFormInv_TMat(I1 a, I2 B, const CholFactorization &chol){
+        static_assert(!is_it_value_type<I1, T>::value,
+                      "First iterator is to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "Second iterator is not to Ts");
+
+        const size_t n = static_cast<size_t>(chol.n);
+        double *wk_mem = T::tape->getWKMem(n);
+        
+        // compute the result
+        using I1_diff_type = typename std::iterator_traits<I1>::difference_type;
+        std::copy(a, a + I1_diff_type(n), wk_mem);
+        chol.solveU(wk_mem, true); // U^{-T}a
+        double out_value{};
+        for(size_t i = 0; i < n; ++i)
+            out_value += wk_mem[i] * wk_mem[i];
+            
+        /* compute the partial derivatives. These are given by 
+         * -B^{-1}aa^\topB^{-1} */
+        chol.solveU(wk_mem, false);
+        T res;
+        res.myValue = out_value;
+        res.createNode(n * n);
+        for(size_t j = 0; j < n; ++j)
+            for(size_t i = 0; i < n; ++i, ++B){
+                res.setpDerivatives(i + j * n, -wk_mem[i] * wk_mem[j]);
+                res.setpAdjPtrs(i + j * n, *B);
+            }
+        
+        return res;
+    }
+    
+    /// same as quadFormInv_TMat but where the vector is to Ts
+    template<class I1, class I2>
+    static T quadFormInv_TVec(I1 a, I2 B, const CholFactorization &chol){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(!is_it_value_type<I2, T>::value,
+                      "Second iterator is to Ts");
+
+        const size_t n = static_cast<size_t>(chol.n);
+        double *wk_mem = T::tape->getWKMem(n);
+        
+        // compute the result
+        {
+            I1 ai = a;
+            for(size_t i = 0; i < n; ++i, ++ai)
+                wk_mem[i] = ai->value();
+        }
+        chol.solveU(wk_mem, true); // U^{-T}a
+        double out_value{};
+        for(size_t i = 0; i < n; ++i)
+            out_value += wk_mem[i] * wk_mem[i];
+            
+        // compute the partial derivatives. These are given by 2 * B^{-1}a
+        chol.solveU(wk_mem, false);
+        T res;
+        res.myValue = out_value;
+        res.createNode(n);
+        for(size_t i = 0; i < n; ++i, ++a){
+            res.setpDerivatives(i, 2 * wk_mem[i]);
+            res.setpAdjPtrs(i, *a);
+        }
+        
+        return res;
+    }
+    
+    /// same as quadFormInv_TMat but with two iterators to Ts
+    template<class I1, class I2>
+    static T quadFormInv_identical(I1 a, I2 B, const CholFactorization &chol){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "Second iterator is not to Ts");
+
+        const size_t n = static_cast<size_t>(chol.n);
+        double *wk_mem = T::tape->getWKMem(n);
+        
+        // compute the result
+        {
+            I1 ai = a;
+            for(size_t i = 0; i < n; ++i, ++ai)
+                wk_mem[i] = ai->value();
+        }
+        chol.solveU(wk_mem, true); // U^{-T}a
+        double out_value{};
+        for(size_t i = 0; i < n; ++i)
+            out_value += wk_mem[i] * wk_mem[i];
+            
+        // compute the partial derivatives
+        chol.solveU(wk_mem, false);
+        T res;
+        res.myValue = out_value;
+        res.createNode(n * (n + 1));
+        for(size_t j = 0; j < n; ++j, ++a){
+            res.setpDerivatives(j, 2 * wk_mem[j]);
+            res.setpAdjPtrs(j, *a);
+            for(size_t i = 0; i < n; ++i, ++B){
+                res.setpDerivatives(i + (j + 1) * n, -wk_mem[i] * wk_mem[j]);
+                res.setpAdjPtrs(i + (j + 1) * n, *B);
+            }
+        }
+        
+        return res;
+    }
+    
+    /**
+     * Computes tr(A^{-1}B) for two symmetric square matrices using a 
+     * pre-computed Cholesky decomposition. This is the version where the A 
+     * iterator is for Ts and the B iterator is for non-Ts */
+    template<class I1, class I2>
+    static T trInvMatMat_first(I1 A, I2 B, const CholFactorization &chol){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(!is_it_value_type<I2, T>::value,
+                      "Second iterator is to Ts");
+        
+        const size_t n{static_cast<size_t>(chol.n)}, 
+                    nn{n * n};
+        double *wk_mem1{T::tape->getWKMem(nn)},
+               *wk_mem2{T::tape->getWKMem(nn)};
+               
+        // compute the retun value
+        {
+            I2 Bi = B;
+            for(size_t i = 0; i < nn; ++i, ++Bi)
+                wk_mem1[i] = *Bi;
+        }
+        for(size_t i = 0; i < n; ++i)
+            chol.solve(wk_mem1 + i * n); // A^{-1}B
+        
+        double res_val{0};
+        {
+            double *diag = wk_mem1;
+            for(size_t i = 0; i < n; ++i, diag += n + 1)
+                res_val += *diag;
+        }
+        
+        // compute and set the partial derivatives
+        for(size_t j = 0; j < n; ++j) // transpose
+            for(size_t i = 0; i < n; ++i)
+                wk_mem2[i + j * n] = wk_mem1[j + i * n];
+        for(size_t i = 0; i < n; ++i)
+            chol.solve(wk_mem2 + i * n); // A^{-1}BA^{-1}
+        
+        T res;
+        res.myValue = res_val;
+        res.createNode(nn);
+        for(size_t i = 0; i < nn; ++i, ++A){
+            res.setpDerivatives(i, -wk_mem2[i]);
+            res.setpAdjPtrs(i, *A);
+        }
+        
+        return res;
+    }
+    
+    /**
+     * same as trInvMatMat_first where the second argument i second iterators is
+     * for Ts but the first is not */
+    template<class I1, class I2>
+    static T trInvMatMat_second(I1 A, I2 B, const CholFactorization &chol){
+        static_assert(!is_it_value_type<I1, T>::value,
+                      "First iterator is to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "Second iterator is not to Ts");
+        
+        const size_t n{static_cast<size_t>(chol.n)}, 
+                    nn{n * n};
+        double *wk_mem{T::tape->getWKMem(nn)};
+               
+        // compute the retun value
+        {
+            I2 Bi = B;
+            for(size_t i = 0; i < nn; ++i, ++Bi)
+                wk_mem[i] = Bi->value();
+        }
+        for(size_t i = 0; i < n; ++i)
+            chol.solve(wk_mem + i * n); // A^{-1}B
+        
+        double res_val{0};
+        {
+            double *diag = wk_mem;
+            for(size_t i = 0; i < n; ++i, diag += n + 1)
+                res_val += *diag;
+        }
+        
+        // set the partial derivatives
+        T res;
+        res.myValue = res_val;
+        res.createNode(nn);
+        double const *A_inv{chol.get_inv()};
+        using it_diff_type = typename std::iterator_traits<I2>::difference_type;
+        for(size_t j = 0; j < n; ++j, ++A_inv){
+            I2 Bi{B + static_cast<it_diff_type>(j * n)};
+            I2 Bj{B + static_cast<it_diff_type>(j)};
+            for(size_t i = 0; i < j; ++i, ++A_inv, ++Bi, Bj += it_diff_type(n)){
+                res.setpDerivatives(i + j * n, *A_inv);
+                res.setpDerivatives(j + i * n, *A_inv);
+                res.setpAdjPtrs(i + j * n, *Bi);
+                res.setpAdjPtrs(j + i * n, *Bj);
+            }
+            res.setpDerivatives(j * (n + 1), *A_inv);
+            res.setpAdjPtrs(j * (n + 1), *Bi);
+        }
+        
+        return res;
+    }
+    
+    /// same as trInvMatMat_first but where both iterators are to Ts
+    template<class I1, class I2>
+    static T trInvMatMat_identical(I1 A, I2 B, const CholFactorization &chol){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "Second iterator is not to Ts");
+        
+        const size_t n{static_cast<size_t>(chol.n)}, 
+                    nn{n * n};
+        double *wk_mem1{T::tape->getWKMem(nn)},
+               *wk_mem2{T::tape->getWKMem(nn)};
+               
+        // compute the retun value
+        {
+            I2 Bi = B;
+            for(size_t i = 0; i < nn; ++i, ++Bi)
+                wk_mem1[i] = Bi->value();
+        }
+        for(size_t i = 0; i < n; ++i)
+            chol.solve(wk_mem1 + i * n); // A^{-1}B
+        
+        double res_val{0};
+        {
+            double *diag = wk_mem1;
+            for(size_t i = 0; i < n; ++i, diag += n + 1)
+                res_val += *diag;
+        }
+        
+        // compute and set the partial derivatives
+        for(size_t j = 0; j < n; ++j) // transpose
+            for(size_t i = 0; i < n; ++i)
+                wk_mem2[i + j * n] = wk_mem1[j + i * n];
+        for(size_t i = 0; i < n; ++i)
+            chol.solve(wk_mem2 + i * n); // A^{-1}BA^{-1}
+        
+        T res;
+        res.myValue = res_val;
+        res.createNode(2 * nn);
+        double const *A_inv{chol.get_inv()};
+        using it_diff_type = typename std::iterator_traits<I2>::difference_type;
+        for(size_t j = 0; j < n; ++j, ++A_inv){
+            I2 Bi{B + static_cast<it_diff_type>(j * n)};
+            I2 Bj{B + static_cast<it_diff_type>(j)};
+            for(size_t i = 0; i < j; ++i, ++A_inv, ++Bi, Bj += it_diff_type(n)){
+                res.setpDerivatives(i + j * n, *A_inv);
+                res.setpDerivatives(j + i * n, *A_inv);
+                res.setpAdjPtrs(i + j * n, *Bi);
+                res.setpAdjPtrs(j + i * n, *Bj);
+            }
+            res.setpDerivatives(j * (n + 1), *A_inv);
+            res.setpAdjPtrs(j * (n + 1), *Bi);
+        }
+        
+        for(size_t i = 0; i < nn; ++i, ++A){
+            res.setpDerivatives(i + nn, -wk_mem2[i]);
+            res.setpAdjPtrs(i + nn, *A);
+        }
+        
+        return res;
+    }
+    
+    /**
+     * computes the log determinant of a symmetric positive definte matrix
+     * using a pre-computed Choleksy decomposition */
+    template<class I>
+    static T logDeter(I begin, const CholFactorization &chol){
+        static_assert(is_it_value_type<I, T>::value,
+                      "Iterator is not to Ts");
+            
+        const size_t n{static_cast<size_t>(chol.n)};
+        T res;
+        res.myValue = log(chol.determinant());
+        res.createNode(n * n);
+        
+        double const *M_inv{chol.get_inv()};
+        using it_diff_type = typename std::iterator_traits<I>::difference_type;
+        for(size_t j = 0; j < n; ++j, ++M_inv){
+            I Mi{begin + static_cast<it_diff_type>(j * n)};
+            I Mj{begin + static_cast<it_diff_type>(j)};
+            for(size_t i = 0; i < j; ++i, ++M_inv, ++Mi, Mj += it_diff_type(n)){
+                res.setpDerivatives(i + j * n, *M_inv);
+                res.setpDerivatives(j + i * n, *M_inv);
+                res.setpAdjPtrs(i + j * n, *Mi);
+                res.setpAdjPtrs(j + i * n, *Mj);
+            }
+            res.setpDerivatives(j * (n + 1), *M_inv);
+            res.setpAdjPtrs(j * (n + 1), *Mi);
+        }
+        
+        return res;
+    }
+
+#endif // if AADLAPACK
 };
 
 } // namespace cfaad

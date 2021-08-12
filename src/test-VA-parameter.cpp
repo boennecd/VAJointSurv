@@ -15,12 +15,11 @@ context("subset_params works as expected") {
     expect_true(params.get_surv_info().size() == 2);
 
     expect_true(params.get_fixef_idx_marker(0) == 0);
-    expect_true(params.get_varying_idx_marker(0) == 3);
+    expect_true(params.get_fixef_idx_marker(1) == 3);
+    expect_true(params.get_fixef_idx_marker(2) == 4);
 
-    expect_true(params.get_fixef_idx_marker(1) == 5);
-    expect_true(params.get_varying_idx_marker(1) == 6);
-
-    expect_true(params.get_fixef_idx_marker(2) == 7);
+    expect_true(params.get_varying_idx_marker(0) == 7);
+    expect_true(params.get_varying_idx_marker(1) == 9);
     expect_true(params.get_varying_idx_marker(2) == 10);
 
     expect_true(params.get_fixef_idx_surv(0) == 13);
@@ -46,12 +45,11 @@ context("subset_params works as expected") {
 
     // with the triangular matrices
     expect_true(params.get_fixef_idx_marker<true>(0) == 0);
-    expect_true(params.get_varying_idx_marker<true>(0) == 3);
+    expect_true(params.get_fixef_idx_marker<true>(1) == 3);
+    expect_true(params.get_fixef_idx_marker<true>(2) == 4);
 
-    expect_true(params.get_fixef_idx_marker<true>(1) == 5);
-    expect_true(params.get_varying_idx_marker<true>(1) == 6);
-
-    expect_true(params.get_fixef_idx_marker<true>(2) == 7);
+    expect_true(params.get_varying_idx_marker<true>(0) == 7);
+    expect_true(params.get_varying_idx_marker<true>(1) == 9);
     expect_true(params.get_varying_idx_marker<true>(2) == 10);
 
     expect_true(params.get_fixef_idx_surv<true>(0) == 13);
@@ -80,16 +78,12 @@ context("subset_params works as expected") {
     params.add_marker({ 1L, 1L, 3L});
     params.add_marker({ 3L, 3L, 1L});
 
-    expect_true(params.get_marker_info().size() == 3);
-    expect_true(params.get_surv_info().size() == 0);
-
     expect_true(params.get_fixef_idx_marker(0) == 0);
-    expect_true(params.get_varying_idx_marker(0) == 3);
+    expect_true(params.get_fixef_idx_marker(1) == 3);
+    expect_true(params.get_fixef_idx_marker(2) == 4);
 
-    expect_true(params.get_fixef_idx_marker(1) == 5);
-    expect_true(params.get_varying_idx_marker(1) == 6);
-
-    expect_true(params.get_fixef_idx_marker(2) == 7);
+    expect_true(params.get_varying_idx_marker(0) == 7);
+    expect_true(params.get_varying_idx_marker(1) == 9);
     expect_true(params.get_varying_idx_marker(2) == 10);
 
     expect_true(params.get_idx_error_term() == 13);
@@ -107,12 +101,11 @@ context("subset_params works as expected") {
 
     // with the triangular matrices
     expect_true(params.get_fixef_idx_marker<true>(0) == 0);
-    expect_true(params.get_varying_idx_marker<true>(0) == 3);
+    expect_true(params.get_fixef_idx_marker<true>(1) == 3);
+    expect_true(params.get_fixef_idx_marker<true>(2) == 4);
 
-    expect_true(params.get_fixef_idx_marker<true>(1) == 5);
-    expect_true(params.get_varying_idx_marker<true>(1) == 6);
-
-    expect_true(params.get_fixef_idx_marker<true>(2) == 7);
+    expect_true(params.get_varying_idx_marker<true>(0) == 7);
+    expect_true(params.get_varying_idx_marker<true>(1) == 9);
     expect_true(params.get_varying_idx_marker<true>(2) == 10);
 
     expect_true(params.get_idx_error_term<true>() == 13);
