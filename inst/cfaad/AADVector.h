@@ -99,40 +99,48 @@ struct vectorOps {
      * column-major order.
      * 
      * This is the version where the matrix is a T type whereas the vector is 
-     * for non-Ts. The last argument sets whether it is the X^T rather than X.
+     * for non-Ts. The trans argument sets whether it is the X^T rather than X.
+     * The trans argument determines m when trans is FALSE or n when trans is 
+     * TRUE.
      */
     template<class I1, class I2, class I3>
     static void mat_vec_prod_TMat
-    (I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
+    (I1 xf, I1 xl, I2 af, I2 al, I3 of, const bool trans, const size_t other){
         static_assert(is_it_value_type<I1, T>::value,
                       "First iterator is not to Ts");
         static_assert(!is_it_value_type<I2, T>::value,
                       "Second iterator is to Ts");
         static_assert(is_it_value_type<I3, T>::value,
                       "Third iterators is not to Ts");
-                      
-        const size_t n = static_cast<size_t>(std::distance(af, al)), 
-                     m = static_cast<size_t>(std::distance(xf, xl)) / n;
                      
         if(trans){
-            for(size_t i = 0; i < m; ++i, ++of){
-                of->createNode(n);
+            const size_t m{static_cast<size_t>(std::distance(af, al))}, 
+                         n{other},
+                       ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
+            
+            for(size_t i = 0; i < n; ++i, ++of, xf += ldx - m){
+                of->createNode(m);
                 of->myValue = 0;
-                for(size_t j = 0; j < n; ++j, ++xf){
+                for(size_t j = 0; j < m; ++j, ++xf){
                     of->myValue += xf->value() * af[j];
                     of->setpDerivatives(j, af[j]);
                     of->setpAdjPtrs(j, *xf);
                 }
             }
+            
             return;
         }
+        
+        const size_t m{other},
+                     n{static_cast<size_t>(std::distance(af, al))},
+                   ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
                      
         for(auto v = of; v != of + m; ++v){
             v->createNode(n);
             v->myValue = 0;
         }
         
-        for(size_t j = 0; j < n; ++j, ++af)
+        for(size_t j = 0; j < n; ++j, ++af, xf += ldx - m)
             for(size_t i = 0; i < m; ++i, ++xf){
                 of[i].myValue += xf->value() * *af;
                 of[i].setpDerivatives(j, *af);
@@ -146,24 +154,24 @@ struct vectorOps {
      */
     template<class I1, class I2, class I3>
     static void mat_vec_prod_TVec
-    (I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
+    (I1 xf, I1 xl, I2 af, I2 al, I3 of, const bool trans, const size_t other){
         static_assert(!is_it_value_type<I1, T>::value,
                       "First iterator is to Ts");
         static_assert(is_it_value_type<I2, T>::value,
                       "Second iterator is not to Ts");
         static_assert(is_it_value_type<I3, T>::value,
                       "Third iterators is not to Ts");
-                      
-        const size_t n = static_cast<size_t>(std::distance(af, al)), 
-                     m = static_cast<size_t>(std::distance(xf, xl)) / n;
-                     
                      
         if(trans){
-            for(size_t i = 0; i < m; ++i, ++of){
-                of->createNode(n);
+            const size_t m{static_cast<size_t>(std::distance(af, al))}, 
+                         n{other},
+                       ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
+            
+            for(size_t i = 0; i < n; ++i, ++of, xf += ldx - m){
+                of->createNode(m);
                 of->myValue = 0;
-                for(size_t j = 0; j < n; ++j, ++xf){
-                    of->myValue += *xf  * af[j].value();
+                for(size_t j = 0; j < m; ++j, ++xf){
+                    of->myValue += *xf * af[j].value();
                     of->setpDerivatives(j, *xf);
                     of->setpAdjPtrs(j, af[j]);
                 }
@@ -171,13 +179,17 @@ struct vectorOps {
             
             return;
         }
+        
+        const size_t m{other},
+                     n{static_cast<size_t>(std::distance(af, al))},
+                   ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
                      
         for(auto v = of; v != of + m; ++v){
             v->createNode(n);
             v->myValue = 0;
         }
         
-        for(size_t j = 0; j < n; ++j, ++af)
+        for(size_t j = 0; j < n; ++j, ++af, xf += ldx - m)
             for(size_t i = 0; i < m; ++i, ++xf){
                 of[i].myValue += *xf  * af->value();
                 of[i].setpDerivatives(j, *xf);
@@ -188,39 +200,44 @@ struct vectorOps {
     /// the same as mat_vec_prod_TMat but where both iterators are for Ts.
     template<class I1, class I2, class I3>
     static void mat_vec_prod_identical
-    (I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
+    (I1 xf, I1 xl, I2 af, I2 al, I3 of, const bool trans, const size_t other){
         static_assert(is_it_value_type<I1, T>::value,
                       "First iterator is not to Ts");
         static_assert(is_it_value_type<I2, T>::value,
                       "Second iterator is not to Ts");
         static_assert(is_it_value_type<I3, T>::value,
                       "Third iterators is not to Ts");
-                      
-        const size_t n = static_cast<size_t>(std::distance(af, al)), 
-                     m = static_cast<size_t>(std::distance(xf, xl)) / n;
                      
         if(trans){
-            for(size_t i = 0; i < m; ++i, ++of){
-                of->createNode(2 * n);
+            const size_t m{static_cast<size_t>(std::distance(af, al))}, 
+                         n{other},
+                       ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
+            
+            for(size_t i = 0; i < n; ++i, ++of, xf += ldx - m){
+                of->createNode(2 * m);
                 of->myValue = 0;
-                for(size_t j = 0; j < n; ++j, ++xf){
+                for(size_t j = 0; j < m; ++j, ++xf){
                     of->myValue += xf->value() * af[j].value();
                     of->setpDerivatives(j, xf->value());
                     of->setpAdjPtrs(j, af[j]);
-                    of->setpDerivatives(j + n, af[j].value());
-                    of->setpAdjPtrs(j + n, *xf);
+                    of->setpDerivatives(j + m, af[j].value());
+                    of->setpAdjPtrs(j + m, *xf);
                 }
             }
             
             return;
         }
+        
+        const size_t m{other},
+                     n{static_cast<size_t>(std::distance(af, al))},
+                   ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
                      
         for(auto v = of; v != of + m; ++v){
             v->createNode(2 * n);
             v->myValue = 0;
         }
 
-        for(size_t j = 0; j < n; ++j, ++af)
+        for(size_t j = 0; j < n; ++j, ++af, xf += ldx - m)
             for(size_t i = 0; i < m; ++i, ++xf){
                 of[i].myValue += xf->value() * af->value();
                 of[i].setpDerivatives(j, xf->value());
@@ -240,7 +257,8 @@ struct vectorOps {
      * for non-Ts. The last argument sets whether it is the X^T rather than X.
      */
     template<class I1, class I2, class I3>
-    static void trimat_vec_prod_Tmat(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod_Tmat(I1 xf, I2 af, I2 al, I3 of, 
+                                     const bool trans){
         static_assert(is_it_value_type<I1, T>::value,
                       "First iterator is not to Ts");
         static_assert(!is_it_value_type<I2, T>::value,
@@ -278,7 +296,8 @@ struct vectorOps {
      * non-Ts and the second argument is for Ts.
      */
     template<class I1, class I2, class I3>
-    static void trimat_vec_prod_Tvec(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod_Tvec(I1 xf, I2 af, I2 al, I3 of, 
+                                     const bool trans){
         static_assert(!is_it_value_type<I1, T>::value,
                       "First iterator is to Ts");
         static_assert(is_it_value_type<I2, T>::value,
@@ -313,7 +332,8 @@ struct vectorOps {
     
     /// the same as trimat_vec_prod_Tmat but where both iterators are for Ts.
     template<class I1, class I2, class I3>
-    static void trimat_vec_prod_identical(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod_identical(I1 xf, I2 af, I2 al, I3 of, 
+                                          const bool trans){
         static_assert(is_it_value_type<I1, T>::value,
                       "First iterator is not to Ts");
         static_assert(is_it_value_type<I2, T>::value,
@@ -633,7 +653,7 @@ struct vectorOps {
      * computes the log determinant of a symmetric positive definte matrix
      * using a pre-computed Choleksy decomposition */
     template<class I>
-    static T logDeter(I begin, const CholFactorization &chol){
+    static T log_deter(I begin, const CholFactorization &chol){
         static_assert(is_it_value_type<I, T>::value,
                       "Iterator is not to Ts");
             

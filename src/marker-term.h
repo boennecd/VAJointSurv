@@ -231,15 +231,16 @@ public:
         vajoint_uint const offset_j{offsets_rng[j]},
                         n_effects_j
                         {par_idx.get_marker_info()[indices[j]].n_rng};
-        for(vajoint_uint jj = 0; jj < n_effects_j; ++jj, ++j_idx){
+        for(vajoint_uint jj = offset_j; jj < offset_j + n_effects_j;
+            ++jj, ++j_idx){
           vajoint_uint i_idx{};
           for(vajoint_uint i = 0; i < n_indices; ++i){
             vajoint_uint const offset_i{offsets_rng[i]},
                             n_effects_i
                             {par_idx.get_marker_info()[indices[i]].n_rng};
-            for(vajoint_uint ii = 0; ii < n_effects_i; ++ii, ++i_idx)
-              Psi[i_idx + j_idx * c_dat.n_rngs] =
-                s[i_idx + offset_i + (j_idx + offset_j) * n_rngs];
+            for(vajoint_uint ii = offset_i; ii < offset_i + n_effects_i;
+                ++ii, ++i_idx)
+              Psi[i_idx + j_idx * c_dat.n_rngs] = s[ii + jj * n_rngs];
           }
         }
       }
@@ -254,14 +255,14 @@ public:
       for(vajoint_uint i = 0; i < n_indices; ++i){
         delta[i] = outcomes.col(idx)[indices[i]];
 
-        { // fixed effect
+        { // fixed effects
           vajoint_uint const offset{par_idx.get_fixef_idx_marker(indices[i])};
           double const * d{design + offset};
           delta[i] -= cfaad::dotProd
             (d, d + par_idx.get_marker_info()[indices[i]].n_fix,
              param + offset);
         }
-        { // time-varying fixed effect
+        { // time-varying fixed effects
           vajoint_uint const offset{par_idx.get_varying_idx_marker(indices[i])};
           double const * d{design + offset};
           delta[i] -= cfaad::dotProd
@@ -296,7 +297,7 @@ public:
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
       cfaad::matVecProd
         (Psi + offset * c_dat.n_rngs, Psi + (offset + n_rng_i) * c_dat.n_rngs,
-         d, d + n_rng_i, Psi_M + offset * c_dat.n_rngs, false);
+         d, d + n_rng_i, Psi_M + i * c_dat.n_rngs, false);
     }
 
     // compute M^T.Psi.M
@@ -308,11 +309,9 @@ public:
       unsigned const offset{offsets_rng[indices[i]]},
                     n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
-      // TODO: the code is wrong. We need a leading dimension
       cfaad::matVecProd
-        (Psi_M + offset * c_dat.n_rngs,
-         Psi_M + (offset + i + 1) * c_dat.n_rngs, d, d + n_rng_i,
-         MT_Psi_M + offset * n_indices, true);
+        (Psi_M + offset, Psi_M + offset + n_indices * c_dat.n_rngs,
+         d, d + n_rng_i, MT_Psi_M + i * n_indices, true, n_indices);
     }
 
     out += cfaad::trInvMatMat(Sig, MT_Psi_M, vcov_factorization);

@@ -2,6 +2,7 @@
 
 #include "AADNumWrapper.h"
 #include <numeric>
+#include <algorithm>
 
 namespace cfaad {
 // sum function
@@ -97,21 +98,30 @@ template<class I1, class I2, class V1, class V2>
 struct VecMatProdOp {
     /// the general case
     template<class I3>
-    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
-        const size_t n = static_cast<size_t>(std::distance(af, al)), 
-                     m = static_cast<size_t>(std::distance(xf, xl)) / n;
-                     
-        for(auto v = of; v != of + m; ++v)
-            *v = 0;
-        
-        if(trans)
-            for(size_t i = 0; i < m; ++i)
-                for(size_t j = 0; j < n; ++j, ++xf)
+    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                             const bool trans, const size_t other){
+        if(trans){
+            const size_t m{static_cast<size_t>(std::distance(af, al))}, 
+                         n{other},
+                       ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
+            
+            for(size_t i = 0; i < n; ++i, xf += ldx - m){
+                of[i] = 0;
+                for(size_t j = 0; j < m; ++j, ++xf)
                     of[i] += *xf * af[j];
-        else
-            for(size_t j = 0; j < n; ++j, ++af)
-                for(size_t i = 0; i < m; ++i, ++xf)
-                    of[i] += *xf * *af;
+            }
+            return;
+        }
+        
+        const size_t m{other},
+                     n{static_cast<size_t>(std::distance(af, al))},
+                   ldx{static_cast<size_t>(std::distance(xf, xl)) / n};
+                   
+        std::fill(of, of + m, 0);
+        
+        for(size_t j = 0; j < n; ++j, ++af, xf += ldx - m)
+            for(size_t i = 0; i < m; ++i, ++xf)
+                of[i] += *xf * *af;
     }
 };
 
@@ -119,8 +129,9 @@ template<class I1, class I2, class V2>
 struct VecMatProdOp<I1, I2, Number, V2> {
     /// special case where the matrix is a Number type
     template<class I3>
-    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
-        Number::mat_vec_prod_TMat(xf, xl, af, al, of, trans);
+    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                             const bool trans, const size_t other){
+        Number::mat_vec_prod_TMat(xf, xl, af, al, of, trans, other);
     }
 };
 
@@ -128,8 +139,9 @@ template<class I1, class I2, class V1>
 struct VecMatProdOp<I1, I2, V1, Number> {
     /// special case where the vector is a Number type
     template<class I3>
-    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
-        Number::mat_vec_prod_TVec(xf, xl, af, al, of, trans);
+    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                             const bool trans, const size_t other){
+        Number::mat_vec_prod_TVec(xf, xl, af, al, of, trans, other);
     }
 };
 
@@ -137,17 +149,31 @@ template<class I1, class I2>
 struct VecMatProdOp<I1, I2, Number, Number> {
     /// special case where both iterators are for Numbers
     template<class I3>
-    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
-        Number::mat_vec_prod_identical(xf, xl, af, al, of, trans);
+    static void mat_vec_prod(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                             const bool trans, const size_t other){
+        Number::mat_vec_prod_identical(xf, xl, af, al, of, trans, other);
     }
 };
 } // namespace implementation
 
+/// version where the leading dimension is the same as the matrix in the product
 template<class I1, class I2, class I3>
-void matVecProd(I1 xf, I1 xl, I2 af, I2 al, I3 of, bool trans){
+void matVecProd(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                const bool trans){
+    const size_t la{static_cast<size_t>(std::distance(af, al))}, 
+              other{static_cast<size_t>(std::distance(xf, xl)) / la};
+    
     implementation::VecMatProdOp
     <I1, I2, it_value_type<I1>, it_value_type<I2> >::mat_vec_prod
-    (xf, xl, af, al, of, trans);
+    (xf, xl, af, al, of, trans, other);
+}
+
+template<class I1, class I2, class I3>
+void matVecProd(I1 xf, I1 xl, I2 af, I2 al, I3 of, 
+                const bool trans, const size_t other){
+    implementation::VecMatProdOp
+    <I1, I2, it_value_type<I1>, it_value_type<I2> >::mat_vec_prod
+    (xf, xl, af, al, of, trans, other);
 }
 
 
@@ -157,7 +183,8 @@ template<class I1, class I2, class V1, class V2>
 struct VecTriMatProdOp {
     /// the general case
     template<class I3>
-    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, 
+                                const bool trans){
         const size_t n = static_cast<size_t>(std::distance(af, al));
                      
         for(auto v = of; v != of + n; ++v)
@@ -178,7 +205,8 @@ template<class I1, class I2, class V2>
 struct VecTriMatProdOp<I1, I2, Number, V2>{
     /// special case where the matrix is a Number type
     template<class I3>
-    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, 
+                                const bool trans){
         Number::trimat_vec_prod_Tmat(xf, af, al, of, trans);
     }
 };
@@ -187,7 +215,8 @@ template<class I1, class I2, class V1>
 struct VecTriMatProdOp<I1, I2, V1, Number>{
     /// special case where the vector is a Number type
     template<class I3>
-    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, 
+                                const bool trans){
         Number::trimat_vec_prod_Tvec(xf, af, al, of, trans);
     }
 };
@@ -196,14 +225,16 @@ template<class I1, class I2>
 struct VecTriMatProdOp<I1, I2, Number, Number>{
     /// special case where both iterators are for Numbers
     template<class I3>
-    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, bool trans){
+    static void trimat_vec_prod(I1 xf, I2 af, I2 al, I3 of, 
+                                const bool trans){
         Number::trimat_vec_prod_identical(xf, af, al, of, trans);
     }
 };
 } // namespace implementation
 
 template<class I1, class I2, class I3>
-void triMatVecProd(I1 xf, I2 af, I2 al, I3 of, bool trans){
+void triMatVecProd(I1 xf, I2 af, I2 al, I3 of, 
+                   const bool trans){
     implementation::VecTriMatProdOp
     <I1, I2, it_value_type<I1>, it_value_type<I2> >::trimat_vec_prod
     (xf, af, al, of, trans);
@@ -351,7 +382,7 @@ struct logDeterOp<I, Number> {
     using returnT = Number;
     /// special case where the iterator is for Numbers
     static Number log_deter(I begin, const CholFactorization &chol){
-        return Number::logDeter(begin, chol);
+        return Number::log_deter(begin, chol);
     }
 };
 } // namespace implementation
