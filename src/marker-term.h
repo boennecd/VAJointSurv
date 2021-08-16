@@ -98,10 +98,9 @@ private:
   std::vector<vajoint_uint> offsets_rng;
 
   /// the needed working memory
-  // TODO: double check this
   size_t n_wmem{
-    n_markers * (n_markers + 1) + n_basis_rng * n_basis_rng +
-    par_idx.get_n_shared() * (par_idx.get_n_shared() + n_markers)};
+    2 * n_markers * n_markers + n_basis_rng * n_basis_rng + n_markers +
+      n_basis_rng * n_markers};
 
   /**
    * the pre-computed data for eval. We do not want to re-compute the matrix
@@ -213,40 +212,55 @@ public:
     //       markers are observed
 
     // construct the copy of the covariance matrix
-    T * const Sig = wk_mem;
-    {
+    T const * const Sig = ([&]() -> T const * {
       T const * const s{param + par_idx.get_idx_error_term()};
+      if(n_indices == n_markers)
+        return s;
+
+      // create a copy of the subset of the covariance matrix
+      T *out = wk_mem;
       for(vajoint_uint j = 0; j < n_indices; ++j)
         for(vajoint_uint i = 0; i < n_indices; ++i)
           wk_mem[i + j * n_indices] = s[indices[i] + n_markers * indices[j]];
-    }
-    wk_mem += n_indices * n_indices;
+      wk_mem += n_indices * n_indices;
+      return out;
+    })();
 
     // construct the copy of random effect covariance matrix
-    T * const Psi = wk_mem;
-    {
+    T const * const Psi = ([&](){
       T const * const s{param + par_idx.get_idx_va_vcov()};
       vajoint_uint const n_rngs{n_basis_rng + par_idx.get_n_shared_surv()};
-      vajoint_uint j_idx{};
-      for(vajoint_uint j = 0; j < n_indices; ++j){
-        vajoint_uint const offset_j{offsets_rng[indices[j]]},
-                        n_effects_j
-                        {par_idx.get_marker_info()[indices[j]].n_rng};
-        for(vajoint_uint jj = offset_j; jj < offset_j + n_effects_j;
-            ++jj, ++j_idx){
-          vajoint_uint i_idx{};
-          for(vajoint_uint i = 0; i < n_indices; ++i){
-            vajoint_uint const offset_i{offsets_rng[indices[i]]},
-                            n_effects_i
-                            {par_idx.get_marker_info()[indices[i]].n_rng};
-            for(vajoint_uint ii = offset_i; ii < offset_i + n_effects_i;
-                ++ii, ++i_idx)
-              Psi[i_idx + j_idx * c_dat.n_rngs] = s[ii + jj * n_rngs];
+      T *out = wk_mem;
+      wk_mem += c_dat.n_rngs * c_dat.n_rngs;
+
+      if(n_indices == n_markers){
+        for(vajoint_uint j = 0; j < c_dat.n_rngs; ++j)
+          for(vajoint_uint i = 0; i < c_dat.n_rngs; ++i)
+            out[i + j * c_dat.n_rngs] = s[i + j * n_rngs];
+
+      } else {
+        vajoint_uint j_idx{};
+        for(vajoint_uint j = 0; j < n_indices; ++j){
+          vajoint_uint const offset_j{offsets_rng[indices[j]]},
+          n_effects_j
+          {par_idx.get_marker_info()[indices[j]].n_rng};
+          for(vajoint_uint jj = offset_j; jj < offset_j + n_effects_j;
+          ++jj, ++j_idx){
+            vajoint_uint i_idx{};
+            for(vajoint_uint i = 0; i < n_indices; ++i){
+              vajoint_uint const offset_i{offsets_rng[indices[i]]},
+              n_effects_i
+              {par_idx.get_marker_info()[indices[i]].n_rng};
+              for(vajoint_uint ii = offset_i; ii < offset_i + n_effects_i;
+              ++ii, ++i_idx)
+                out[i_idx + j_idx * c_dat.n_rngs] = s[ii + jj * n_rngs];
+            }
           }
         }
+
       }
-    }
-    wk_mem += c_dat.n_rngs * c_dat.n_rngs;
+      return out;
+    })();
 
     // compute the difference between the observed and expected outcome
     T out{0}; // the output
@@ -281,7 +295,7 @@ public:
       out += cfaad::quadFormInv(delta, Sig, vcov_factorization);
     }
 
-    // add the determinant term and the constant
+    // add the log of the determinant term and the constant term
     constexpr double log_2_pi{1.83787706640935};
     out += static_cast<double>(n_indices) * log_2_pi;
     out += cfaad::logDeter(Sig, vcov_factorization);
