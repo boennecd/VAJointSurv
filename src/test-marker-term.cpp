@@ -157,7 +157,9 @@ context("marker_term is correct") {
 
 # parameters
      set.seed(1)
-     Xs <- list(matrix(1:2, 2), matrix(-(1:2), 2), matrix(.5, 1))
+     Xs <- list(matrix(c(1:2, -1, -2), 2),
+     matrix(-(1:2), 2),
+     matrix(c(.5, .67), 1))
      gs <- list(c(-.25, .33), c(-1, 2), c(1.5))
      betas <- list(c(.2), c(.5, 3), c(2.5))
      dput(Sig <- round(drop(rWishart(1, 6, diag(3))), 2))
@@ -174,7 +176,8 @@ context("marker_term is correct") {
      function(x) raw_poly(x, 1, TRUE))
 
      obs <- list(
-     list(is_obs = 1:3, ti = .5, idx = c(1, 1, 1)))
+     list(is_obs = 1:3, ti = .5, idx = c(1L, 1L, 1L)),
+     list(is_obs = c(1L, 3L), ti = 1.2, idx = c(2L, 2L)))
 
 # generate a plausible
      obs <- lapply(obs, function(x){
@@ -187,8 +190,8 @@ context("marker_term is correct") {
      }, x$is_obs, x$idx)
 
      x$y <- round(drop(
-     mvtnorm::rmvnorm(1, mean = mea, sigma = matrix(Sig, length(x$is_obs)))),
-     2)
+     mvtnorm::rmvnorm(1, mean = mea,
+     sigma =  matrix(Sig, 3)[x$is_obs, x$is_obs])), 2)
      x
      })
      dput(obs)
@@ -225,6 +228,7 @@ context("marker_term is correct") {
      M[rng_idx[[is_obs[i]]], i] <- m_funcs[[is_obs[i]]](ti)
 
      rng_indices <- do.call(c, rng_idx[is_obs])
+     M <- M[rng_indices, ]
      out <- out + sum(diag(solve(
      Sig[is_obs, is_obs],
      crossprod(M, Psi[rng_indices, rng_indices]) %*% M))) / 2
@@ -234,7 +238,9 @@ context("marker_term is correct") {
      }
 
      dput(f(c(do.call(c, gs), do.call(c, betas), Sig, zeta, Psi)))
-     dput(numDeriv::grad(f, c(do.call(c, gs), do.call(c, betas), Sig, zeta, Psi)))
+     gr <- numDeriv::grad(f, c(do.call(c, gs), do.call(c, betas), Sig, zeta, Psi))
+     dput(head(gr, 18))
+     dput(tail(gr, -18))
      */
 
     // the bases
@@ -249,23 +255,23 @@ context("marker_term is correct") {
     bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
     bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
 
-    constexpr vajoint_uint n_obs[3]{1, 1, 1},
+    constexpr vajoint_uint n_obs[3]{2, 1, 2},
                          n_fixef[3]{2, 2, 1};
-    constexpr double obs_1[n_obs[0]] {3.51},
+    constexpr double obs_1[n_obs[0]] {3.51, 8.34},
                      obs_2[n_obs[1]] {-3.41},
-                     obs_3[n_obs[2]] {2.11},
+                     obs_3[n_obs[2]] {2.11, 8.69},
 
-                obs_time_1[n_obs[0]] {.5},
+                obs_time_1[n_obs[0]] {.5, 1.2},
                 obs_time_2[n_obs[1]] {.5},
-                obs_time_3[n_obs[2]] {.5};
-    constexpr int ids_1[n_obs[0]] {1},
+                obs_time_3[n_obs[2]] {.5, 1.2};
+    constexpr int ids_1[n_obs[0]] {1, 1},
                   ids_2[n_obs[1]] {1},
-                  ids_3[n_obs[2]] {1};
+                  ids_3[n_obs[2]] {1, 1};
 
     // the design matrix
-    double X1[n_obs[0] * n_fixef[0]] {1, 2},
+    double X1[n_obs[0] * n_fixef[0]] {1, 2, -1, -2},
            X2[n_obs[1] * n_fixef[1]] {-1, -2},
-           X3[n_obs[2] * n_fixef[2]] {.5};
+           X3[n_obs[2] * n_fixef[2]] {.5, .67};
     constexpr double Sig[]{3.22, 2.28, -2.76, 2.28, 10.26, -4.69, -2.76, -4.69, 7.34},
                      Psi[]{18.18, -1.3, 1.66, -1.75, -5.28, -0.24, -1, -1.3, 22.81, -3.08, 1.33, -0.69, 2.42, -2.52, 1.66, -3.08, 28.75, -5.05, 1.66, 5.43, -2.06, -1.75, 1.33, -5.05, 7.57, 0.46, -2.58, -1.31, -5.28, -0.69, 1.66, 0.46, 20.3, -5.26, 3.29, -0.24, 2.42, 5.43, -2.58, -5.26, 23.29, 3.9, -1, -2.52, -2.06, -1.31, 3.29, 3.9, 17.06},
                     zeta[]{3.42, -2.39, 7.86, -1.78, 6.86, 1.91, -1.06},
@@ -276,16 +282,14 @@ context("marker_term is correct") {
             b2[n_fixef[1]]{.5, 3},
             b3[n_fixef[2]]{2.5},
              // has to change if the order of the parameters change
-                  true_val{17.0817323197455},
-             true_derivs[]{0.648935753828431, 1.29787150712535, -0.486880407354136, -0.973760814930983, 0.364068923016195, 0.32446787640359, 0.243440203744479, 0.121720101884161, 0.364068923103239, -3.18262061601155, 0.0558312461720907, -1.58859618683467, 0.0558312461720907, -0.249914581138612, -0.295612614003757, -1.58859618683467, -0.295612614003757, -1.28603306521299,
+                  true_val{51.6018122187957},
+             true_derivs[]{-0.193634481951502, -0.387268966740059, -0.486880407147759, -0.973760814811482, 0.206928716203386, 1.33555215993641, 0.243440204153009, 0.121720101804142, 0.082623776620504, -14.9974646929942, 0.0558312462478272, -6.53595373246103, 0.0558312462478272, -0.249914581141997, -0.295612614003981, -6.53595373246103, -0.295612614003981, -3.95101766793635,
                            // the random effect covariance matrix
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                           0.648935753498663, 0.324467876731529, 0.162233938395908, 0.486880407335671, 0.243440203728116, 0.728137846044587, 0.36406892313261, 0.233050599613225, 0.116525299717379, 0.0582626499013954, -0.0165711893493543, -0.00828559461499629, 0.0770437031002013, 0.0385218515141328, 0.116525299717384, 0.0582626499076013, 0.0291313250206968, -0.00828559460639699, -0.00414279708466603, 0.0385218512609487, 0.0192609256656859, 0.0582626498810995, 0.0291313250206968, 0.0145656624791793, -0.00414279729610165, -0.00207139866705336, 0.0192609256748157, 0.00963046278030747, -0.0165711892512747, -0.00828559460718846, -0.00414279729631134, 0.0700179520227853, 0.0350089759716797, 0.0385078628056369, 0.0192539313234203, -0.00828559462137602, -0.00414279742951254, -0.00207139866641923, 0.0350089759716797, 0.017504488003995, 0.0192539313772045, 0.00962696569643821, 0.0770437022491217, 0.038521851331874, 0.0192609256306054, 0.0385078627260563, 0.0192539313772045, 0.121695162893553, 0.0608475814420696, 0.0385218513088085, 0.0192609256786377, 0.00963046288048741, 0.0192539313491341, 0.00962696569643821, 0.0608475814334324, 0.0304237907299301};
+                           1.49150599048705, 1.33555216123769, 1.37553507964905, 0.48688040733508, 0.243440203762803, 0.493600223878725, 0.0826237765032879, 0.462179286253018, 0.391479723534188, 0.388207958653328, -0.0165711893301057, -0.0082855945695312, 0.163201086019816, 0.141910708592852, 0.391479723534198, 0.388207958691539, 0.425065695562744, -0.00828559460639699, -0.00414279678863834, 0.141910708216482, 0.143327554016351, 0.388207958653328, 0.425065695562061, 0.489686907141934, -0.00414279732987994, -0.00207139866704958, 0.143327553996527, 0.158510416789727, -0.0165711893686029, -0.00828559460639699, -0.00414279733029684, 0.0700179520454573, 0.0350089755230614, 0.0385078627925807, 0.0192539311401717, -0.00828559458229066, -0.00414279738069372, -0.00207139866704958, 0.0350089755230614, 0.017504488005654, 0.0192539314160383, 0.00962696563434957, 0.163201082887329, 0.141910708357457, 0.143327554071765, 0.0385078626334194, 0.0192539314160383, 0.222212107192184, 0.181467914669852, 0.141910708527588, 0.143327554069825, 0.158510416791771, 0.0192539311915992, 0.00962696563434957, 0.181467914669852, 0.175168190474574 };
 
     // create the data objects
     std::vector<marker::setup_marker_dat_helper> input_dat;
-    //input_dat.emplace_back(X, 3, n_obs, ids, obs_time, obs);
-
     input_dat.emplace_back
       (X1, n_fixef[0], n_obs[0], ids_1, obs_time_1, obs_1);
     input_dat.emplace_back
@@ -302,7 +306,7 @@ context("marker_term is correct") {
       (input_dat, par_idx, bases_fix, bases_rng);
 
     // test the basic members
-    expect_true(comp_obj.n_obs == 1);
+    expect_true(comp_obj.n_obs == 2);
     expect_true(comp_obj.n_markers == 3);
 
     // the function returns the right value
@@ -331,7 +335,8 @@ context("marker_term is correct") {
       double *wk_mem = wmem::get_double_mem(comp_obj.get_n_wmem());
       comp_obj.setup(par.data(), wk_mem);
 
-      double res = comp_obj.eval(par.data(), wk_mem, 0);
+      double res = comp_obj.eval(par.data(), wk_mem, 0) +
+        comp_obj.eval(par.data(), wk_mem, 1);
       expect_true(res == Approx(true_val).epsilon(1e-7));
     }
 
@@ -341,7 +346,8 @@ context("marker_term is correct") {
     cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
 
     cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.get_n_wmem());
-    cfaad::Number res = comp_obj.eval(ad_par.data(), wk_mem, 0);
+    cfaad::Number res = comp_obj.eval(ad_par.data(), wk_mem, 0) +
+      comp_obj.eval(ad_par.data(), wk_mem, 1);
 
     res.propagateToStart();
     expect_true(res.value() == Approx(true_val).epsilon(1e-6));

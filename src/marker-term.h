@@ -98,6 +98,7 @@ private:
   std::vector<vajoint_uint> offsets_rng;
 
   /// the needed working memory
+  // TODO: double check this
   size_t n_wmem{
     n_markers * (n_markers + 1) + n_basis_rng * n_basis_rng +
     par_idx.get_n_shared() * (par_idx.get_n_shared() + n_markers)};
@@ -228,14 +229,14 @@ public:
       vajoint_uint const n_rngs{n_basis_rng + par_idx.get_n_shared_surv()};
       vajoint_uint j_idx{};
       for(vajoint_uint j = 0; j < n_indices; ++j){
-        vajoint_uint const offset_j{offsets_rng[j]},
+        vajoint_uint const offset_j{offsets_rng[indices[j]]},
                         n_effects_j
                         {par_idx.get_marker_info()[indices[j]].n_rng};
         for(vajoint_uint jj = offset_j; jj < offset_j + n_effects_j;
             ++jj, ++j_idx){
           vajoint_uint i_idx{};
           for(vajoint_uint i = 0; i < n_indices; ++i){
-            vajoint_uint const offset_i{offsets_rng[i]},
+            vajoint_uint const offset_i{offsets_rng[indices[i]]},
                             n_effects_i
                             {par_idx.get_marker_info()[indices[i]].n_rng};
             for(vajoint_uint ii = offset_i; ii < offset_i + n_effects_i;
@@ -291,13 +292,15 @@ public:
     for(vajoint_uint i = 0; i < c_dat.n_rngs * n_indices; ++i)
       Psi_M[i] = 0;
 
+    vajoint_uint ii{};
     for(vajoint_uint i = 0; i < n_indices; ++i){
-      unsigned const offset{offsets_rng[indices[i]]},
-                    n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
+      vajoint_uint const offset{offsets_rng[indices[i]]},
+                        n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
       cfaad::matVecProd
-        (Psi + offset * c_dat.n_rngs, Psi + (offset + n_rng_i) * c_dat.n_rngs,
+        (Psi + ii * c_dat.n_rngs, Psi + (ii + n_rng_i) * c_dat.n_rngs,
          d, d + n_rng_i, Psi_M + i * c_dat.n_rngs, false);
+      ii += n_rng_i;
     }
 
     // compute M^T.Psi.M
@@ -305,13 +308,15 @@ public:
     for(vajoint_uint i = 0; i < n_indices * n_indices; ++i)
       MT_Psi_M[i] = 0;
 
+    ii = 0;
     for(vajoint_uint i = 0; i < n_indices; ++i){
       unsigned const offset{offsets_rng[indices[i]]},
                     n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
       cfaad::matVecProd
-        (Psi_M + offset, Psi_M + offset + n_indices * c_dat.n_rngs,
+        (Psi_M + ii, Psi_M + ii + n_indices * c_dat.n_rngs,
          d, d + n_rng_i, MT_Psi_M + i * n_indices, true, n_indices);
+      ii += n_rng_i;
     }
 
     out += cfaad::trInvMatMat(Sig, MT_Psi_M, vcov_factorization);
