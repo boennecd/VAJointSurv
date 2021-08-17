@@ -103,7 +103,7 @@ context("testing kl-terms") {
     params.add_surv({ 5, 2 });
 
     // create and fill parameter vector
-    vajoint_uint const n_params_w_va = params.get_n_parms_w_va();
+    vajoint_uint const n_params_w_va = params.n_parms_w_va();
     std::unique_ptr<double[]> par(new double[n_params_w_va]);
     std::fill(par.get(), par.get() + n_params_w_va, 0.);
 
@@ -112,13 +112,13 @@ context("testing kl-terms") {
       std::copy(value, value + n_ele, out);
     };
     fill_par(Xi, n_shared_surv * n_shared_surv,
-             par.get() + params.get_idx_shared_surv());
+             par.get() + params.vcov_surv());
     fill_par(Psi, n_shared * n_shared,
-             par.get() + params.get_idx_shared_effect());
+             par.get() + params.vcov_vary());
     fill_par(Omega, n_vars * n_vars,
-             par.get() + params.get_idx_va_vcov());
+             par.get() + params.va_vcov());
     fill_par(zeta, n_vars,
-             par.get() + params.get_idx_va_mean());
+             par.get() + params.va_mean());
 
     // compute the kl term
     kl_term term(params);
@@ -131,16 +131,16 @@ context("testing kl-terms") {
 
     // check the gradient
     std::unique_ptr<double[]> gr(new double[n_params_w_va]),
-                          gr_res(new double[params.get_n_parms_w_va<true>()]);
+                          gr_res(new double[params.n_parms_w_va<true>()]);
     std::fill(gr.get(), gr.get() + n_params_w_va, 0.);
-    std::fill(gr_res.get(), gr_res.get() + params.get_n_parms_w_va<true>(), 0.);
+    std::fill(gr_res.get(), gr_res.get() + params.n_parms_w_va<true>(), 0.);
 
     double const val = term.grad(gr.get(), par.get(), mem.get());
     expect_true(pass_rel_err(val, true_kl_term));
 
     {
-      double *g_out = gr_res.get() + params.get_idx_shared_surv<true>();
-      double const *g_in = gr.get() + params.get_idx_shared_surv();
+      double *g_out = gr_res.get() + params.vcov_surv<true>();
+      double const *g_in = gr.get() + params.vcov_surv();
       log_chol::dpd_mat::get(Xi_chol, n_shared_surv, g_out, g_in);
 
       for(vajoint_uint i = 0; i < tri_dim(n_shared_surv); ++i)
@@ -148,8 +148,8 @@ context("testing kl-terms") {
     }
 
     {
-      double *g_out = gr_res.get() + params.get_idx_shared_effect<true>();
-      double const *g_in = gr.get() + params.get_idx_shared_effect();
+      double *g_out = gr_res.get() + params.vcov_vary<true>();
+      double const *g_in = gr.get() + params.vcov_vary();
       log_chol::dpd_mat::get(Psi_chol, n_shared, g_out, g_in);
 
       for(vajoint_uint i = 0; i < tri_dim(n_shared); ++i)
@@ -157,8 +157,8 @@ context("testing kl-terms") {
     }
 
     {
-      double *g_out = gr_res.get() + params.get_idx_va_vcov<true>();
-      double const *g_in = gr.get() + params.get_idx_va_vcov();
+      double *g_out = gr_res.get() + params.va_vcov<true>();
+      double const *g_in = gr.get() + params.va_vcov();
       log_chol::dpd_mat::get(Omega_chol, n_vars, g_out, g_in);
 
       for(vajoint_uint i = 0; i < tri_dim(n_vars); ++i)
@@ -166,7 +166,7 @@ context("testing kl-terms") {
     }
 
     {
-      double const *g_out = gr.get() + params.get_idx_va_mean();
+      double const *g_out = gr.get() + params.va_mean();
       for(vajoint_uint i = 0; i < n_vars; ++i)
         expect_true(pass_rel_err(g_out[i], zeta_deriv[i]));
     }

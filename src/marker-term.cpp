@@ -5,9 +5,9 @@ namespace marker {
 
 comp_dat::comp_dat
 (double const *param, double *wk_mem, subset_params const &par_idx,
- unsigned const missingness_flag):
+ std::uint32_t const missingness_flag):
 indices{([&]{
-    vajoint_uint const n_markers = par_idx.get_marker_info().size();
+    vajoint_uint const n_markers = par_idx.marker_info().size();
     // find the non-missing variables
     std::vector<vajoint_uint> out;
     if(missingness_flag == 0){
@@ -28,8 +28,8 @@ indices{([&]{
 })()},
 vcov_factorization{([&]() -> cfaad::CholFactorization {
   /// create the subset of the covariance matrix
-  vajoint_uint const n_markers = par_idx.get_marker_info().size();
-  double const * const sig = param + par_idx.get_idx_error_term();
+  vajoint_uint const n_markers = par_idx.marker_info().size();
+  double const * const sig = param + par_idx.vcov_marker();
   size_t const n_indices{indices.size()};
   for(vajoint_uint j = 0; j < n_indices; ++j)
     for(vajoint_uint i = 0; i < n_indices; ++i)
@@ -40,7 +40,7 @@ vcov_factorization{([&]() -> cfaad::CholFactorization {
 n_rngs{([&]{
   vajoint_uint out{};
   for(vajoint_uint idx : indices)
-    out += par_idx.get_marker_info()[idx].n_rng;
+    out += par_idx.marker_info()[idx].n_rng;
   return out;
 })()}{ }
 

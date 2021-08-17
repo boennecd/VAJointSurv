@@ -424,7 +424,7 @@ context("bases unit tests") {
 
     arma::mat Xout;
     joint_bases::orth_poly const obj =
-      joint_bases::orth_poly::get_poly_basis(x, 3L, Xout);
+      joint_bases::orth_poly::poly_basis(x, 3L, Xout);
 
     expect_true(basis.n_cols == Xout.n_cols);
     expect_true(basis.n_rows == Xout.n_rows);
@@ -453,7 +453,7 @@ context("bases unit tests") {
         true_val *= x;
       }
 
-      expect_true(obj.get_n_basis() == i + 1);
+      expect_true(obj.n_basis() == i + 1);
     }
 
     // without the intercept
@@ -468,7 +468,7 @@ context("bases unit tests") {
         true_val *= x;
       }
 
-      expect_true(obj.get_n_basis() == i);
+      expect_true(obj.n_basis() == i);
     }
 
     test_that("orth_poly works with raw == false") {
@@ -491,7 +491,7 @@ context("bases unit tests") {
         for(size_t i = 0; i < n_res; ++i)
           expect_true(pass_rel_err(res[i + 1], truth[i]));
 
-        expect_true(obj.get_n_basis() == n_res + 1);
+        expect_true(obj.n_basis() == n_res + 1);
       }
       // without an intercept
       {
@@ -501,7 +501,7 @@ context("bases unit tests") {
         for(size_t i = 0; i < n_res; ++i)
           expect_true(pass_rel_err(res[i], truth[i]));
 
-        expect_true(obj.get_n_basis() == n_res);
+        expect_true(obj.n_basis() == n_res);
       }
     }
   }

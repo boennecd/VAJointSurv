@@ -122,29 +122,29 @@ context("marker_term is correct") {
     expect_true(comp_obj.n_markers == 1);
 
     // the function returns the right value
-    std::vector<double> par(par_idx.get_n_parms_w_va());
+    std::vector<double> par(par_idx.n_parms_w_va());
 
     std::fill(par.begin(), par.end(), 0);
-    std::copy(begin(g), end(g), par.begin() + par_idx.get_fixef_idx_marker(0));
+    std::copy(begin(g), end(g), par.begin() + par_idx.fixef_marker(0));
     std::copy(begin(beta), end(beta),
-              par.begin() + par_idx.get_varying_idx_marker(0));
-    std::copy(begin(Sig), end(Sig), par.begin() + par_idx.get_idx_error_term());
-    std::copy(begin(zeta), end(zeta), par.begin() + par_idx.get_idx_va_mean());
+              par.begin() + par_idx.fixef_vary_marker(0));
+    std::copy(begin(Sig), end(Sig), par.begin() + par_idx.vcov_marker());
+    std::copy(begin(zeta), end(zeta), par.begin() + par_idx.va_mean());
 
     const vajoint_uint n_shared_p_surv
-      {par_idx.get_n_shared() + par_idx.get_n_shared_surv()};
-    for(vajoint_uint j = 0; j < par_idx.get_n_shared(); ++j)
+      {par_idx.n_shared() + par_idx.n_shared_surv()};
+    for(vajoint_uint j = 0; j < par_idx.n_shared(); ++j)
         std::copy(
-          Psi + j * par_idx.get_n_shared(),
-          Psi + (j + 1) * par_idx.get_n_shared(),
-          par.begin() + par_idx.get_idx_va_vcov() + j * n_shared_p_surv);
+          Psi + j * par_idx.n_shared(),
+          Psi + (j + 1) * par_idx.n_shared(),
+          par.begin() + par_idx.va_vcov() + j * n_shared_p_surv);
 
     {
       double *wk_mem = wmem::get_double_mem(comp_obj.get_n_wmem());
       comp_obj.setup(par.data(), wk_mem);
 
-      double res = comp_obj.eval(par.data(), wk_mem, 0)
-        + comp_obj.eval(par.data(), wk_mem, 1);
+      double res = comp_obj(par.data(), wk_mem, 0)
+        + comp_obj(par.data(), wk_mem, 1);
 
       expect_true(res == Approx(true_val).epsilon(1e-7));
     }
@@ -155,8 +155,8 @@ context("marker_term is correct") {
     cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
 
     cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.get_n_wmem());
-    cfaad::Number res = comp_obj.eval(ad_par.data(), wk_mem, 0) +
-      comp_obj.eval(ad_par.data(), wk_mem, 1);
+    cfaad::Number res = comp_obj(ad_par.data(), wk_mem, 0) +
+      comp_obj(ad_par.data(), wk_mem, 1);
 
     res.propagateToStart();
     expect_true(res.value() == Approx(true_val).epsilon(1e-6));
@@ -346,8 +346,8 @@ context("marker_term is correct") {
 
     subset_params par_idx;
     for(size_t i = 0; i < 3; ++i)
-      par_idx.add_marker({n_fixef[i], bases_fix[i]->get_n_basis(),
-                         bases_rng[i]->get_n_basis()});
+      par_idx.add_marker({n_fixef[i], bases_fix[i]->n_basis(),
+                         bases_rng[i]->n_basis()});
     par_idx.add_surv({2, 1});
     par_idx.add_surv({3, 2});
 
@@ -359,32 +359,32 @@ context("marker_term is correct") {
     expect_true(comp_obj.n_markers == 3);
 
     // the function returns the right value
-    std::vector<double> par(par_idx.get_n_parms_w_va());
+    std::vector<double> par(par_idx.n_parms_w_va());
 
     std::fill(par.begin(), par.end(), 0);
     std::copy(
-      begin(g1), end(g1), par.begin() + par_idx.get_fixef_idx_marker(0));
+      begin(g1), end(g1), par.begin() + par_idx.fixef_marker(0));
     std::copy(
-      begin(g2), end(g2), par.begin() + par_idx.get_fixef_idx_marker(1));
+      begin(g2), end(g2), par.begin() + par_idx.fixef_marker(1));
     std::copy(
-      begin(g3), end(g3), par.begin() + par_idx.get_fixef_idx_marker(2));
+      begin(g3), end(g3), par.begin() + par_idx.fixef_marker(2));
 
     std::copy(
-      begin(b1), end(b1), par.begin() + par_idx.get_varying_idx_marker(0));
+      begin(b1), end(b1), par.begin() + par_idx.fixef_vary_marker(0));
     std::copy(
-      begin(b2), end(b2), par.begin() + par_idx.get_varying_idx_marker(1));
+      begin(b2), end(b2), par.begin() + par_idx.fixef_vary_marker(1));
     std::copy(
-      begin(b3), end(b3), par.begin() + par_idx.get_varying_idx_marker(2));
+      begin(b3), end(b3), par.begin() + par_idx.fixef_vary_marker(2));
 
-    std::copy(begin(Sig), end(Sig), par.begin() + par_idx.get_idx_error_term());
-    std::copy(begin(zeta), end(zeta), par.begin() + par_idx.get_idx_va_mean());
+    std::copy(begin(Sig), end(Sig), par.begin() + par_idx.vcov_marker());
+    std::copy(begin(zeta), end(zeta), par.begin() + par_idx.va_mean());
     const vajoint_uint n_shared_p_surv
-    {par_idx.get_n_shared() + par_idx.get_n_shared_surv()};
-    for(vajoint_uint j = 0; j < par_idx.get_n_shared(); ++j)
+    {par_idx.n_shared() + par_idx.n_shared_surv()};
+    for(vajoint_uint j = 0; j < par_idx.n_shared(); ++j)
       std::copy(
-        Psi + j * par_idx.get_n_shared(),
-        Psi + (j + 1) * par_idx.get_n_shared(),
-        par.begin() + par_idx.get_idx_va_vcov() + j * n_shared_p_surv);
+        Psi + j * par_idx.n_shared(),
+        Psi + (j + 1) * par_idx.n_shared(),
+        par.begin() + par_idx.va_vcov() + j * n_shared_p_surv);
 
     {
       double *wk_mem = wmem::get_double_mem(comp_obj.get_n_wmem());
@@ -392,7 +392,7 @@ context("marker_term is correct") {
 
       double res{};
       for(vajoint_uint i = 0; i < comp_obj.n_obs; ++i)
-        res += comp_obj.eval(par.data(), wk_mem, i);
+        res += comp_obj(par.data(), wk_mem, i);
       expect_true(res == Approx(true_val).epsilon(1e-7));
     }
 
@@ -406,7 +406,7 @@ context("marker_term is correct") {
 
     cfaad::Number res{0};
     for(vajoint_uint i = 0; i < comp_obj.n_obs; ++i)
-      res += comp_obj.eval(ad_par.data(), wk_mem, i);
+      res += comp_obj(ad_par.data(), wk_mem, i);
 
     res.propagateToStart();
     expect_true(res.value() == Approx(true_val).epsilon(1e-6));

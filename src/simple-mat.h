@@ -3,6 +3,7 @@
 
 #include <memory.h>
 #include "VA-joint-config.h"
+#include <algorithm>
 
 /// a simple matrix container in column-major order
 template<class T>
@@ -21,6 +22,37 @@ public:
   simple_mat(vajoint_uint const n_rows, vajoint_uint const n_cols):
   mem{new double[n_cols * n_rows]},
   n_rows_v{n_rows}, n_cols_v{n_cols}, external{nullptr} { }
+
+  /// copy constructor which always copies
+  simple_mat(const simple_mat &o):
+  mem{new T[o.n_rows_v * o.n_cols_v]},
+  n_rows_v{o.n_rows_v},
+  n_cols_v{o.n_cols_v}
+  {
+    std::copy(o.begin(), o.end(), mem.get());
+  }
+
+  simple_mat& operator=(const simple_mat &o) {
+    mem.reset(new T[o.n_rows_v * o.n_cols_v]);
+    n_rows_v = o.n_rows_v;
+    n_cols_v = o.n_cols_v;
+    std::copy(o.begin(), o.end(), mem.get());
+    return *this;
+  }
+
+  simple_mat(simple_mat &&o):
+  mem{std::move(o.mem)},
+  n_rows_v{o.n_rows_v},
+  n_cols_v{o.n_cols_v},
+  external{o.external} { }
+
+  simple_mat& operator=(simple_mat &&o){
+    mem.reset(std::move(o.mem));
+    n_rows_v = o.n_rows_v;
+    n_cols_v = o.n_cols_v;
+    external = o.external;
+    return *this;
+  }
 
   vajoint_uint n_cols() const {
     return n_cols_v;

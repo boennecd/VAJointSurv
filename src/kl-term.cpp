@@ -3,13 +3,13 @@
 
 kl_term::kl_term(subset_params const &idx):
   idx(idx),
-  n_vars(idx.get_n_shared() + idx.get_n_shared_surv()),
-  vcov_inv     (idx.get_n_shared(), idx.get_n_shared()),
-  vcov_inv_chol(idx.get_n_shared(), idx.get_n_shared()),
+  n_vars(idx.n_shared() + idx.n_shared_surv()),
+  vcov_inv     (idx.n_shared(), idx.n_shared()),
+  vcov_inv_chol(idx.n_shared(), idx.n_shared()),
   vcov_surv_inv
-    (idx.get_n_shared_surv(), idx.get_n_shared_surv()),
+    (idx.n_shared_surv(), idx.n_shared_surv()),
   vcov_surv_inv_chol
-    (idx.get_n_shared_surv(), idx.get_n_shared_surv())
+    (idx.n_shared_surv(), idx.n_shared_surv())
   { }
 
 void kl_term::setup(double const *param, double *wk_mem){
@@ -48,11 +48,11 @@ void kl_term::setup(double const *param, double *wk_mem){
     };
 
   has_vcov = setup_vcov_decomps
-    (param + idx.get_idx_shared_effect(), idx.get_n_shared(),
+    (param + idx.vcov_vary(), idx.n_shared(),
      vcov_inv, vcov_inv_chol);
 
   has_vcov_surv = setup_vcov_decomps
-    (param + idx.get_idx_shared_surv(), idx.get_n_shared_surv(),
+    (param + idx.vcov_surv(), idx.n_shared_surv(),
      vcov_surv_inv, vcov_surv_inv_chol);
 }
 
@@ -61,8 +61,8 @@ double kl_term::eval(double const *param, double *wk_mem) {
   if(!has_vcov or !has_vcov_surv)
     return out;
 
-  double const * const va_mean = param + idx.get_idx_va_mean(),
-               * const va_vcov = param + idx.get_idx_va_vcov();
+  double const * const va_mean = param + idx.va_mean(),
+               * const va_vcov = param + idx.va_vcov();
 
    {
       double log_det;
@@ -73,7 +73,7 @@ double kl_term::eval(double const *param, double *wk_mem) {
       out -= log_det / 2;
    }
 
-  vajoint_uint const n_shared = idx.get_n_shared();
+  vajoint_uint const n_shared = idx.n_shared();
   if(has_vcov){
     double term(0.);
     term += lp_joint::quad_form(va_mean, vcov_inv_chol.memptr(),
@@ -85,7 +85,7 @@ double kl_term::eval(double const *param, double *wk_mem) {
     out += term / 2;
   }
 
-  vajoint_uint const n_shared_surv = idx.get_n_shared_surv();
+  vajoint_uint const n_shared_surv = idx.n_shared_surv();
   if(has_vcov_surv){
     double term(0.);
     term += lp_joint::quad_form
@@ -105,12 +105,12 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) {
   if(!has_vcov or !has_vcov_surv)
     return eval(param, wk_mem);
 
-  double const * const va_mean = param + idx.get_idx_va_mean(),
-               * const va_vcov = param + idx.get_idx_va_vcov();
+  double const * const va_mean = param + idx.va_mean(),
+               * const va_vcov = param + idx.va_vcov();
 
   // handle some of the terms from the VA covariance matrix
-  vajoint_uint const n_shared = idx.get_n_shared(),
-                n_shared_surv = idx.get_n_shared_surv(),
+  vajoint_uint const n_shared = idx.n_shared(),
+                n_shared_surv = idx.n_shared_surv(),
                        n_vars = n_shared + n_shared_surv;
 
  {
@@ -121,7 +121,7 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) {
     if(!arma::inv_sympd(inv_mat, va_cov_mat))
       throw std::runtime_error("inv(va_cov_mat) failed");
 
-    lp_joint::add(g + idx.get_idx_va_vcov(), inv_mat.begin(), n_vars * n_vars,
+    lp_joint::add(g + idx.va_vcov(), inv_mat.begin(), n_vars * n_vars,
                   -0.5);
  }
 
@@ -151,18 +151,18 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) {
     lp_joint::add(g + idx_par, i1.begin(), dim * dim, .5);
 
     // handle the terms from the VA covariance matrix
-    lp_joint::mat_add(g + idx.get_idx_va_vcov(), inv_mat.memptr(),
+    lp_joint::mat_add(g + idx.va_vcov(), inv_mat.memptr(),
                       dim, n_vars, offset, .5);
 
     // handle the terms from the VA mean
     lp_joint::mat_vec_prod(
-      inv_mat.memptr(), va_mean_sub, g + idx.get_idx_va_mean() + offset, dim);
+      inv_mat.memptr(), va_mean_sub, g + idx.va_mean() + offset, dim);
   };
 
   if(has_vcov)
-    add_vcov_term(n_shared, 0, idx.get_idx_shared_effect(), vcov_inv);
+    add_vcov_term(n_shared, 0, idx.vcov_vary(), vcov_inv);
   if(has_vcov_surv)
-    add_vcov_term(n_shared_surv, n_shared, idx.get_idx_shared_surv(),
+    add_vcov_term(n_shared_surv, n_shared, idx.vcov_surv(),
                   vcov_surv_inv);
 
   return eval(param, wk_mem);

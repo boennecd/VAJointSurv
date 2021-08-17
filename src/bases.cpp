@@ -48,7 +48,7 @@ SplineBasis::SplineBasis(const vec knots, const vajoint_uint order):
 }
 
 
-inline arma::vec get_SplineBasis_knots
+inline arma::vec SplineBasis_knots
 (vec const &boundary_knots, vec const &interior_knots,
  vajoint_uint const order) {
   check_splines(boundary_knots, interior_knots, order);
@@ -67,7 +67,7 @@ inline arma::vec get_SplineBasis_knots
 }
 
 bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord):
-  SplineBasis(get_SplineBasis_knots(bk, ik, ord), ord),
+  SplineBasis(SplineBasis_knots(bk, ik, ord), ord),
   boundary_knots(bk), interior_knots(ik),
   intercept(inter),
   df((int)intercept + order - 1 + interior_knots.size()) {
@@ -97,12 +97,12 @@ mSpline::mSpline(const vec &boundary_knots, const vec &interior_knots,
 
 orth_poly::orth_poly(vajoint_uint const degree, bool const intercept):
 alpha(), norm2(), raw(true), intercept(intercept),
-n_basis(degree + intercept) { }
+n_basis_v(degree + intercept) { }
 
 orth_poly::orth_poly(vec const &alpha, vec const &norm2,
                      bool const intercept):
 alpha(alpha), norm2(norm2), raw(false), intercept(intercept),
-n_basis(norm2.size() - 2 + intercept) {
+n_basis_v(norm2.size() - 2 + intercept) {
 #ifdef DO_CHECKS
   for(vajoint_uint i = 0; i < norm2.size(); ++i)
     if(norm2[i] <= 0.)
@@ -112,7 +112,7 @@ n_basis(norm2.size() - 2 + intercept) {
 #endif
 }
 
-orth_poly orth_poly::get_poly_basis(vec x, uword const degree, mat &X){
+orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
   vajoint_uint const n = x.n_elem,
                     nc = degree + 1L;
   double const x_bar = mean(x);
@@ -130,7 +130,7 @@ orth_poly orth_poly::get_poly_basis(vec x, uword const degree, mat &X){
   if(!qr_econ(X, R, XX))
     /* TODO: can be done smarter by calling LAPACK or LINPACK directly */
     throw std::runtime_error(
-        "orth_poly::get_poly_basis(): QR decomposition failed");
+        "orth_poly::poly_basis(): QR decomposition failed");
 
   for(vajoint_uint c = 0; c < nc; ++c)
     X.col(c) *= R.at(c, c);

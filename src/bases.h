@@ -17,20 +17,20 @@ using namespace arma;
 
 class basisMixin {
 public:
-  virtual vajoint_uint get_n_basis() const = 0;
+  virtual vajoint_uint n_basis() const = 0;
 
   virtual void operator()
     (vec &out, double const x, const vajoint_uint ders = default_ders)
     const = 0;
   vec operator()(
       double const x, vajoint_uint const ders = default_ders) const {
-    vec out(get_n_basis());
+    vec out(n_basis());
     operator()(out, x, ders);
     return out;
   }
   void operator()(
     double *out, double const x, vajoint_uint const ders = default_ders) const {
-    arma::vec v(out, get_n_basis(), false);
+    arma::vec v(out, n_basis(), false);
     operator()(v, x, ders);
   }
 
@@ -42,14 +42,14 @@ public:
     if (ders < 0)
       throw std::invalid_argument("ders<0");
 #endif
-    vajoint_uint const n_basis(get_n_basis()),
+    vajoint_uint const n_basis_v(n_basis()),
     n_x    (x.n_elem);
     rowvec centering =
       (std::isnan(centre) || ders > 0 ?
-      zeros(n_basis) : operator()(centre, 0)).t();
+      zeros(n_basis_v) : operator()(centre, 0)).t();
 
-    mat out(n_x, n_basis);
-    vec wrk(n_basis);
+    mat out(n_x, n_basis_v);
+    vec wrk(n_basis_v);
     for (vajoint_uint i = 0; i < n_x; i++){
       operator()(wrk, x[i], ders);
       out.row(i) = wrk.t() - centering;
@@ -85,7 +85,7 @@ public:
   SplineBasis(const vajoint_uint order);
   SplineBasis(const vec knots, const vajoint_uint order = default_order);
 
-  vajoint_uint get_n_basis() const override {
+  vajoint_uint n_basis() const override {
     return ncoef;
   }
 
@@ -95,9 +95,9 @@ public:
     const override {
     out.zeros();
 #ifdef DO_CHECKS
-    if(out.n_elem != SplineBasis::get_n_basis())
+    if(out.n_elem != SplineBasis::n_basis())
       throw_invalid_out(
-        "splineBasis", out.n_elem, SplineBasis::get_n_basis());
+        "splineBasis", out.n_elem, SplineBasis::n_basis());
 #endif
 
     set_cursor(x);
@@ -204,16 +204,16 @@ public:
 
 private:
   /* working memory */
-  vec mutable wrk = arma::vec(SplineBasis::get_n_basis()),
-             wrks = arma::vec(wrk.begin(), get_n_basis(), false);
+  vec mutable wrk = arma::vec(SplineBasis::n_basis()),
+             wrks = arma::vec(wrk.begin(), n_basis(), false);
 
 public:
   bs(const vec &bk, const vec &ik,
      const bool inter = default_intercept,
      const vajoint_uint ord = default_order);
 
-  vajoint_uint get_n_basis() const {
-    return SplineBasis::get_n_basis() - (!intercept);
+  vajoint_uint n_basis() const {
+    return SplineBasis::n_basis() - (!intercept);
   }
 
   std::unique_ptr<basisMixin> clone() const {
@@ -224,8 +224,8 @@ public:
   void operator()(
       vec &out, double const x, const vajoint_uint ders = default_ders) const {
 #ifdef DO_CHECKS
-    if(out.n_elem != bs::get_n_basis())
-      throw_invalid_out("bs", out.n_elem, bs::get_n_basis());
+    if(out.n_elem != bs::n_basis())
+      throw_invalid_out("bs", out.n_elem, bs::n_basis());
 #endif
     if(x < boundary_knots[0] || x > boundary_knots[1]) {
       double const k_pivot =
@@ -298,7 +298,7 @@ public:
      const bool intercept = default_intercept,
      const vajoint_uint order = default_order);
 
-  vajoint_uint get_n_basis() const {
+  vajoint_uint n_basis() const {
     return q_matrix.n_rows - 2;
   }
 
@@ -310,8 +310,8 @@ public:
   void operator()(
       vec &out, double const x, const vajoint_uint ders = default_ders) const {
 #ifdef DO_CHECKS
-    if(out.n_elem != ns::get_n_basis())
-      throw_invalid_out("ns", out.n_elem, ns::get_n_basis());
+    if(out.n_elem != ns::n_basis())
+      throw_invalid_out("ns", out.n_elem, ns::n_basis());
 #endif
     if(x < bspline.boundary_knots[0]) {
       if (ders==0){
@@ -357,15 +357,15 @@ public:
   bs const bspline; // composition cf. inheritance
 
 private:
-  vec mutable wrk = arma::vec(bspline.get_n_basis());
+  vec mutable wrk = arma::vec(bspline.n_basis());
 
 public:
   iSpline(const vec &boundary_knots, const vec &interior_knots,
           const bool intercept = default_intercept,
           const vajoint_uint order = default_order);
 
-  vajoint_uint get_n_basis() const {
-    return bspline.get_n_basis() - (!intercept);
+  vajoint_uint n_basis() const {
+    return bspline.n_basis() - (!intercept);
   }
 
   std::unique_ptr<basisMixin> clone() const {
@@ -376,8 +376,8 @@ public:
   void operator()(
       vec &out, double const x, const vajoint_uint der = default_ders) const  {
 #ifdef DO_CHECKS
-    if(out.n_elem != iSpline::get_n_basis())
-      throw_invalid_out("iSpline", out.n_elem, iSpline::get_n_basis());
+    if(out.n_elem != iSpline::n_basis())
+      throw_invalid_out("iSpline", out.n_elem, iSpline::n_basis());
 #endif
     if(x < 0){
       out.zeros();
@@ -424,15 +424,15 @@ public:
   bool const intercept;
 
 private:
-  vec mutable wrk = vec(bspline.get_n_basis());
+  vec mutable wrk = vec(bspline.n_basis());
 
 public:
   mSpline(const vec &boundary_knots, const vec &interior_knots,
           const bool intercept = default_intercept,
           const vajoint_uint order = default_order);
 
-  vajoint_uint get_n_basis() const {
-    return bspline.get_n_basis() - (!intercept);
+  vajoint_uint n_basis() const {
+    return bspline.n_basis() - (!intercept);
   }
 
   std::unique_ptr<basisMixin> clone() const {
@@ -443,11 +443,11 @@ public:
   void operator()(
       vec &out, double const x, const vajoint_uint der = default_ders) const {
 #ifdef DO_CHECKS
-    if(out.n_elem != mSpline::get_n_basis())
-      throw_invalid_out("mSpline", out.n_elem, mSpline::get_n_basis());
+    if(out.n_elem != mSpline::n_basis())
+      throw_invalid_out("mSpline", out.n_elem, mSpline::n_basis());
 #endif
     bspline(wrk, x, der);
-    for (vajoint_uint j = 0; j < bspline.get_n_basis(); j++) {
+    for (vajoint_uint j = 0; j < bspline.n_basis(); j++) {
       double denom = bspline.knots(j + bspline.order) - bspline.knots(j);
       wrk(j) *= denom > 0.0 ? bspline.order / denom : 0.0;
     }
@@ -468,7 +468,7 @@ class orth_poly final : public basisMixin {
   bool raw,
        intercept;
   // the number of basis function plus the possible intercept
-  vajoint_uint n_basis;
+  vajoint_uint n_basis_v;
 
 public:
   // constructor for raw == true
@@ -491,7 +491,7 @@ public:
                   const vajoint_uint ders = default_ders)
     const {
 #ifdef DO_CHECKS
-    if(out.n_elem != get_n_basis())
+    if(out.n_elem != n_basis())
       throw std::invalid_argument("orth_poly::operator(): invalid out");
 #endif
     if(ders > 0)
@@ -500,12 +500,12 @@ public:
     if(raw){
       if(intercept){
         out[0] = 1.;
-        for(vajoint_uint c = 1; c < n_basis; c++)
+        for(vajoint_uint c = 1; c < n_basis_v; c++)
           out[c] = out[c - 1] * x;
 
       } else {
         double val{1};
-        for(vajoint_uint c = 0; c < n_basis; c++)
+        for(vajoint_uint c = 0; c < n_basis_v; c++)
           out[c] = val *= x;
       }
 
@@ -539,10 +539,10 @@ public:
       cbind(1, predict(B, x))
    The orthogonal polynomial is returned by reference.
    */
-  static orth_poly get_poly_basis(vec, vajoint_uint const, mat&);
+  static orth_poly poly_basis(vec, vajoint_uint const, mat&);
 
-  vajoint_uint get_n_basis() const {
-    return n_basis;
+  vajoint_uint n_basis() const {
+    return n_basis_v;
   }
 }; // orth_poly
 

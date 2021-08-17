@@ -15,6 +15,7 @@
 #include <cfaad/AAD.h>
 #include "simple-mat.h"
 #include <limits>
+#include <cstdint>
 
 namespace marker {
 /// used for pre-computed data for eval
@@ -31,7 +32,7 @@ struct comp_dat {
    * a missingness flag
    */
   comp_dat(double const *param, double *wk_mem, subset_params const &par_idx,
-           unsigned const missingness_flag);
+           std::uint32_t const missingness_flag);
 };
 
 /// holds data for marker observations
@@ -43,7 +44,7 @@ public:
   static constexpr unsigned max_markers{31};
   /// the maximum number of markers per observations
   const vajoint_uint n_markers
-    { static_cast<vajoint_uint>(par_idx.get_marker_info().size()) };
+    { static_cast<vajoint_uint>(par_idx.marker_info().size()) };
   /// the number of observations
   const vajoint_uint n_obs;
 
@@ -56,7 +57,7 @@ private:
   const vajoint_uint n_fixed_effects
     {
       std::accumulate(
-        par_idx.get_marker_info().begin(), par_idx.get_marker_info().end(),
+        par_idx.marker_info().begin(), par_idx.marker_info().end(),
         vajoint_uint{},
         [](const vajoint_uint x, subset_params::marker const &r){
           return x + r.n_fix;
@@ -67,7 +68,7 @@ private:
     { std::accumulate(
         bases_fix.begin(), bases_fix.end(), vajoint_uint{},
         [](vajoint_uint x, joint_bases::bases_vector::value_type const &r){
-          return x + r->get_n_basis();
+          return x + r->n_basis();
         })
     };
   /// the number of time-varying random effect basis function
@@ -75,7 +76,7 @@ private:
     { std::accumulate(
         bases_rng.begin(), bases_rng.end(), vajoint_uint{},
         [](vajoint_uint x, joint_bases::bases_vector::value_type const &r){
-          return x + r->get_n_basis();
+          return x + r->n_basis();
         })
     };
   /// the first dimension of the combined design matrix
@@ -92,7 +93,7 @@ private:
   simple_mat<double> outcomes{n_markers, n_obs};
 
   /// bit flags for missing variables
-  std::vector<unsigned> missingness{std::vector<unsigned>(n_obs)};
+  std::vector<std::uint32_t> missingness{std::vector<std::uint32_t>(n_obs)};
 
   /// the offsets between the time-varying random effects for each marker
   std::vector<vajoint_uint> offsets_rng;
@@ -106,7 +107,7 @@ private:
    * the pre-computed data for eval. We do not want to re-compute the matrix
    * factorization of the covariance matrix for each outcome. Thus, we do it
    * once for all observed missingness patterns. See setup */
-  std::unordered_map<unsigned, comp_dat> pre_comp_dat;
+  std::unordered_map<std::uint32_t, comp_dat> pre_comp_dat;
 
 public:
   /// creates the object and allocates the memory that is needed
@@ -129,8 +130,8 @@ public:
       throw std::runtime_error("too many markers");
 
     // set all outcomes to be missing
-    unsigned def_miss{};
-    for(unsigned i = 0; i < n_markers; ++i)
+    std::uint32_t def_miss{};
+    for(std::uint32_t i = 0; i < n_markers; ++i)
       def_miss |= (1u << i);
     std::fill(missingness.begin(), missingness.end(), def_miss);
 
@@ -139,7 +140,7 @@ public:
     vajoint_uint next_idx{};
     for(vajoint_uint i = 0; i < n_markers; ++i){
       offsets_rng.emplace_back(next_idx);
-      next_idx += bases_rng[i]->get_n_basis();
+      next_idx += bases_rng[i]->n_basis();
     }
   }
 
@@ -156,11 +157,11 @@ public:
       double *mem = design_mats.col(i) + n_fixed_effects;
       for(auto &x : bases_fix){
         x->operator()(mem, *obs_time);
-        mem += x->get_n_basis();
+        mem += x->n_basis();
       }
       for(auto &x : bases_rng){
         x->operator()(mem, *obs_time);
-        mem += x->get_n_basis();
+        mem += x->n_basis();
       }
     }
   }
@@ -182,8 +183,8 @@ public:
     static_assert(std::is_same<typename std::iterator_traits<I>::value_type,
                                double>::value, "iterator is not to doubles");
 
-    std::copy(values, values + par_idx.get_marker_info()[obs_type].n_fix,
-              design_mats.col(idx) + par_idx.get_fixef_idx_marker(obs_type));
+    std::copy(values, values + par_idx.marker_info()[obs_type].n_fix,
+              design_mats.col(idx) + par_idx.fixef_marker(obs_type));
   }
 
   /**
@@ -192,7 +193,7 @@ public:
    */
   void setup(double const *param, double *wk_mem){
     pre_comp_dat.clear();
-    for(unsigned missingness_flag : missingness)
+    for(std::uint32_t missingness_flag : missingness)
       if(pre_comp_dat.find(missingness_flag) == pre_comp_dat.end())
         pre_comp_dat.emplace(
           missingness_flag, comp_dat{param, wk_mem, par_idx, missingness_flag});
@@ -200,8 +201,8 @@ public:
 
   /// computes the expected log conditional density of a given observation
   template<class T>
-  T eval(T const *param, T *wk_mem, const vajoint_uint idx){
-    unsigned const missingness_flag = missingness[idx];
+  T operator()(T const *param, T *wk_mem, const vajoint_uint idx){
+    std::uint32_t const missingness_flag = missingness[idx];
     comp_dat const &c_dat = pre_comp_dat.at(missingness_flag);
     const std::vector<vajoint_uint> &indices = c_dat.indices;
     const cfaad::CholFactorization &vcov_factorization =
@@ -213,7 +214,7 @@ public:
 
     // construct the copy of the covariance matrix
     T const * const Sig = ([&]() -> T const * {
-      T const * const s{param + par_idx.get_idx_error_term()};
+      T const * const s{param + par_idx.vcov_marker()};
       if(n_indices == n_markers)
         return s;
 
@@ -228,8 +229,8 @@ public:
 
     // construct the copy of random effect covariance matrix
     T const * const Psi = ([&](){
-      T const * const s{param + par_idx.get_idx_va_vcov()};
-      vajoint_uint const n_rngs{n_basis_rng + par_idx.get_n_shared_surv()};
+      T const * const s{param + par_idx.va_vcov()};
+      vajoint_uint const n_rngs{n_basis_rng + par_idx.n_shared_surv()};
       T *out = wk_mem;
       wk_mem += c_dat.n_rngs * c_dat.n_rngs;
 
@@ -243,14 +244,14 @@ public:
         for(vajoint_uint j = 0; j < n_indices; ++j){
           vajoint_uint const offset_j{offsets_rng[indices[j]]},
           n_effects_j
-          {par_idx.get_marker_info()[indices[j]].n_rng};
+          {par_idx.marker_info()[indices[j]].n_rng};
           for(vajoint_uint jj = offset_j; jj < offset_j + n_effects_j;
           ++jj, ++j_idx){
             vajoint_uint i_idx{};
             for(vajoint_uint i = 0; i < n_indices; ++i){
               vajoint_uint const offset_i{offsets_rng[indices[i]]},
               n_effects_i
-              {par_idx.get_marker_info()[indices[i]].n_rng};
+              {par_idx.marker_info()[indices[i]].n_rng};
               for(vajoint_uint ii = offset_i; ii < offset_i + n_effects_i;
               ++ii, ++i_idx)
                 out[i_idx + j_idx * c_dat.n_rngs] = s[ii + jj * n_rngs];
@@ -271,25 +272,25 @@ public:
         delta[i] = outcomes.col(idx)[indices[i]];
 
         { // fixed effects
-          vajoint_uint const offset{par_idx.get_fixef_idx_marker(indices[i])};
+          vajoint_uint const offset{par_idx.fixef_marker(indices[i])};
           double const * d{design + offset};
           delta[i] -= cfaad::dotProd
-            (d, d + par_idx.get_marker_info()[indices[i]].n_fix,
+            (d, d + par_idx.marker_info()[indices[i]].n_fix,
              param + offset);
         }
         { // time-varying fixed effects
-          vajoint_uint const offset{par_idx.get_varying_idx_marker(indices[i])};
+          vajoint_uint const offset{par_idx.fixef_vary_marker(indices[i])};
           double const * d{design + offset};
           delta[i] -= cfaad::dotProd
-            (d, d + par_idx.get_marker_info()[indices[i]].n_variying,
+            (d, d + par_idx.marker_info()[indices[i]].n_variying,
              param + offset);
         }
         { // time-varying random effects
           unsigned const offset{offsets_rng[indices[i]]};
           double const * d{design + offset + n_fixed_effects + n_basis_fix};
           delta[i] -= cfaad::dotProd
-            (d, d + par_idx.get_marker_info()[indices[i]].n_rng,
-             param + par_idx.get_idx_va_mean() + offset);
+            (d, d + par_idx.marker_info()[indices[i]].n_rng,
+             param + par_idx.va_mean() + offset);
         }
       }
       out += cfaad::quadFormInv(delta, Sig, vcov_factorization);
@@ -309,7 +310,7 @@ public:
     vajoint_uint ii{};
     for(vajoint_uint i = 0; i < n_indices; ++i){
       vajoint_uint const offset{offsets_rng[indices[i]]},
-                        n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
+                        n_rng_i{par_idx.marker_info()[indices[i]].n_rng};
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
       cfaad::matVecProd
         (Psi + ii * c_dat.n_rngs, Psi + (ii + n_rng_i) * c_dat.n_rngs,
@@ -325,7 +326,7 @@ public:
     ii = 0;
     for(vajoint_uint i = 0; i < n_indices; ++i){
       unsigned const offset{offsets_rng[indices[i]]},
-                    n_rng_i{par_idx.get_marker_info()[indices[i]].n_rng};
+                    n_rng_i{par_idx.marker_info()[indices[i]].n_rng};
       double const * d{design + offset + n_fixed_effects + n_basis_fix};
       cfaad::matVecProd
         (Psi_M + ii, Psi_M + ii + n_indices * c_dat.n_rngs,
@@ -375,6 +376,8 @@ struct setup_marker_dat_helper {
           throw std::invalid_argument("obs_time >= next obs_time");
       }
     }
+
+  setup_marker_dat_helper(const setup_marker_dat_helper&) = default;
 };
 
 /// creates a comp_dat object after checking the input arguments
