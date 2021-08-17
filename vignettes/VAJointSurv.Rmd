@@ -14,11 +14,20 @@ knitr::opts_chunk$set(
 )
 ```
 
+This package provides means of estimating joint models for a mixture of 
+different types of markers and different types of survival outcomes. The models
+are estimated with Gaussian variational approximations (GVAs). We will start 
+by covering the model and then cover the implementation.
+
+### The Markers
+We assume that there are $L$ observed markers at each time point. We let 
+$\vec Y_{ij}$ denote the $j$th observed markers for individual $i$ and let 
+$s_{ij}$ be the observation time. The model for the markers is
 
 $$
 \begin{align*}
 \vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
-\epsilon_{ij} &\sim N^{(K)}(\vec 0, \Sigma) \\
+\epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
 \mu_{i1}(s, U) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
   \vec m_1(s)^\top\vec U_{i1} \\
 \vdots &\hphantom{=}\vdots\\\
@@ -26,22 +35,74 @@ $$
   \vec m_L(s)^\top\vec U_{iL} \\
 \vec U_i  &= \begin{pmatrix}
     \vec U_{i1} \\ \vdots \\ \vec U_{iL}
-  \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) \\
+  \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) 
+\end{align*}
+$$
+
+where $\vec\epsilon_{ij}$ is an error term of the observation, $\vec U_i$ is an 
+unobserved random effect for individual $i$, and the $\vec g_k$s and $\vec m_k$s
+are basis expansions.
+We can write the model more compactly by letting 
+
+$$G(s) = \begin{pmatrix} 
+  \vec g_1(s)^\top & 0^\top & \cdots & \vec 0^\top \\
+  \vec 0^\top & \vec g_2(s)^\top & \ddots & \vdots \\
+  \vdots & \ddots & \ddots & \vec 0^\top \\
+  \vec 0^\top & \cdots & \vec 0^\top & \vec g_L(s)^\top \end{pmatrix}$$
+  
+and defining $M(s)$ and $X_i$ similarly. Furthermore, let 
+$\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)$ and define 
+$\vec\beta$ similarly. Then 
+
+$$
+\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\gamma + M(s_{ij})\vec U_i
+$$
+
+### The Survival Outcomes
+We assume that there are $H$ different types of survival outcomes. The 
+conditional hazards of the survival outcomes are
+
+$$
+\begin{align*}
 h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
   \vec z_{i1}^\top\vec \delta_1 + 
   \omega_1^\top \vec b_1(t) + 
-  \vec\alpha_1^\top\vec\mu_i(t, \vec U_i) + \xi_{i1}
+  \vec\alpha_1^\top M(t)\vec U_i + \xi_{i1}
   \right) \\
 \vdots &\hphantom{=}\vdots \\
 h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(  
   \vec z_{iL}^\top\vec \delta_H + 
   \omega_H^\top\vec b_H(t) + 
-  \vec\alpha_H^\top\vec\mu_i(t, \vec U_i) + \xi_{iH}
+  \vec\alpha_H^\top M(t)\vec U_i + \xi_{iH}
   \right) \\
-\vec\xi_i &\sim N^{(H)}(\vec 0, \Xi)
+\vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
+  &\sim N^{(H)}(\vec 0, \Xi)
 \end{align*}
 $$
-where $\vec 1$ is vector with ones.
+The $\vec\alpha$s are associations parameters which makes the markers and the 
+survival outcomes marginally dependent. The $\vec\xi_i$s are frailty effects 
+which makes the survival outcomes marginally dependent even if 
+$\vec\alpha = \vec 0$.
+
+### Model Support
+
+The library can handle 
+ 
+ - Mixed type of basis expansions in $G$, $M$, and $b_1,\dots,b_H$.
+ - Arbitrary number of markers, $L$, and survival outcomes, $H$.
+ - Only observing a subset of the $L$ markers at a given point in time.
+ - Any number of observed markers. 
+ - Left-truncation and right-censoring. 
+ - Multiple observed outcomes for each survival type for an individual $i$.
+ 
+The following is not supported
+ 
+ - Interval-censoring and left-censoring are not supported although this is not
+   a complicated extension.
+ - There cannot be more than one set of markers observed 
+   at each point in time, $s_{ij}$, for each individual $i$.
+   
+## Technical Details
 We define the concatenated coefficient vector to be
 
 $$
@@ -56,18 +117,18 @@ $$
 \end{pmatrix}
 $$
 
-How to implement: 
- 1. implement the model with markers only. First one marker and then more.
- 2. implement the model with the survival outcomes only. First one process and 
-    then more. 
- 3. implement with both parts.
- 
-We use a Gaussian variational approximation for 
-$(\vec U_i^\top, \vec\xi_i^\top)^\top$ which we parameterize as 
-$N^{(R + H)}(\zeta_i, \Omega_i)$. 
+were $\text{vec}(\cdot)$ is vectorization which stacks the column of a matrix 
+on top of each other. There are different types of terms in the lower bound 
+in the GVA. We cover the types below.
 
 ## Kullback–Leibler Divergence Term
-The Kullback–Leibler (KL) divergence term is given by 
+In the GVA, we assume that the conditional distribution of 
+$(\vec U_i^\top, \vec\xi_i^\top)^\top$ is a normal distribution with mean 
+$\vec\zeta_i$ and covariance matrix $\Omega_i$. 
+One of the terms in the lower bound of the GVA is
+Kullback–Leibler (KL) divergence term between the unconditional distribution of
+$(\vec U_i^\top, \vec\xi_i^\top)^\top$ and the assumed conditional 
+distribution. This term is given by 
 
 $$
 \begin{multline*}
@@ -81,7 +142,9 @@ $$
 \end{multline*}
 $$
 
+where $\text{tr}(\cdot)$ returns the trace of a matrix.
 Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta$ are
+respectively
 
 $$
 \frac 12\left(\Omega_i^{-1} - 
@@ -109,19 +172,9 @@ $$
 
 ## Marker Terms
 
-Let $\vec\gamma = (\gamma_1^\top, \dots, \gamma_L^\top)^\top$, 
-$\vec\beta = (\beta_1^\top, \dots, \beta_L^\top)^\top$, and
-
-$$G(s) = \begin{pmatrix} 
-  \vec g_1(s)^\top & 0^\top & \cdots & \vec 0^\top \\
-  \vec 0^\top & \vec g_2(s)^\top & \ddots & \vdots \\
-  \vdots & \ddots & \ddots & \vec 0^\top \\
-  \vec 0^\top & \cdots & \vec 0^\top & \vec g_L(s)^\top \end{pmatrix}$$
-
-Define $X_i$ and  $M(s)$ similarly in terms of 
-$\vec x_{ik}$ and $\vec m_k(s)$.
-Then the lower bound term from the 
-conditional density of observation $j$ of individual $i$ at time $s_{ij}$ is
+The 
+log conditional density term of observation $j$ of individual $i$ at time 
+$s_{ij}$ is
 
 $$
 \int \log\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
@@ -141,37 +194,8 @@ $$
 \end{multline*}
 $$
 
-Let 
-$\vec\eta_{ij} = \vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}$. 
-Then the derivatives w.r.t. $\Sigma$ and $\Omega_{i,1:R,1:R}$ are 
-
-$$
-\frac 12
-   \Sigma^{-1}\left(\vec\eta_{ij}\vec\eta_{ij}^\top
-   + \Omega_{i,1:R,1:R} - \Sigma\right)\Sigma^{-1}
-$$
-
-TODO: this is wrong
-
-$$
--\frac 12\Sigma^{-1}
-$$
-
-For the remaining parameters, we can use that the derivative w.r.t. 
-$\vec\eta_{ij}$ is 
-
-$$
--\Sigma^{-1}\vec\eta_{ij}
-$$
-
-Thus, the derivatives w.r.t. $\vec\gamma$, $\vec\beta$, and $\vec\zeta_{i,1:R}$
-are given by $X_i^\top\Sigma^{-1}\vec\eta_{ij}$, 
-$G(s_{ij})^\top\Sigma^{-1}\vec\eta_{ij}$, and
-$M(s_{ij})^\top\Sigma^{-1}\vec\eta_{ij}$. We can omit an index in all of 
-the above equations if an element of $\vec y_{ij}$ is not observed. 
-
 ## Survival Outcomes
-Let $T_{i1}, \dots, T_{iL}$ be either the minimum of the censoring time or 
+Let $T_{i1}, \dots, T_{iL}$ be the minimum of the censoring time or 
 the observed event time and $D_{i1}, \dots, D_{iL}$ be event indicators. The 
 the lower bound terms for the $k$th time to event is
 
@@ -184,26 +208,17 @@ $$
 The log hazard term gives the following lower bound terms
 
 $$
-\begin{multline*}
 d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
   \omega_k^\top \vec b_k(t_{ik}) + 
-  \vec\alpha_k^\top\vec\mu_i(t_{ik}, \vec\zeta_{i,1:R}) + \zeta_{i,R + k}\right) \\
-  = d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
-  \omega_k^\top \vec b_k(t_{ik}) + 
-  \vec\alpha_k^\top\left(X_i\vec\gamma + G(t_{ik})\vec\beta 
-  + M(t_{ik})\vec\zeta_{i,1:R}\right)
-  + \zeta_{i,R + k}\right)
-\end{multline*}
+  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right)
 $$
-The derivatives follow easily as all terms are linear in the unknown 
-parameters.
 
-As for the expected cumulative hazard, assume that we can interchange the order 
+As for the expected cumulative hazard term, assume that we can interchange the order 
 of integration. Then the lower bounds term is
 
 $$
 \xi_{ik} = -\exp(\vec z_{ik}^\top\vec\delta_k)\int_0^{t_{ij}}
-  \exp\left(\omega_k^\top \vec b_k(s) + \vec\alpha_k^\top\vec\mu_i(s, \vec\zeta_{i,1:R})
+  \exp\left(\omega_k^\top \vec b_k(s) + 
   + \zeta_{R + k } +\frac 12 
   (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
     \vec\alpha_k \\ 1
@@ -216,49 +231,4 @@ $$
 O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
   \Omega_{(1:R, R + k), (1:R, R + k)}
     \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}
-$$
-
-This can be re-written as
-
-$$
-\begin{align*}
-\xi_{ik} &= q_1 \int_0^{t_{ik}} q_2(s) ds \\
- q_1 &= -\exp(\vec z_{ik}^\top\vec\delta_k + \vec\alpha_k^\top X_i\vec\gamma) \\
- q_2(s) &= \exp\Bigg(
-    \omega_k^\top \vec b_k(s) + \vec\alpha_k^\top G(s)\vec\beta +
-    \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} 
-  + \zeta_{R + k } \\ 
-&\hspace{40pt} +\frac 12 
-  (\vec\alpha_k^\top M(s), 1) \Omega_{(1:R, R + k), (1:R, R + k)}\begin{pmatrix}
-    M(s)\vec\alpha_k \\ 1
-  \end{pmatrix}\Bigg) 
-\end{align*}
-$$
-
-The derivatives w.r.t. 
-$\vec\delta_k$ and $\vec\gamma$ are $\vec z_{ik}\xi_{ik}$ and
-$X_i^\top \vec\alpha_k\xi_{ik}$. The derivatives w.r.t. 
-$(\vec\omega_k^\top, \vec\beta^\top, \vec\zeta_{i,1:R}^\top, \zeta_{R + k})^\top$ 
-are
-
-$$
-q_1 \int_0^{t_{ik}} \begin{pmatrix}
-    \vec b_k(s) \\  G(s)^\top\vec\alpha_k \\ M(s)^\top\vec\alpha_k \\ 1
-  \end{pmatrix}q_2(s) ds
-$$
-
-The derivatives w.r.t. $\vec\alpha_k$ are 
-
-$$
-X_i\vec\gamma\xi + q_1\int_0^{t_{ik}}
-  \left(G(s)\vec\beta + M(s)\vec\zeta_{i,1:R} + \frac 12...\right)q_2(s) ds
-$$
-
-The derivative w.r.t. $\Omega_{(1:R, R + k), (1:R, R + k)}$ is 
-
-$$
-q_1 \int_0^{t_{ik}}
-  \begin{pmatrix}
-    M(s)\vec\alpha_k \\ 1
-  \end{pmatrix}(\vec\alpha_k^\top M(s), 1)q(s) ds
 $$
