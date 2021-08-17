@@ -30,10 +30,10 @@ public:
   void setup(double const *param, double *wk_mem);
 
   /// Evaluates the lower bound term
-  double eval(double const *param, double *wk_mem);
+  double eval(double const *param, double *wk_mem) const ;
 
   /// Allocates the needed working memory on each call
-  inline double eval(double const *param){
+  double eval(double const *param) const {
     return eval(param, wmem::get_double_mem(get_n_wmem()));
   }
 
@@ -41,15 +41,15 @@ public:
    * Evaluates the gradient of the lower bound term and adds it to the result.
    * The lower bound term is returned
    */
-  double grad(double *g, double const *param, double *wk_mem);
+  double grad(double *g, double const *param, double *wk_mem) const;
 
   /// Allocates the needed working memory on each call
-  inline double grad(double *g, double const *param){
+  double grad(double *g, double const *param) const {
     std::unique_ptr<double[]> mem(new double[get_n_wmem()]);
     return grad(g, param, wmem::get_double_mem(get_n_wmem()));
   }
 
-  size_t get_n_wmem() {
+  size_t get_n_wmem() const {
     return 2 * n_vars * n_vars;
   }
 };

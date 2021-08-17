@@ -11,15 +11,15 @@ struct pd_mat {
   /**
    * return the required memory to get the original matrix from a log Cholesky
    * decomposition */
-  static inline size_t get_n_wmem(vajoint_uint const dim){
+  static size_t get_n_wmem(vajoint_uint const dim){
     return dim * dim;
   }
 
   /** Computes L^T where L is a upper triangular matrix. The argument is a
     * a vector with the non-zero elements in column major order. The diagonal
     * entries are on the log scale. The last element is working memory */
-  static inline void get(double const *theta, vajoint_uint const dim,
-                         double * res, double *wk_mem){
+  static void get(double const *theta, vajoint_uint const dim,
+                  double * res, double *wk_mem){
     arma::mat L(wk_mem, dim, dim, false);
     L.zeros();
 
@@ -34,8 +34,8 @@ struct pd_mat {
   }
 
   /// same as the above but perform the allocation of working memory
-  static inline void get(double const *theta, vajoint_uint const dim,
-                         double * res){
+  static void get(double const *theta, vajoint_uint const dim,
+                  double * res){
     get(theta, dim, res, wmem::get_double_mem(get_n_wmem(dim)));
   }
 };
@@ -44,7 +44,7 @@ struct dpd_mat {
   /**
    * return the required memory to get the derivative as part of the chain
    * rule  */
-  static inline size_t get_n_wmem(vajoint_uint const dim){
+  static size_t get_n_wmem(vajoint_uint const dim){
     return 3 * dim * dim;
   }
 
@@ -54,10 +54,10 @@ struct dpd_mat {
    * is supplied. Only the derivatives w.r.t. the upper triangular of X need
    * to be valid.
    */
-  static inline void get(double const *theta, vajoint_uint const dim,
-                         double * __restrict__ res,
-                         double const * derivs,
-                         double * __restrict__ wk_mem){
+  static void get(double const *theta, vajoint_uint const dim,
+                  double * __restrict__ res,
+                  double const * derivs,
+                  double * __restrict__ wk_mem){
     arma::mat L(wk_mem, dim, dim, false);
     L.zeros();
 
@@ -83,9 +83,9 @@ struct dpd_mat {
   }
 
   /// same as the above but perform the allocation of working memory
-  static inline void get(double const *theta, vajoint_uint const dim,
-                         double * __restrict__ res,
-                         double const * derivs){
+  static void get(double const *theta, vajoint_uint const dim,
+                  double * __restrict__ res,
+                  double const * derivs){
     get(theta, dim, res, derivs, wmem::get_double_mem(get_n_wmem(dim)));
   }
 };

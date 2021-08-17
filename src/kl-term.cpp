@@ -56,7 +56,7 @@ void kl_term::setup(double const *param, double *wk_mem){
      vcov_surv_inv, vcov_surv_inv_chol);
 }
 
-double kl_term::eval(double const *param, double *wk_mem) {
+double kl_term::eval(double const *param, double *wk_mem) const {
   double out(eval_constant);
   if(!has_vcov or !has_vcov_surv)
     return out;
@@ -101,7 +101,7 @@ double kl_term::eval(double const *param, double *wk_mem) {
   return out;
 }
 
-double kl_term::grad(double *g, double const *param, double *wk_mem) {
+double kl_term::grad(double *g, double const *param, double *wk_mem) const {
   if(!has_vcov or !has_vcov_surv)
     return eval(param, wk_mem);
 

@@ -7,8 +7,6 @@
 #include <omp.h>
 #endif
 
-namespace {
-
 using vajoint_uint = unsigned;
 
 inline int get_thread_num() noexcept {
@@ -17,8 +15,6 @@ inline int get_thread_num() noexcept {
 #else
   return 0L;
 #endif
-}
-
 }
 
 #endif
