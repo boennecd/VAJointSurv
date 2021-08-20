@@ -318,7 +318,7 @@ public:
      const vajoint_uint order = default_order);
 
   size_t n_wmem() const {
-    return bspline.n_wmem();
+    return bspline.n_wmem() + q_matrix.n_rows + bspline.n_basis();
   }
 
   vajoint_uint n_basis() const {
@@ -364,9 +364,23 @@ public:
       return;
     }
 
-    // TODO: very inefficient
-    arma::vec res{trans(bspline(x, ders))};
-    std::copy(res.begin(), res.end(), out);
+    double * const lhs = wk_mem;
+    wk_mem += q_matrix.n_rows;
+    double * const b = wk_mem;
+    wk_mem += bspline.n_basis();
+    bspline(b, wk_mem, x, ders);
+
+    if(intercept){
+      arma::vec dot_pro_res(lhs, q_matrix.n_rows, false);
+      dot_pro_res = q_matrix * arma::vec(b, bspline.n_basis(), false);
+
+    } else {
+      arma::vec dot_pro_res(lhs, q_matrix.n_rows, false);
+      dot_pro_res = q_matrix * arma::vec(b + 1, bspline.n_basis() - 1, false);
+
+    }
+
+    std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
   }
 
 private:
