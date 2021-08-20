@@ -25,8 +25,241 @@ As long as this comment is preserved at the top of the file
 #include <cstring>
 #include <utility>
 #include <stdexcept>
+#include <memory.h>
 
 namespace cfaad {
+
+#ifdef DO_CHECKS
+
+/**
+ * class used to check that nothing is read after the end of each range. It
+ * always allocated with exactly the needed length */
+template <class T, size_t block_size>
+class blocklist {
+
+  class dum_block {
+    size_t n_ele;
+    std::unique_ptr<T[]> mem{new T[n_ele]};
+    T* begin_v{mem.get()},
+     * end_v  {begin_v + n_ele};
+
+  public:
+    dum_block(size_t n_ele) : n_ele{n_ele} { }
+
+    T* begin() {
+      return begin_v;
+    }
+    T* begin() const {
+      return begin_v;
+    }
+
+    T* end() {
+      return end_v;
+    }
+    T* end() const {
+      return end_v;
+    }
+
+    T& operator[](const size_t i){
+      return mem[i];
+    }
+
+    const T& operator[](const size_t i) const {
+      return mem[i];
+    }
+  };
+
+  std::list<dum_block>  data;
+
+  using list_iter = decltype(data.begin());
+  using block_iter = decltype(data.back().begin());
+
+  list_iter marked_block;
+
+  T* nextblock(const size_t n_ele){
+    data.emplace_back(n_ele);
+    return data.back().begin();
+  }
+
+public:
+
+  blocklist()
+  {
+    nextblock(1);
+  }
+
+  void clear()
+  {
+    data.clear();
+    nextblock(1);
+  }
+
+  void rewind()
+  {
+    clear();
+  }
+
+  void memset(unsigned char value = 0)
+  {
+    for (auto& arr : data)
+    {
+      std::memset(&arr[0], value,
+                  std::distance(arr.begin(), arr.end()) * sizeof(T));
+    }
+  }
+
+  template<typename ...Args>
+  T* emplace_back(Args&& ...args)
+  {
+    block_iter next_space = nextblock(1);
+    T* emplaced = new (&*next_space)T(std::forward<Args>(args)...);
+    return emplaced;
+  }
+
+  T* emplace_back()
+  {
+    return nextblock(1);
+  }
+
+  template <size_t n>
+  T* emplace_back_multi()
+  {
+    return nextblock(n);
+  }
+
+  T* emplace_back_multi(const size_t n)
+  {
+    return nextblock(n);
+  }
+
+  void setmark()
+  {
+    marked_block = std::prev(data.end());
+  }
+
+  //  Rewind to mark
+  void rewind_to_mark()
+  {
+    list_iter marked_block_p1{marked_block};
+    ++marked_block_p1;
+    if(marked_block != data.end())
+      data.erase(marked_block_p1, data.end());
+  }
+
+  class iterator
+  {
+    //  List and block
+    list_iter        cur_block;		//  current block
+    block_iter       cur_space;		//  current space
+    block_iter       first_space;	//  first space in block
+    block_iter       last_space;	//  last (+1) space in block
+
+  public:
+
+    //  iterator traits
+    using difference_type = ptrdiff_t;
+    using reference = T&;
+    using pointer = T*;
+    using value_type = T;
+    using iterator_category = std::bidirectional_iterator_tag;
+
+    iterator() {}
+    iterator(list_iter cb, block_iter cs, block_iter fs, block_iter ls) :
+      cur_block(cb), cur_space(cs), first_space(fs), last_space(ls) {}
+
+    iterator& operator++()
+    {
+      if (cur_space == last_space || ++cur_space == last_space)
+      {
+        ++cur_block;
+        first_space = cur_block->begin();
+        last_space = cur_block->end();
+        cur_space = first_space;
+      }
+
+      return *this;
+    }
+
+    iterator& operator--()
+    {
+      if (cur_space == first_space)
+      {
+        --cur_block;
+        first_space = cur_block->begin();
+        last_space = cur_block->end();
+        cur_space = last_space;
+      }
+
+      --cur_space;
+
+      return *this;
+    }
+
+    T& operator*()
+    {
+      return *cur_space;
+    }
+    const T& operator*() const
+    {
+      return *cur_space;
+    }
+    T* operator->()
+    {
+      return &*cur_space;
+    }
+    const T* operator->() const
+    {
+      return &*cur_space;
+    }
+
+    //	Check equality
+    bool operator ==(const iterator& rhs) const
+    {
+      return (cur_block == rhs.cur_block && cur_space == rhs.cur_space);
+    }
+    bool operator !=(const iterator& rhs) const
+    {
+      return (cur_block != rhs.cur_block|| cur_space != rhs.cur_space);
+    }
+  };
+
+  iterator begin()
+  {
+    return iterator(data.begin(), data.begin()->begin(),
+                    data.begin()->begin(), data.begin()->end());
+  }
+
+  iterator end()
+  {
+    list_iter cur_block{std::prev(data.end())};
+    return iterator(cur_block, cur_block->end(),
+                    cur_block->begin(), cur_block->end());
+  }
+
+  iterator mark()
+  {
+    return iterator(marked_block, marked_block->end(),
+                    marked_block->begin(), marked_block->end());
+  }
+
+  iterator find(const T* const element)
+  {
+    iterator it = end();
+    iterator b = begin();
+
+    while (it != b)
+    {
+      --it;
+      if (&*it == element) return it;
+    }
+
+    if (&*it == element) return it;
+
+    return end();
+  }
+};
+
+#else // #ifdef DO_CHECKS
 
 template <class T, size_t block_size>
 class blocklist
@@ -158,9 +391,9 @@ public:
 	template <size_t n>
 	T* emplace_back_multi()
 	{
-        static_assert(n <= block_size, 
+        static_assert(n <= block_size,
                       "requested number of elements is greater than the block size");
-        
+
 		//  No more space in current array
 		if (std::distance(next_space, last_space) <  static_cast
                 <typename std::iterator_traits<block_iter>::difference_type>(n))
@@ -348,5 +581,7 @@ public:
         return end();
     }
 };
+
+#endif // #ifdef DO_CHECKS
 
 } // namespace cfaad

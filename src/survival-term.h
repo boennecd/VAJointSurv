@@ -83,6 +83,8 @@ public:
     T out{0};
     double const delta_bound{upper - lower};
 
+    T * const association_M = wk_mem;
+    wk_mem += n_basis_rng_p1;
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
       if(nws.ws[i] == 0)
         continue;
@@ -94,8 +96,6 @@ public:
         {cfaad::dotProd(dwk_mem, dwk_mem + b.n_basis(), fixef_time)};
 
       // construct the (association^T, 1).hat(M)(s) vector
-      T * const association_M = wk_mem;
-      wk_mem += n_basis_rng_p1;
       {
         vajoint_uint idx{};
         for(vajoint_uint i = 0; i < bases_rng.size(); ++i){
@@ -179,27 +179,7 @@ public:
   /// the number of type of outcomes
   vajoint_uint const n_outcomes = bases_fix.size();
   /// the required working memory
-  std::array<vajoint_uint, 2> wkmem_val
-  {
-    ([&]{
-      std::array<vajoint_uint, 2> out{0,0};
-      for(auto &ch : cum_hazs){
-        auto ch_mem = ch.get_wkmem();
-        out[0] = std::max(out[0], ch_mem[0]);
-        out[1] = std::max(out[1], ch_mem[1]);
-      }
-
-      vajoint_uint const n_shared_p1{par_idx.n_shared() + 1};
-      out[0] += n_shared_p1 * (n_shared_p1 + 1);
-
-      vajoint_uint d_xtra{n_shared_p1};
-      for(auto &b : bases_fix)
-        d_xtra = std::max(b->n_basis(), d_xtra);
-      out[1] += d_xtra;
-
-      return out;
-    })()
-  };
+  std::array<vajoint_uint, 2> wkmem_val;
 
   survival_dat
     (bases_vector const &bases_fix, bases_vector const &bases_rng,
@@ -221,10 +201,28 @@ public:
     if(bases_rng.size() != par_idx.marker_info().size())
       throw std::invalid_argument("bases_rng.size() != marker_info().size()");
 
+    // create the cum_hazs
     cum_hazs.reserve(n_outcomes);
     for(vajoint_uint i = 0; i < n_outcomes; ++i)
       cum_hazs.emplace_back(*bases_fix[i], bases_rng, design_mats[i].n_rows());
 
+    // set the required working memory
+    wkmem_val = {0, 0};
+    for(auto &ch : cum_hazs){
+      auto ch_mem = ch.get_wkmem();
+      wkmem_val[0] = std::max(wkmem_val[0], ch_mem[0]);
+      wkmem_val[1] = std::max(wkmem_val[1], ch_mem[1]);
+    }
+
+    vajoint_uint const n_shared_p1{par_idx.n_shared() + 1};
+    wkmem_val[0] += n_shared_p1 * (n_shared_p1 + 1);
+
+    vajoint_uint d_xtra{n_shared_p1};
+    for(auto &b : bases_fix)
+      d_xtra = std::max(b->n_basis(), d_xtra);
+    wkmem_val[1] += d_xtra;
+
+    // add the observations
     obs_info.resize(n_outcomes);
     for(vajoint_uint i = 0; i < n_outcomes; ++i){
       obs_info[i].reserve(input[i].n_obs);

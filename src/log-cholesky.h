@@ -11,11 +11,11 @@ struct pd_mat {
   /**
    * return the required memory to get the original matrix from a log Cholesky
    * decomposition */
-  static size_t get_n_wmem(vajoint_uint const dim){
+  static size_t n_wmem(vajoint_uint const dim){
     return dim * dim;
   }
 
-  /** Computes L^T where L is a upper triangular matrix. The argument is a
+  /** Computes L^TL where L is a upper triangular matrix. The argument is a
     * a vector with the non-zero elements in column major order. The diagonal
     * entries are on the log scale. The last element is working memory */
   static void get(double const *theta, vajoint_uint const dim,
@@ -36,7 +36,7 @@ struct pd_mat {
   /// same as the above but perform the allocation of working memory
   static void get(double const *theta, vajoint_uint const dim,
                   double * res){
-    get(theta, dim, res, wmem::get_double_mem(get_n_wmem(dim)));
+    get(theta, dim, res, wmem::get_double_mem(n_wmem(dim)));
   }
 };
 
@@ -44,7 +44,7 @@ struct dpd_mat {
   /**
    * return the required memory to get the derivative as part of the chain
    * rule  */
-  static size_t get_n_wmem(vajoint_uint const dim){
+  static size_t n_wmem(vajoint_uint const dim){
     return 3 * dim * dim;
   }
 
@@ -86,7 +86,7 @@ struct dpd_mat {
   static void get(double const *theta, vajoint_uint const dim,
                   double * __restrict__ res,
                   double const * derivs){
-    get(theta, dim, res, derivs, wmem::get_double_mem(get_n_wmem(dim)));
+    get(theta, dim, res, derivs, wmem::get_double_mem(n_wmem(dim)));
   }
 };
 } // namespace log_chol

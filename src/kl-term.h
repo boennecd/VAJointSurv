@@ -34,7 +34,7 @@ public:
 
   /// Allocates the needed working memory on each call
   double eval(double const *param) const {
-    return eval(param, wmem::get_double_mem(get_n_wmem()));
+    return eval(param, wmem::get_double_mem(n_wmem()));
   }
 
   /**
@@ -45,11 +45,11 @@ public:
 
   /// Allocates the needed working memory on each call
   double grad(double *g, double const *param) const {
-    std::unique_ptr<double[]> mem(new double[get_n_wmem()]);
-    return grad(g, param, wmem::get_double_mem(get_n_wmem()));
+    std::unique_ptr<double[]> mem(new double[n_wmem()]);
+    return grad(g, param, wmem::get_double_mem(n_wmem()));
   }
 
-  size_t get_n_wmem() const {
+  size_t n_wmem() const {
     return 2 * n_vars * n_vars;
   }
 };

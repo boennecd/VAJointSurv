@@ -6,7 +6,6 @@
 inline void check_splines
   (const arma::vec &boundary_knots, const arma::vec &interior_knots,
    const vajoint_uint order) {
-#ifdef DO_CHECKS
   if(order<1)
     throw std::invalid_argument("order<1");
   if(boundary_knots.size() != 2L)
@@ -16,35 +15,28 @@ inline void check_splines
   if(interior_knots.size()>0 && boundary_knots(1)<max(interior_knots))
     throw std::invalid_argument("boundary_knots(1)<max(interior_knots)");
   // TODO: check if interior_knots are in ascending order?
-#endif
 }
 
 inline void throw_invalid_out(
     std::string const &cl, vajoint_uint const dim, vajoint_uint const dim_ex){
-#ifdef DO_CHECKS
   std::stringstream msg;
   msg << cl << ": invalid 'out' (dim is " << dim << "; expected "
       << dim_ex << ')';
   throw std::invalid_argument(msg.str());
-#endif
 }
 
 namespace joint_bases {
 
 SplineBasis::SplineBasis(const vajoint_uint order): order(order), knots() {
-#ifdef DO_CHECKS
   if (order<1)
     throw std::invalid_argument("order<1");
-#endif
 }
 
 
 SplineBasis::SplineBasis(const vec knots, const vajoint_uint order):
   order(order), knots(knots) {
-#ifdef DO_CHECKS
   if (order<1)
     throw std::invalid_argument("order<1");
-#endif
 }
 
 
@@ -78,10 +70,10 @@ ns::ns(const vec &boundary_knots, const vec &interior_knots,
        const bool intercept, const vajoint_uint order):
   bspline(boundary_knots, interior_knots, true, order),
   intercept(intercept),
-  tl0(trans(bspline(boundary_knots(0), 0))),
-  tl1(trans(bspline(boundary_knots(0), 1))),
-  tr0(trans(bspline(boundary_knots(1), 0))),
-  tr1(trans(bspline(boundary_knots(1), 1)))
+  tl0(trans(bspline(boundary_knots(0), 0.))),
+  tl1(trans(bspline(boundary_knots(0), 1.))),
+  tr0(trans(bspline(boundary_knots(1), 0.))),
+  tr1(trans(bspline(boundary_knots(1), 1.)))
   { }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,
@@ -103,13 +95,11 @@ orth_poly::orth_poly(vec const &alpha, vec const &norm2,
                      bool const intercept):
 alpha(alpha), norm2(norm2), raw(false), intercept(intercept),
 n_basis_v(norm2.size() - 2 + intercept) {
-#ifdef DO_CHECKS
   for(vajoint_uint i = 0; i < norm2.size(); ++i)
     if(norm2[i] <= 0.)
       throw std::invalid_argument("invalid norm2");
-    if(alpha.n_elem + 2L != norm2.n_elem)
-      throw std::invalid_argument("invalid alpha");
-#endif
+  if(alpha.n_elem + 2L != norm2.n_elem)
+    throw std::invalid_argument("invalid alpha");
 }
 
 orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
@@ -137,7 +127,7 @@ orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
 
   vec norm2(nc + 1L),
   alpha(nc - 1L);
-  norm2[0] = 1.;
+  norm2[0] = 1;
   for(vajoint_uint c = 0; c < nc; ++c){
     double z_sq(0),
     x_z_sq(0);
@@ -153,9 +143,10 @@ orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
       alpha[c] = x_z_sq / z_sq + x_bar;
   }
 
-  norm2 /= static_cast<double>(n);
   orth_poly out(alpha, norm2, true);
-  X.each_row() /= out.sqrt_norm2.subvec(1L, out.sqrt_norm2.n_elem - 1L).t();
+  for(vajoint_uint j = 1; j < nc; ++j)
+    for(vajoint_uint i = 0; i < n; ++i)
+      X.at(i, j) /= out.sqrt_norm2.at(j + 1);
   return out;
 }
 

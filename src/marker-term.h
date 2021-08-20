@@ -99,7 +99,7 @@ private:
   std::vector<vajoint_uint> offsets_rng;
 
   /// the needed working memory
-  size_t n_wmem{
+  size_t n_wmem_v{
     2 * n_markers * n_markers + n_basis_rng * n_basis_rng + n_markers +
       n_basis_rng * n_markers};
 
@@ -339,8 +339,8 @@ public:
     return out / 2;
   }
 
-  size_t get_n_wmem() const {
-    return n_wmem;
+  size_t n_wmem() const {
+    return n_wmem_v;
   }
 };
 

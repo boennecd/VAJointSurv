@@ -10,11 +10,14 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
   int const order(4);
 
   auto bas = Basis(bk, ik, intercept, order);
-  arma::vec y = bas(xx_val, 0);
+  arma::vec y = bas(xx_val, 0.);
 
   expect_true(y .size() == yy_val.size());
-  for(unsigned i = 0; i < y.size(); ++i)
+  for(unsigned i = 0; i < y.size(); ++i){
+    if(!pass_rel_err(y[i], yy_val[i]))
+      throw std::runtime_error("boh :(");
     expect_true(pass_rel_err(y[i], yy_val[i]));
+  }
 
   arma::vec dx = bas(xx_val, 1);
   for(unsigned i = 0; i < y.size(); ++i)
@@ -406,7 +409,6 @@ context("bases unit tests") {
      set.seed(1)
      dput(x <- round(rnorm(6), 2))
      obj <- poly(x, degree = 3)
-     attr(obj, "coefs")$norm2 <- attr(obj, "coefs")$norm2 / NROW(obj)
      dput(attr(obj, "coefs"))
      dput(cbind(1, predict(obj, x)))
     */
@@ -415,11 +417,11 @@ context("bases unit tests") {
                 norm2 = { 0.166666666666667, 1, 0.745133333333333, 0.413676179913314,
                           0.0235062965408605 };
     arma::mat basis =
-      { { 1, 1, 1, 1, 1, 1, -0.695079138943395, 0.243277698630188,
-          -0.938356837573584, 1.88829832746289, 0.417047483366037, -0.915187532942137,
-          0.0576788318055649, -1.31972174466434, 0.747817172463846, 1.18895139819447,
-          -1.35090719440005, 0.676181536600509, 1.92619780939021, 0.393652338460405,
-          -0.920783200334851, 0.14053903106972, -0.97230438386083, -0.567301594724647 } };
+      { { 1, 1, 1, 1, 1, 1, -0.283764870210735, 0.0993177045737573,
+          -0.383082574784492, 0.770894564072497, 0.170258922126441, -0.373623745777468,
+          0.0235472844805746, -0.538774146147203, 0.305295082237885, 0.485387375757513,
+          -0.551505552689155, 0.276049956360386, 0.78636696277879, 0.160707894213562,
+          -0.375908167424548, 0.0573748191776611, -0.396941602521704, -0.23159990622376 } };
     basis.reshape(6L, 4L);
 
     arma::mat Xout;

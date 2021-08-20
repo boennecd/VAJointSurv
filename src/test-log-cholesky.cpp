@@ -25,7 +25,7 @@ context("log-cholesky works as expected") {
 
     // with working memory supplied
     std::unique_ptr<double[]>
-      mem(new double[log_chol::pd_mat::get_n_wmem(dim)]);
+      mem(new double[log_chol::pd_mat::n_wmem(dim)]);
 
     std::fill(std::begin(res), std::end(res), 0);
     log_chol::pd_mat::get(theta, dim, res, mem.get());
@@ -89,7 +89,7 @@ context("log-cholesky works as expected") {
       expect_true(pass_rel_err(output[i], res[i]));
 
     // works with pre-allocated memory
-    std::unique_ptr<double[]> mem(new double[log_chol::dpd_mat::get_n_wmem(dim)]);
+    std::unique_ptr<double[]> mem(new double[log_chol::dpd_mat::n_wmem(dim)]);
     std::fill(std::begin(output), std::end(output), 0);
     log_chol::dpd_mat::get(theta, dim, output, derivs, mem.get());
     for(vajoint_uint i = 0; i < dim_ltri; ++i)

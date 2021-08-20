@@ -1,5 +1,5 @@
 ---
-title: "Jount Survival and Marker Models"
+title: "Joint Survival and Marker Models"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{VAJointSurv}
@@ -117,7 +117,8 @@ $$
 \end{pmatrix}
 $$
 
-were $\text{vec}(\cdot)$ is vectorization which stacks the column of a matrix 
+where $\text{vec}(\cdot)$ is the vectorization function
+that stacks the column of a matrix 
 on top of each other. There are different types of terms in the lower bound 
 in the GVA. We cover the types below.
 
@@ -125,7 +126,7 @@ in the GVA. We cover the types below.
 In the GVA, we assume that the conditional distribution of 
 $(\vec U_i^\top, \vec\xi_i^\top)^\top$ is a normal distribution with mean 
 $\vec\zeta_i$ and covariance matrix $\Omega_i$. 
-One of the terms in the lower bound of the GVA is
+One of the terms in the lower bound of the GVA is the
 Kullback–Leibler (KL) divergence term between the unconditional distribution of
 $(\vec U_i^\top, \vec\xi_i^\top)^\top$ and the assumed conditional 
 distribution. This term is given by 
@@ -143,7 +144,7 @@ $$
 $$
 
 where $\text{tr}(\cdot)$ returns the trace of a matrix.
-Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta$ are
+Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta_i$ are
 respectively
 
 $$
@@ -167,7 +168,7 @@ $$
 -\begin{pmatrix}
   \Psi^{-1} & 0 \\
   0 & \Xi^{-1} 
-\end{pmatrix}\vec\zeta
+\end{pmatrix}\vec\zeta_i
 $$
 
 ## Marker Terms
@@ -177,8 +178,8 @@ log conditional density term of observation $j$ of individual $i$ at time
 $s_{ij}$ is
 
 $$
-\int \log\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
-  + M(s_{ij})\vec w, \Sigma\right)
+\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
+  + M(s_{ij})\vec w, \Sigma\right)\right)
   \phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
 $$
 which gives

@@ -140,7 +140,7 @@ context("marker_term is correct") {
           par.begin() + par_idx.va_vcov() + j * n_shared_p_surv);
 
     {
-      double *wk_mem = wmem::get_double_mem(comp_obj.get_n_wmem());
+      double *wk_mem = wmem::get_double_mem(comp_obj.n_wmem());
       comp_obj.setup(par.data(), wk_mem);
 
       double res = comp_obj(par.data(), wk_mem, 0)
@@ -154,7 +154,7 @@ context("marker_term is correct") {
     std::vector<cfaad::Number> ad_par(par.size());
     cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
 
-    cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.get_n_wmem());
+    cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.n_wmem());
     cfaad::Number res = comp_obj(ad_par.data(), wk_mem, 0) +
       comp_obj(ad_par.data(), wk_mem, 1);
 
@@ -387,7 +387,7 @@ context("marker_term is correct") {
         par.begin() + par_idx.va_vcov() + j * n_shared_p_surv);
 
     {
-      double *wk_mem = wmem::get_double_mem(comp_obj.get_n_wmem());
+      double *wk_mem = wmem::get_double_mem(comp_obj.n_wmem());
       comp_obj.setup(par.data(), wk_mem);
 
       double res{};
@@ -402,7 +402,7 @@ context("marker_term is correct") {
     cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
 
 
-    cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.get_n_wmem());
+    cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.n_wmem());
 
     cfaad::Number res{0};
     for(vajoint_uint i = 0; i < comp_obj.n_obs; ++i)
