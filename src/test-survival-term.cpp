@@ -114,7 +114,7 @@ context("expected_cum_hazzard is correct") {
     // we get the correct value
     survival::expected_cum_hazzard comp_obj(g, bases_rng, 3);
     {
-      auto req_mem = comp_obj.get_wkmem();
+      auto req_mem = comp_obj.n_wmem();
       double const res = comp_obj(
         {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
@@ -122,7 +122,7 @@ context("expected_cum_hazzard is correct") {
       expect_true(res == Approx(true_val1).epsilon(1e-6));
     }
     {
-      auto req_mem = comp_obj.get_wkmem();
+      auto req_mem = comp_obj.n_wmem();
       double const res = comp_obj(
         {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
@@ -139,7 +139,7 @@ context("expected_cum_hazzard is correct") {
       cfaad::convertCollection(begin(zeta), end(zeta), ad_zeta);
       cfaad::convertCollection(begin(Psi), end(Psi), ad_Psi);
 
-      auto req_mem = comp_obj.get_wkmem();
+      auto req_mem = comp_obj.n_wmem();
       Number res = comp_obj(
         {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
         ad_Psi, wmem::get_Number_mem(req_mem[0]),
@@ -168,7 +168,7 @@ context("expected_cum_hazzard is correct") {
       cfaad::putOnTape(begin(ad_zeta), end(ad_zeta));
       cfaad::putOnTape(begin(ad_Psi), end(ad_Psi));
 
-      auto req_mem = comp_obj.get_wkmem();
+      auto req_mem = comp_obj.n_wmem();
       Number res = comp_obj(
         {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
         ad_Psi, wmem::get_Number_mem(req_mem[0]),
@@ -398,7 +398,7 @@ context("survival_dat is correct") {
 
     // we get the right value
     {
-      auto req_wmem = comp_obj.get_wkmem();
+      auto req_wmem = comp_obj.n_wmem();
       double res{};
       for(vajoint_uint i = 0; i < 2; ++i)
         for(vajoint_uint j = 0; j < comp_obj.get_n_terms(i); ++j)
@@ -413,7 +413,7 @@ context("survival_dat is correct") {
     std::vector<Number> ad_par(par.size());
     cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
 
-    auto req_wmem = comp_obj.get_wkmem();
+    auto req_wmem = comp_obj.n_wmem();
     Number res{0};
     for(vajoint_uint i = 0; i < 2; ++i)
       for(vajoint_uint j = 0; j < comp_obj.get_n_terms(i); ++j)

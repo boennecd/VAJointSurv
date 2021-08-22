@@ -153,14 +153,24 @@ public:
     static_assert(std::is_same<typename std::iterator_traits<I>::value_type,
                                double>::value, "iterator is not to doubles");
 
+    // compute the maximum needed working memory
+    size_t n_wmem_basis{};
+    for(auto &x : bases_fix)
+      n_wmem_basis = std::max(n_wmem_basis, x->n_wmem());
+    for(auto &x : bases_rng)
+      n_wmem_basis = std::max(n_wmem_basis, x->n_wmem());
+
+    // fill in the basis
+    double * const basis_wmem{wmem::get_double_mem(n_wmem_basis)};
+
     for(vajoint_uint i = 0; i < n_obs; ++i, ++obs_time){
       double *mem = design_mats.col(i) + n_fixed_effects;
       for(auto &x : bases_fix){
-        x->operator()(mem, *obs_time);
+        (*x)(mem, basis_wmem, *obs_time);
         mem += x->n_basis();
       }
       for(auto &x : bases_rng){
-        x->operator()(mem, *obs_time);
+        (*x)(mem, basis_wmem, *obs_time);
         mem += x->n_basis();
       }
     }
@@ -193,6 +203,7 @@ public:
    */
   void setup(double const *param, double *wk_mem){
     pre_comp_dat.clear();
+    // TODO: compute the unique patterns once
     for(std::uint32_t missingness_flag : missingness)
       if(pre_comp_dat.find(missingness_flag) == pre_comp_dat.end())
         pre_comp_dat.emplace(

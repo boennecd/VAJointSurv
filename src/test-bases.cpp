@@ -13,11 +13,8 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
   arma::vec y = bas(xx_val, 0.);
 
   expect_true(y .size() == yy_val.size());
-  for(unsigned i = 0; i < y.size(); ++i){
-    if(!pass_rel_err(y[i], yy_val[i]))
-      throw std::runtime_error("boh :(");
+  for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
-  }
 
   arma::vec dx = bas(xx_val, 1);
   for(unsigned i = 0; i < y.size(); ++i)

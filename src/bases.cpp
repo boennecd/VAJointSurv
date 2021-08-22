@@ -39,7 +39,6 @@ SplineBasis::SplineBasis(const vec knots, const vajoint_uint order):
     throw std::invalid_argument("order<1");
 }
 
-
 inline arma::vec SplineBasis_knots
 (vec const &boundary_knots, vec const &interior_knots,
  vajoint_uint const order) {

@@ -64,6 +64,22 @@ class expected_cum_hazzard {
     })()
   };
 
+  /// the required working memory
+  std::array<size_t, 2> const n_wmem_v
+  {
+    ([&]{
+      std::array<size_t, 2> out {0, 0};
+
+      out[1] = b.n_wmem();
+      for(auto &b : bases_rng)
+        out[1] = std::max(out[1], b->n_wmem());
+
+      out[0] += 2 * n_basis_rng_p1;
+      out[1] += max_base_dim;
+      return out;
+    })()
+  };
+
 public:
   expected_cum_hazzard
   (basisMixin const &b, bases_vector const &bases_rng,
@@ -85,13 +101,14 @@ public:
 
     T * const association_M = wk_mem;
     wk_mem += n_basis_rng_p1;
+    double * const dwk_mem_basis{dwk_mem + max_base_dim};
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
       if(nws.ws[i] == 0)
         continue;
 
       // compute the term from the time-varying fixed effects
       double const node_val{delta_bound * nws.ns[i] + lower};
-      b(dwk_mem, node_val);
+      b(dwk_mem, dwk_mem_basis, node_val);
       T log_hazard
         {cfaad::dotProd(dwk_mem, dwk_mem + b.n_basis(), fixef_time)};
 
@@ -99,7 +116,7 @@ public:
       {
         vajoint_uint idx{};
         for(vajoint_uint i = 0; i < bases_rng.size(); ++i){
-          (*bases_rng[i])(dwk_mem, node_val);
+          (*bases_rng[i])(dwk_mem, dwk_mem_basis, node_val);
           for(vajoint_uint j = 0; j < bases_rng[i]->n_basis(); ++j, ++idx)
             association_M[idx] = association[i] * dwk_mem[j];
         }
@@ -130,8 +147,8 @@ public:
    * returns the needed working memory of eval. The first elements is the
    * required T memory and the second element is the required double memory.
    */
-  std::array<vajoint_uint, 2> get_wkmem(){
-    return { 2 * n_basis_rng_p1, max_base_dim };
+  std::array<size_t, 2> n_wmem(){
+    return n_wmem_v;
   }
 };
 
@@ -179,7 +196,7 @@ public:
   /// the number of type of outcomes
   vajoint_uint const n_outcomes = bases_fix.size();
   /// the required working memory
-  std::array<vajoint_uint, 2> wkmem_val;
+  std::array<size_t, 2> wmem_w;
 
   survival_dat
     (bases_vector const &bases_fix, bases_vector const &bases_rng,
@@ -207,20 +224,20 @@ public:
       cum_hazs.emplace_back(*bases_fix[i], bases_rng, design_mats[i].n_rows());
 
     // set the required working memory
-    wkmem_val = {0, 0};
+    wmem_w = {0, 0};
     for(auto &ch : cum_hazs){
-      auto ch_mem = ch.get_wkmem();
-      wkmem_val[0] = std::max(wkmem_val[0], ch_mem[0]);
-      wkmem_val[1] = std::max(wkmem_val[1], ch_mem[1]);
+      auto ch_mem = ch.n_wmem();
+      wmem_w[0] = std::max(wmem_w[0], ch_mem[0]);
+      wmem_w[1] = std::max(wmem_w[1], ch_mem[1]);
     }
 
     vajoint_uint const n_shared_p1{par_idx.n_shared() + 1};
-    wkmem_val[0] += n_shared_p1 * (n_shared_p1 + 1);
+    wmem_w[0] += n_shared_p1 * (n_shared_p1 + 1);
 
     vajoint_uint d_xtra{n_shared_p1};
     for(auto &b : bases_fix)
       d_xtra = std::max(b->n_basis(), d_xtra);
-    wkmem_val[1] += d_xtra;
+    wmem_w[1] += d_xtra;
 
     // add the observations
     obs_info.resize(n_outcomes);
@@ -321,8 +338,8 @@ public:
    * returns the needed working memory of eval. The first elements is the
    * required T memory and the second element is the required double memory.
    */
-  std::array<vajoint_uint, 2> get_wkmem(){
-    return wkmem_val;
+  std::array<size_t, 2> n_wmem(){
+    return wmem_w;
   }
 };
 
