@@ -543,16 +543,20 @@ public:
     }
 
     out[0] = 1.;
+    double old{1};
 
     if(alpha.n_elem > 0L){
-      out[1] = x - alpha[0];
-      for(vajoint_uint c = 1; c < alpha.n_elem; c++)
-        out[c + 1L] =
-          (x - alpha[c]) * out[c] - norm2[c + 1L] / norm2[c] * out[c - 1L];
+      out[0 + intercept] = x - alpha[0];
+      for(vajoint_uint c = 1; c < alpha.n_elem; c++){
+        out[c + intercept] =
+          (x - alpha[c]) * out[c - 1 + intercept] - norm2[c + 1L] /
+          norm2[c] * old;
+        old = out[c - 1 + intercept];
+      }
     }
 
     for(vajoint_uint j = 1; j < alpha.n_elem + 1; ++j)
-      out[j] /= sqrt_norm2.at(j + 1);
+      out[j - 1 + intercept] /= sqrt_norm2.at(j + 1);
   }
 
   /**
@@ -565,7 +569,6 @@ public:
     return n_basis_v;
   }
 }; // orth_poly
-
 
 using bases_vector = std::vector<std::unique_ptr<basisMixin> >;
 

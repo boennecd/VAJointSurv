@@ -15,7 +15,8 @@ LinkingTo:
     RcppArmadillo,
     testthat
 Imports: 
-    Rcpp
+    Rcpp,
+    splines
 Suggests: 
     rmarkdown,
     knitr,

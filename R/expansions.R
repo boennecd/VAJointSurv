@@ -3,12 +3,14 @@
 poly_term <- function(x, degree = 1, coefs = NULL, raw = FALSE,
                       intercept = FALSE){
   out <- if(is.null(coefs))
-    list(coefs = attr(poly(x, degree = degree), "coefs"))
+    if(degree > 0)
+      list(coefs = attr(poly(x, degree = degree), "coefs"))
+    else
+      list(coefs = list(alpha = numeric(), norm2 = rep(1, 2)))
   else list()
 
-  out$time <- x
-  out$intercept <- intercept
-  structure(out, "poly_term")
+  out[c("time", "intercept", "raw")] <- list(x, intercept, raw)
+  structure(out, class = "poly_term")
 }
 
 #' @importFrom splines ns
@@ -22,11 +24,9 @@ ns_term <- function(x, df = NULL, knots = NULL, intercept = FALSE,
   }
   else list()
 
-  out$Boundary.knots <- Boundary.knots
-  out$time <- x
-  out$degree <- 3L
-  out$intercept <- intercept
-  structure(out, "ns_term")
+  out[c("Boundary.knots", "time", "degree", "intercept")] <-
+    list(Boundary.knots, x, 3L, intercept)
+  structure(out, class = "ns_term")
 }
 
 #' @importFrom splines bs
@@ -40,11 +40,9 @@ bs_term <- function(x, df = NULL, knots = NULL, degree = 3, intercept = FALSE,
 
   } else list()
 
-  out$Boundary.knots <- Boundary.knots
-  out$time <- x
-  out$degree <- degree
-  out$intercept <- intercept
-  structure(out, "bs_term")
+  out[c("Boundary.knots", "time", "degree", "intercept")] <-
+    list(Boundary.knots, x, degree, intercept)
+  structure(out, class = "bs_term")
 }
 
 is_valid_expansion <- function(x)
