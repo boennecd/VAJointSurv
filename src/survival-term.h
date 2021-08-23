@@ -189,6 +189,8 @@ class survival_dat {
     bool event;
   };
   std::vector<std::vector<obs_info_obj> > obs_info;
+  /// the largest basis dimension
+  vajoint_uint max_basis_dim{};
 
 public:
   /// the indices of the parameters
@@ -234,10 +236,10 @@ public:
     vajoint_uint const n_shared_p1{par_idx.n_shared() + 1};
     wmem_w[0] += n_shared_p1 * (n_shared_p1 + 1);
 
-    vajoint_uint d_xtra{n_shared_p1};
+    max_basis_dim = n_shared_p1;
     for(auto &b : bases_fix)
-      d_xtra = std::max(b->n_basis(), d_xtra);
-    wmem_w[1] += d_xtra;
+      max_basis_dim = std::max<vajoint_uint>(b->n_basis(), max_basis_dim);
+    wmem_w[1] += max_basis_dim;
 
     // add the observations
     obs_info.resize(n_outcomes);
@@ -278,14 +280,16 @@ public:
       out -= cfaad::dotProd(design, design + surv_info.n_fix,
                             param + surv_info.idx_fix);
 
+      double * const basis_wmem{dwk_mem + max_basis_dim};
+
       // TODO: we can avoid re-computing these bases
-      (*bases_fix[type])(dwk_mem, info.ub);
+      (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
       out -= cfaad::dotProd(dwk_mem, dwk_mem + surv_info.n_variying,
                             param + surv_info.idx_varying);
 
       vajoint_uint offset{};
       for(size_t i = 0; i < bases_rng.size(); ++i){
-        (*bases_rng[i])(dwk_mem, info.ub);
+        (*bases_rng[i])(dwk_mem, basis_wmem, info.ub);
         auto M_VA_mean = cfaad::dotProd
           (dwk_mem, dwk_mem + bases_rng[i]->n_basis(),
            param + par_idx.va_mean() + offset);

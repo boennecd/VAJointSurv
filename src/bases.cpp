@@ -69,10 +69,14 @@ ns::ns(const vec &boundary_knots, const vec &interior_knots,
        const bool intercept, const vajoint_uint order):
   bspline(boundary_knots, interior_knots, true, order),
   intercept(intercept),
-  tl0(trans(bspline(boundary_knots(0), 0.))),
-  tl1(trans(bspline(boundary_knots(0), 1.))),
-  tr0(trans(bspline(boundary_knots(1), 0.))),
-  tr1(trans(bspline(boundary_knots(1), 1.)))
+  tl0(trans(bspline
+              (boundary_knots(0), wmem::get_double_mem(bspline.n_wmem()), 0.))),
+  tl1(trans(bspline
+              (boundary_knots(0), wmem::get_double_mem(bspline.n_wmem()), 1.))),
+  tr0(trans(bspline
+              (boundary_knots(1), wmem::get_double_mem(bspline.n_wmem()), 0.))),
+  tr1(trans(bspline
+              (boundary_knots(1), wmem::get_double_mem(bspline.n_wmem()), 1.)))
   { }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,

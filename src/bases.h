@@ -33,10 +33,6 @@ public:
      const vajoint_uint ders = default_ders) const {
     (*this)(out.memptr(), wk_mem, x, ders);
   }
-  void operator()
-    (vec &out, double const x, const vajoint_uint ders = default_ders) const {
-    (*this)(out.memptr(), wmem::get_double_mem(n_wmem()), x, ders);
-  }
   /// returns an allocated vector
   vec operator()
     (double const x, double * wk_mem,
@@ -45,19 +41,10 @@ public:
     (*this)(out.begin(), wk_mem, x, ders);
     return out;
   }
-  vec operator()
-    (double const x, vajoint_uint const ders = default_ders) const {
-    return (*this)(x, wmem::get_double_mem(n_wmem()), ders);
-  }
   /// same as the other operator() calls but filling the out
   virtual void operator()
     (double *out, double *wk_mem, double const x,
      vajoint_uint const ders = default_ders) const = 0;
-  void operator()
-    (double *out, double const x,
-     vajoint_uint const ders = default_ders) const {
-    (*this)(out, wmem::get_double_mem(n_wmem()), x, ders);
-  }
 
   mat basis
     (const vec &x, double *wk_mem, const vajoint_uint ders = default_ders,

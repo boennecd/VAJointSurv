@@ -10,24 +10,24 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
   int const order(4);
 
   auto bas = Basis(bk, ik, intercept, order);
-  arma::vec y = bas(xx_val, 0.);
+  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 0.);
 
   expect_true(y .size() == yy_val.size());
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
-  arma::vec dx = bas(xx_val, 1);
+  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 1);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 
   // work when a pointer is passed
   y.zeros();
-  bas(y.memptr(), xx_val, 0);
+  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 0);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
   dx.zeros();
-  bas(dx.memptr(), xx_val, 1);
+  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 1);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 }
@@ -432,7 +432,7 @@ context("bases unit tests") {
         expect_true(pass_rel_err(Xout.at(i, j), basis.at(i, j)));
 
     for(unsigned i = 0; i < Xout.n_rows; ++i){
-      arma::vec const b = obj(x[i]);
+      arma::vec const b = obj(x[i], wmem::get_double_mem(obj.n_wmem()));
       expect_true(b.n_elem == Xout.n_cols);
       for(unsigned j = 0; j < Xout.n_cols; ++j)
         expect_true(pass_rel_err(Xout.at(i, j), b[j]));
@@ -445,7 +445,7 @@ context("bases unit tests") {
       joint_bases::orth_poly const obj{i, true};
 
       constexpr double x{2};
-      arma::vec res = obj(x);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
       double true_val{1};
       for(unsigned j = 0; j <= i; ++j){
         expect_true(pass_rel_err(res[j], true_val));
@@ -460,7 +460,7 @@ context("bases unit tests") {
       joint_bases::orth_poly const obj{i, false};
 
       constexpr double x{3};
-      arma::vec res = obj(x);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
       double true_val{x};
       for(unsigned j = 0; j < i; ++j){
         expect_true(pass_rel_err(res[j], true_val));
@@ -484,7 +484,7 @@ context("bases unit tests") {
       // with intercept
       {
         joint_bases::orth_poly const obj(alpha, norm2, true);
-        arma::vec res = obj(x);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
 
         expect_true(res[0] == 1);
         for(size_t i = 0; i < n_res; ++i)
@@ -495,7 +495,7 @@ context("bases unit tests") {
       // without an intercept
       {
         joint_bases::orth_poly const obj(alpha, norm2, false);
-        arma::vec res = obj(x);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
 
         for(size_t i = 0; i < n_res; ++i)
           expect_true(pass_rel_err(res[i], truth[i]));
