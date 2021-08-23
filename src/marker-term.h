@@ -12,7 +12,7 @@
 #include <numeric>
 #include <vector>
 #include <unordered_map>
-#include <cfaad/AAD.h>
+#include <AAD.h>
 #include "simple-mat.h"
 #include <limits>
 #include <cstdint>

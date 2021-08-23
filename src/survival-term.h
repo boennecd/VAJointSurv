@@ -2,7 +2,7 @@
 #define SURVIVAL_TERM_H
 
 #include "bases.h"
-#include <cfaad/AAD.h>
+#include <AAD.h>
 #include <array>
 #include "simple-mat.h"
 #include "VA-parameter.h"
