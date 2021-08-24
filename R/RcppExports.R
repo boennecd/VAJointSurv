@@ -5,3 +5,35 @@ eval_expansion <- function(dat, x) {
     .Call(`_VAJointSurv_eval_expansion`, dat, x)
 }
 
+.joint_ms_ptr <- function(markers, max_threads) {
+    .Call(`_VAJointSurv_joint_ms_ptr`, markers, max_threads)
+}
+
+joint_ms_eval_lb <- function(val, ptr, n_threads) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb`, val, ptr, n_threads)
+}
+
+joint_ms_eval_lb_gr <- function(val, ptr, n_threads) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads)
+}
+
+joint_ms_parameter_names <- function(ptr) {
+    .Call(`_VAJointSurv_joint_ms_parameter_names`, ptr)
+}
+
+joint_ms_parameter_indices <- function(ptr) {
+    .Call(`_VAJointSurv_joint_ms_parameter_indices`, ptr)
+}
+
+joint_ms_n_params <- function(ptr) {
+    .Call(`_VAJointSurv_joint_ms_n_params`, ptr)
+}
+
+opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2) {
+    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2)
+}
+
+joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method) {
+    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method)
+}
+

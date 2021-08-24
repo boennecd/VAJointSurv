@@ -20,19 +20,10 @@ void kl_term::setup(double const *param, double *wk_mem){
     [&local_eval_constant]
     (double const *m, vajoint_uint const dim, arma::mat &vcov_inv,
      arma::mat &vcov_inv_chol){
-      if(dim == 0)
+      if(dim < 1)
         return false;
 
       arma::mat vcov(const_cast<double*>(m), dim, dim, false);
-      bool has_vcov = false;
-      for(double x : vcov)
-        if(x != 0){
-          has_vcov = true;
-          break;
-        }
-      if(!has_vcov)
-        return false;
-
       if(!arma::inv(vcov_inv, vcov))
         throw std::runtime_error("kl_term: inv() failed");
       if(!arma::chol(vcov_inv_chol, vcov_inv))
@@ -42,7 +33,7 @@ void kl_term::setup(double const *param, double *wk_mem){
       if(!arma::log_det_sympd(log_det, vcov))
         throw std::runtime_error("kl_term: log_det_sympd(vcov) failed");
 
-      local_eval_constant += (log_det - static_cast<double>(dim)) / 2.;
+      local_eval_constant += (log_det - static_cast<double>(dim)) / 2;
 
       return true;
     };
@@ -58,11 +49,11 @@ void kl_term::setup(double const *param, double *wk_mem){
 
 double kl_term::eval(double const *param, double *wk_mem) const {
   double out(eval_constant);
-  if(!has_vcov or !has_vcov_surv)
+  if(!has_vcov and !has_vcov_surv)
     return out;
 
-  double const * const va_mean = param + idx.va_mean(),
-               * const va_vcov = param + idx.va_vcov();
+  double const * const va_mean{param + idx.va_mean()},
+               * const va_vcov{param + idx.va_vcov()};
 
    {
       double log_det;
@@ -73,12 +64,14 @@ double kl_term::eval(double const *param, double *wk_mem) const {
       out -= log_det / 2;
    }
 
-  vajoint_uint const n_shared = idx.n_shared();
+  vajoint_uint const n_shared{idx.n_shared()};
   if(has_vcov){
-    double term(0.);
+    double term{};
+    // TODO: not numerically stable
     term += lp_joint::quad_form(va_mean, vcov_inv_chol.memptr(),
                                 n_shared, wk_mem);
 
+    // TODO: not numerically stable
     term += lp_joint::submat_trace(vcov_inv.memptr(), va_vcov,
                                    n_shared, n_vars, 0);
 
@@ -87,11 +80,13 @@ double kl_term::eval(double const *param, double *wk_mem) const {
 
   vajoint_uint const n_shared_surv = idx.n_shared_surv();
   if(has_vcov_surv){
-    double term(0.);
+    double term{};
+    // TODO: not numerically stable
     term += lp_joint::quad_form
       (va_mean + n_shared, vcov_surv_inv_chol.memptr(),
        n_shared_surv, wk_mem);
 
+    // TODO: not numerically stable
     term += lp_joint::submat_trace(vcov_surv_inv.memptr(), va_vcov,
                                    n_shared_surv, n_vars, n_shared);
 
@@ -102,7 +97,7 @@ double kl_term::eval(double const *param, double *wk_mem) const {
 }
 
 double kl_term::grad(double *g, double const *param, double *wk_mem) const {
-  if(!has_vcov or !has_vcov_surv)
+  if(!has_vcov and !has_vcov_surv)
     return eval(param, wk_mem);
 
   double const * const va_mean = param + idx.va_mean(),

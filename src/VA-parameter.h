@@ -1,7 +1,8 @@
 #ifndef VA_PARAMETER_H
 #define VA_PARAMETER_H
 #include "VA-joint-config.h"
-#include "vector"
+#include <vector>
+#include <string>
 
 /**
  * handles finding parameters vector elements. Zero-based indices are used for
@@ -42,7 +43,7 @@ private:
                idx_va_vcov = 0,
 
                n_params_v = 0,
-               n_parms_w_va_v = 0,
+               n_params_w_va_v = 0,
                n_shared_effect = 0,
                // using the triangular parameterization
                idx_error_term_triangular = 0,
@@ -96,25 +97,23 @@ private:
         surv_info_v.size());  // -Wconversion
       idx += va_dim;
       idx_va_vcov = idx;
-      n_parms_w_va_v = idx + va_dim * va_dim;
+      n_params_w_va_v = idx + va_dim * va_dim;
     })();
 
     idx_error_term_triangular = idx;
-    idx += static_cast<vajoint_uint>(
-      (marker_info_v.size() * (marker_info_v.size() + 1)) / 2); // -Wconversion
+    idx += dim_tri(marker_info_v.size());
     idx_shared_effect_triangular = idx;
-    idx += (n_shared_effect * (n_shared_effect + 1)) / 2;
+    idx += dim_tri(n_shared_effect);
     idx_shared_surv_triangular = idx;
-    idx += static_cast<vajoint_uint>(
-      (surv_info_v.size() * (surv_info_v.size() + 1)) / 2); // -Wconversion
+    idx += dim_tri(surv_info_v.size());
     n_params_triangular_v = idx;
 
     idx_va_mean_triangular = idx;
-    vajoint_uint const va_dim = n_shared_effect + static_cast<vajoint_uint>(
-      surv_info_v.size());  // -Wconversion
+    vajoint_uint const va_dim = n_shared_effect +
+      static_cast<vajoint_uint>(surv_info_v.size());
     idx += va_dim;
     idx_va_vcov_triangular = idx;
-    n_parms_w_va_triangular_v = idx + (va_dim * (va_dim + 1)) / 2;
+    n_parms_w_va_triangular_v = idx + dim_tri(va_dim);
   }
 
 public:
@@ -151,6 +150,21 @@ public:
   template<bool is_traingular = is_traingular_default>
   vajoint_uint fixef_vary_marker(vajoint_uint const idx) const {
     return marker_info_v[idx].idx_varying;
+  }
+
+  /**
+   * the covariance matrices are last. Thus, it is useful to know where they
+   * start which this function returns
+   */
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint vcov_start() const {
+    return vcov_marker<is_traingular>();
+  }
+
+  /// end of the covariance matrices
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint vcov_end() const {
+    return va_mean<is_traingular>();
   }
 
   /// returns the index of the covariance matrix for the markers' residual
@@ -210,10 +224,22 @@ public:
     return is_traingular ? idx_va_mean_triangular : idx_va_mean;
   }
 
+  /// returns the end of the mean of the VA distribution
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint va_mean_end() const {
+    return va_vcov<is_traingular>();
+  }
+
   /// returns the location of the covariance of the VA distribution
   template<bool is_traingular = is_traingular_default>
   vajoint_uint va_vcov() const {
     return is_traingular ? idx_va_vcov_triangular : idx_va_vcov;
+  }
+
+  /// returns the end of va_vcov
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint va_vcov_end() const {
+    return n_params_w_va<is_traingular>();
   }
 
   /// returns the number of shared random effects
@@ -228,11 +254,26 @@ public:
 
   /**
    * returns the number parameters including the variational parameters for one
-   * cluster. */
+   * cluster.
+   */
   template<bool is_traingular = is_traingular_default>
-  vajoint_uint n_parms_w_va() const {
-    return is_traingular ? n_parms_w_va_triangular_v : n_parms_w_va_v;
+  vajoint_uint n_params_w_va() const {
+    return is_traingular ? n_parms_w_va_triangular_v : n_params_w_va_v;
   }
+
+  /// returns the number of VA parameters
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint n_va_params() const {
+    return n_params_w_va<is_traingular>() - n_params<is_traingular>();
+  }
+
+  /// gives the names of the parameters
+  std::vector<std::string> param_names
+    (bool const is_traingular = is_traingular_default) const;
+
+  /// gives the names of the variational parameters
+  std::vector<std::string> va_param_names
+    (bool const is_traingular = is_traingular_default) const;
 };
 
 #endif

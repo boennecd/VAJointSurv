@@ -47,10 +47,10 @@ public:
   external{o.external} { }
 
   simple_mat& operator=(simple_mat &&o){
-    mem.reset(std::move(o.mem));
     n_rows_v = o.n_rows_v;
     n_cols_v = o.n_cols_v;
     external = o.external;
+    mem = std::move(o.mem);
     return *this;
   }
 

@@ -44,7 +44,7 @@ n_rngs{([&]{
   return out;
 })()}{ }
 
-marker_dat get_comp_dat
+comp_dat_return get_comp_dat
 (std::vector<setup_marker_dat_helper> &input_dat,
  subset_params const &par_idx,
  joint_bases::bases_vector const &bases_fix,
@@ -157,6 +157,6 @@ marker_dat get_comp_dat
     }
   }
 
-  return out;
+  return { std::move(out), std::move(unique_ids) };
 }
 } // namespace marker

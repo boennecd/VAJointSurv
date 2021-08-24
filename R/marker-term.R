@@ -12,7 +12,6 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
 
   # sanity checks
   stopifnot(NROW(X) == length(id),
-            NROW(X) == length(time_var),
             !is.matrix(y),
             is.matrix(X),
             all(is.finite(X)),
@@ -39,5 +38,25 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
 
   structure(list(time = time_var, X = X, y = y, id = id, mt = mt,
                  time_fixef = time_fixef, time_rng = time_rng),
-            "marker_term")
+            class = "marker_term")
+}
+
+# computes the starting values for the fixed effect coefficients
+#' @importFrom stats lm.fit
+#' @importFrom utils head tail
+marker_term_start_value <- function(object){
+  stopifnot(inherits(object, "marker_term"))
+
+  X <- t(object$X)
+  Z <- t(eval_expansion(object$time_fixef, object$time))
+  n_X <- NCOL(X)
+  XZ <- cbind(X, Z)
+  rm(X, Z)
+  gc()
+  y <- object$y
+  fit <- lm.fit(XZ, y)
+  coefs <- fit$coefficients
+
+  list(fixef = head(coefs, n_X), fixef_vary = tail(coefs, -n_X),
+       var = mean(fit$residuals^2))
 }

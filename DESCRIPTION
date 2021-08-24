@@ -13,10 +13,13 @@ RoxygenNote: 7.1.1
 LinkingTo: 
     Rcpp,
     RcppArmadillo,
-    testthat
+    testthat, 
+    psqn
 Imports: 
     Rcpp,
-    splines
+    splines, 
+    utils, 
+    stats
 Suggests: 
     rmarkdown,
     knitr,

@@ -7,7 +7,7 @@ poly_term <- function(x, degree = 1, coefs = NULL, raw = FALSE,
       list(coefs = attr(poly(x, degree = degree), "coefs"))
     else
       list(coefs = list(alpha = numeric(), norm2 = rep(1, 2)))
-  else list()
+  else list(coefs = coefs)
 
   out[c("time", "intercept", "raw")] <- list(x, intercept, raw)
   structure(out, class = "poly_term")
@@ -22,7 +22,7 @@ ns_term <- function(x, df = NULL, knots = NULL, intercept = FALSE,
               intercept = intercept)
     list(knots = attr(tmp, "knots"))
   }
-  else list()
+  else list(knots = knots)
 
   out[c("Boundary.knots", "time", "degree", "intercept")] <-
     list(Boundary.knots, x, 3L, intercept)
@@ -38,7 +38,7 @@ bs_term <- function(x, df = NULL, knots = NULL, degree = 3, intercept = FALSE,
               intercept = intercept)
     list(knots = attr(tmp, "knots"))
 
-  } else list()
+  } else list(knots = knots)
 
   out[c("Boundary.knots", "time", "degree", "intercept")] <-
     list(Boundary.knots, x, degree, intercept)

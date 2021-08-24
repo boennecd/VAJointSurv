@@ -17,4 +17,9 @@ inline int get_thread_num() noexcept {
 #endif
 }
 
+/// returns the number of non-zero elements of a triangular matrix
+constexpr vajoint_uint dim_tri(vajoint_uint const x){
+  return (x * (x + 1)) / 2;
+}
+
 #endif

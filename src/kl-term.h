@@ -8,8 +8,9 @@
 #include "wmem.h"
 
 class kl_term {
-  subset_params const idx;
-  vajoint_uint const n_vars;
+  subset_params idx;
+  vajoint_uint n_vars;
+  vajoint_uint n_wmem_v{2 * n_vars * n_vars};
 
   /// objects used by setup
   arma::mat vcov_inv,
@@ -22,6 +23,7 @@ class kl_term {
        has_vcov_surv = false;
 
 public:
+  kl_term(): idx{}, n_vars{} { }
   kl_term(subset_params const &idx);
 
   /**
@@ -30,12 +32,7 @@ public:
   void setup(double const *param, double *wk_mem);
 
   /// Evaluates the lower bound term
-  double eval(double const *param, double *wk_mem) const ;
-
-  /// Allocates the needed working memory on each call
-  double eval(double const *param) const {
-    return eval(param, wmem::get_double_mem(n_wmem()));
-  }
+  double eval(double const *param, double *wk_mem) const;
 
   /**
    * Evaluates the gradient of the lower bound term and adds it to the result.
@@ -43,14 +40,8 @@ public:
    */
   double grad(double *g, double const *param, double *wk_mem) const;
 
-  /// Allocates the needed working memory on each call
-  double grad(double *g, double const *param) const {
-    std::unique_ptr<double[]> mem(new double[n_wmem()]);
-    return grad(g, param, wmem::get_double_mem(n_wmem()));
-  }
-
   size_t n_wmem() const {
-    return 2 * n_vars * n_vars;
+    return n_wmem_v;
   }
 };
 

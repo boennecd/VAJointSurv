@@ -114,15 +114,19 @@ context("marker_term is correct") {
     par_idx.add_surv({2, 1});
     par_idx.add_surv({3, 2});
 
-    marker::marker_dat comp_obj = marker::get_comp_dat
+    auto dat_n_idx = marker::get_comp_dat
       (input_dat, par_idx, bases_fix, bases_rng);
+    marker::marker_dat &comp_obj = dat_n_idx.dat;
 
     // test the basic members
-    expect_true(comp_obj.n_obs == n_obs);
-    expect_true(comp_obj.n_markers == 1);
+    expect_true(comp_obj.n_obs() == n_obs);
+    expect_true(comp_obj.n_markers() == 1);
+    expect_true(dat_n_idx.id.size() == n_obs);
+    for(int x : dat_n_idx.id)
+      expect_true(x == 1);
 
     // the function returns the right value
-    std::vector<double> par(par_idx.n_parms_w_va());
+    std::vector<double> par(par_idx.n_params_w_va());
 
     std::fill(par.begin(), par.end(), 0);
     std::copy(begin(g), end(g), par.begin() + par_idx.fixef_marker(0));
@@ -351,15 +355,19 @@ context("marker_term is correct") {
     par_idx.add_surv({2, 1});
     par_idx.add_surv({3, 2});
 
-    marker::marker_dat comp_obj = marker::get_comp_dat
+    auto dat_n_idx = marker::get_comp_dat
       (input_dat, par_idx, bases_fix, bases_rng);
+    marker::marker_dat &comp_obj = dat_n_idx.dat;
 
     // test the basic members
-    expect_true(comp_obj.n_obs == 5);
-    expect_true(comp_obj.n_markers == 3);
+    expect_true(comp_obj.n_obs() == 5);
+    expect_true(comp_obj.n_markers() == 3);
+    expect_true(dat_n_idx.id.size() == 5);
+    for(int x : dat_n_idx.id)
+      expect_true(x == 1);
 
     // the function returns the right value
-    std::vector<double> par(par_idx.n_parms_w_va());
+    std::vector<double> par(par_idx.n_params_w_va());
 
     std::fill(par.begin(), par.end(), 0);
     std::copy(
@@ -391,7 +399,7 @@ context("marker_term is correct") {
       comp_obj.setup(par.data(), wk_mem);
 
       double res{};
-      for(vajoint_uint i = 0; i < comp_obj.n_obs; ++i)
+      for(vajoint_uint i = 0; i < comp_obj.n_obs(); ++i)
         res += comp_obj(par.data(), wk_mem, i);
       expect_true(res == Approx(true_val).epsilon(1e-7));
     }
@@ -405,7 +413,7 @@ context("marker_term is correct") {
     cfaad::Number * wk_mem = wmem::get_Number_mem(comp_obj.n_wmem());
 
     cfaad::Number res{0};
-    for(vajoint_uint i = 0; i < comp_obj.n_obs; ++i)
+    for(vajoint_uint i = 0; i < comp_obj.n_obs(); ++i)
       res += comp_obj(ad_par.data(), wk_mem, i);
 
     res.propagateToStart();

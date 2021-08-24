@@ -37,24 +37,20 @@ struct comp_dat {
 
 /// holds data for marker observations
 class marker_dat {
-public:
+private:
   /// the indices of the parameters
-  subset_params const par_idx;
-  /// maximum number of possible markers per observation
-  static constexpr unsigned max_markers{31};
+  subset_params par_idx;
   /// the maximum number of markers per observations
-  const vajoint_uint n_markers
+  vajoint_uint n_markers_v
     { static_cast<vajoint_uint>(par_idx.marker_info().size()) };
   /// the number of observations
-  const vajoint_uint n_obs;
-
-private:
+  vajoint_uint n_obs_v;
   /// the bases for the time-varying fixed effects
   joint_bases::bases_vector bases_fix;
   /// the bases for the time-varying random effects
   joint_bases::bases_vector bases_rng;
   /// the number of fixed effects
-  const vajoint_uint n_fixed_effects
+  vajoint_uint n_fixed_effects
     {
       std::accumulate(
         par_idx.marker_info().begin(), par_idx.marker_info().end(),
@@ -64,7 +60,7 @@ private:
         })
     };
   /// the number of time-varying fixed effect basis function
-  const vajoint_uint n_basis_fix
+  vajoint_uint n_basis_fix
     { std::accumulate(
         bases_fix.begin(), bases_fix.end(), vajoint_uint{},
         [](vajoint_uint x, joint_bases::bases_vector::value_type const &r){
@@ -72,7 +68,7 @@ private:
         })
     };
   /// the number of time-varying random effect basis function
-  const vajoint_uint n_basis_rng
+  vajoint_uint n_basis_rng
     { std::accumulate(
         bases_rng.begin(), bases_rng.end(), vajoint_uint{},
         [](vajoint_uint x, joint_bases::bases_vector::value_type const &r){
@@ -80,7 +76,7 @@ private:
         })
     };
   /// the first dimension of the combined design matrix
-  const vajoint_uint dim_design
+  vajoint_uint dim_design
     {n_fixed_effects + n_basis_fix + n_basis_rng};
 
   /**
@@ -88,20 +84,20 @@ private:
    * time-varying fixed design matrix, and time-varying random effect
    * design matrix in that order.
    */
-  simple_mat<double> design_mats{dim_design, n_obs};
+  simple_mat<double> design_mats{dim_design, n_obs_v};
   /// contains the matrix with the outcomes
-  simple_mat<double> outcomes{n_markers, n_obs};
+  simple_mat<double> outcomes{n_markers_v, n_obs_v};
 
   /// bit flags for missing variables
-  std::vector<std::uint32_t> missingness{std::vector<std::uint32_t>(n_obs)};
+  std::vector<std::uint32_t> missingness{std::vector<std::uint32_t>(n_obs_v)};
 
   /// the offsets between the time-varying random effects for each marker
   std::vector<vajoint_uint> offsets_rng;
 
   /// the needed working memory
   size_t n_wmem_v{
-    2 * n_markers * n_markers + n_basis_rng * n_basis_rng + n_markers +
-      n_basis_rng * n_markers};
+    2 * n_markers_v * n_markers_v + n_basis_rng * n_basis_rng + n_markers_v +
+      n_basis_rng * n_markers_v};
 
   /**
    * the pre-computed data for eval. We do not want to re-compute the matrix
@@ -110,35 +106,41 @@ private:
   std::unordered_map<std::uint32_t, comp_dat> pre_comp_dat;
 
 public:
+  /// maximum number of possible markers per observation
+  static constexpr unsigned max_markers{31};
+
+  // default constructor with no terms
+  marker_dat(): par_idx(), n_obs_v(), bases_fix(), bases_rng() { }
+
   /// creates the object and allocates the memory that is needed
   marker_dat
-  (subset_params const &par_idx, const vajoint_uint n_obs,
+  (subset_params const &par_idx, const vajoint_uint n_obs_v,
    joint_bases::bases_vector const &bases_fix,
    joint_bases::bases_vector const &bases_rng):
-  par_idx{par_idx}, n_obs{n_obs},
+  par_idx{par_idx}, n_obs_v{n_obs_v},
   bases_fix{joint_bases::clone_bases(bases_fix)},
   bases_rng{joint_bases::clone_bases(bases_rng)}
   {
-    if(n_markers != bases_fix.size())
+    if(n_markers_v != bases_fix.size())
       throw std::runtime_error
         ("number of markers and time-varying fixed effect bases differs");
-    if(n_markers != bases_rng.size())
+    if(n_markers_v != bases_rng.size())
       throw std::runtime_error
         ("number of markers and time-varying random effect bases differs");
 
-    if(n_markers > max_markers)
+    if(n_markers_v > max_markers)
       throw std::runtime_error("too many markers");
 
     // set all outcomes to be missing
     std::uint32_t def_miss{};
-    for(std::uint32_t i = 0; i < n_markers; ++i)
+    for(std::uint32_t i = 0; i < n_markers_v; ++i)
       def_miss |= (1u << i);
     std::fill(missingness.begin(), missingness.end(), def_miss);
 
     // sets the indices of the time-varying random effects
-    offsets_rng.reserve(n_markers);
+    offsets_rng.reserve(n_markers_v);
     vajoint_uint next_idx{};
-    for(vajoint_uint i = 0; i < n_markers; ++i){
+    for(vajoint_uint i = 0; i < n_markers_v; ++i){
       offsets_rng.emplace_back(next_idx);
       next_idx += bases_rng[i]->n_basis();
     }
@@ -163,7 +165,7 @@ public:
     // fill in the basis
     double * const basis_wmem{wmem::get_double_mem(n_wmem_basis)};
 
-    for(vajoint_uint i = 0; i < n_obs; ++i, ++obs_time){
+    for(vajoint_uint i = 0; i < n_obs_v; ++i, ++obs_time){
       double *mem = design_mats.col(i) + n_fixed_effects;
       for(auto &x : bases_fix){
         (*x)(mem, basis_wmem, *obs_time);
@@ -212,7 +214,7 @@ public:
 
   /// computes the expected log conditional density of a given observation
   template<class T>
-  T operator()(T const *param, T *wk_mem, const vajoint_uint idx){
+  T operator()(T const *param, T *wk_mem, const vajoint_uint idx) const {
     std::uint32_t const missingness_flag = missingness[idx];
     comp_dat const &c_dat = pre_comp_dat.at(missingness_flag);
     const std::vector<vajoint_uint> &indices = c_dat.indices;
@@ -226,14 +228,14 @@ public:
     // construct the copy of the covariance matrix
     T const * const Sig = ([&]() -> T const * {
       T const * const s{param + par_idx.vcov_marker()};
-      if(n_indices == n_markers)
+      if(n_indices == n_markers_v)
         return s;
 
       // create a copy of the subset of the covariance matrix
       T *out = wk_mem;
       for(vajoint_uint j = 0; j < n_indices; ++j)
         for(vajoint_uint i = 0; i < n_indices; ++i)
-          wk_mem[i + j * n_indices] = s[indices[i] + n_markers * indices[j]];
+          wk_mem[i + j * n_indices] = s[indices[i] + n_markers_v * indices[j]];
       wk_mem += n_indices * n_indices;
       return out;
     })();
@@ -245,7 +247,7 @@ public:
       T *out = wk_mem;
       wk_mem += c_dat.n_rngs * c_dat.n_rngs;
 
-      if(n_indices == n_markers){
+      if(n_indices == n_markers_v){
         for(vajoint_uint j = 0; j < c_dat.n_rngs; ++j)
           for(vajoint_uint i = 0; i < c_dat.n_rngs; ++i)
             out[i + j * c_dat.n_rngs] = s[i + j * n_rngs];
@@ -353,6 +355,14 @@ public:
   size_t n_wmem() const {
     return n_wmem_v;
   }
+
+  vajoint_uint n_obs() const {
+    return n_obs_v;
+  }
+
+  vajoint_uint n_markers() const {
+    return n_markers_v;
+  }
 };
 
 /// this is a helper class to setup a marker_dat object
@@ -391,8 +401,14 @@ struct setup_marker_dat_helper {
   setup_marker_dat_helper(const setup_marker_dat_helper&) = default;
 };
 
+/// struct to contain the marker_dat and the id of each term
+struct comp_dat_return {
+  marker_dat dat;
+  std::vector<int> id;
+};
+
 /// creates a comp_dat object after checking the input arguments
-marker_dat get_comp_dat
+comp_dat_return get_comp_dat
   (std::vector<setup_marker_dat_helper> &input_dat,
    subset_params const &par_idx,
    joint_bases::bases_vector const &bases_fix,

@@ -10,8 +10,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
-)
+  comment = "#>")
+options(digits = 4)
 ```
 
 This package provides means of estimating joint models for a mixture of 
@@ -55,7 +55,7 @@ $\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)$ and define
 $\vec\beta$ similarly. Then 
 
 $$
-\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\gamma + M(s_{ij})\vec U_i
+\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i
 $$
 
 ### The Survival Outcomes
@@ -99,17 +99,146 @@ The following is not supported
  
  - Interval-censoring and left-censoring are not supported although this is not
    a complicated extension.
+ - One may want either want the integral or the derivatives of $M(t)$ with 
+   respect to $t$ in the log-hazards.
+   This is not too complicated to implement for many of the 
+   basis expansions in the package but it is not yet implemented.
  - There cannot be more than one set of markers observed 
    at each point in time, $s_{ij}$, for each individual $i$.
    
+   
+## Examples
+We show a few examples of this package and its API below.
+
+### Univariate Marker Example
+
+We make a comparison below with one marker only with the lme4 package. 
+We do this as we can check that 
+ 
+ - We get almost the same (the lower bound can be equal to the log marginal 
+   likelihood). 
+ - The lower bound is less than or equal to the log marginal likelihood. 
+ 
+lme4 should used in this case as the linear model is tractable and this is used
+by the lme4 package.
+
+```{r univariate}
+# settings for the simulation
+library(splines)
+g_func <- function(x)
+  ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE)
+m_func <- function(x)
+  ns(x, knots = 1, Boundary.knots = c(0, 2), intercept = TRUE)
+
+fixef_vary_marker <- c(1.4, -1.2, -2.1) # beta
+fixef_marker <- c(-.5, 1) # gamma
+
+Psi <- structure(c(0.18, 0.05, -0.05, 0.05, 0.34, -0.25, -0.05, -0.25, 0.24), 
+                 .Dim = c(3L, 3L))
+Sig <- matrix(.6^2, 1)
+
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat_univariate <- function(n_ids){
+  # simulate the outcomes
+  sig_sqrt <- sqrt(Sig)
+  dat <- lapply(1:n_ids, function(id){
+    # sample the number of outcomes and the fixed effect covariates
+    n_obs <- sample.int(8L, 1L)
+    obs_time <- sort(runif(n_obs, 0, 2))
+    X <- cbind(1, rnorm(n_obs))
+    colnames(X) <- paste0("X", 1:NCOL(X) - 1L)
+    
+    # sample the outcomes
+    U <- drop(rmvnorm(1, sigma = Psi))
+    eta <- X %*% fixef_marker + drop(g_func(obs_time)) %*% fixef_vary_marker + 
+      drop(m_func(obs_time)) %*% U
+    y <- drop(eta) + rnorm(n_obs, sd = sig_sqrt)
+    
+    cbind(y = y, X = X[, -1, drop = FALSE], time = obs_time, id = id)
+  })
+  
+  # combine the data and return
+  out <- as.data.frame(do.call(rbind, dat))
+  out$id <- as.integer(out$id)
+  out
+}
+
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat_univariate(2000L)
+
+# the number of observed outcomes
+nrow(dat)
+
+# fit the model with lme4
+library(lme4)
+system.time(
+  fit <- lmer(y ~ X1 + g_func(time) + (m_func(time) - 1| id), dat, 
+              control = lmerControl(optimizer = "bobyqa"),
+              # to compare with the lower bound from this package
+              REML = FALSE))
+
+# the maximum log likelihood
+logLik(fit)
+
+# estimate the model with this package. Get the object we need for the 
+# optimization
+library(VAJointSurv)
+system.time(comp_obj <- joint_ms_ptr(
+  markers = marker_term(
+    y ~ X1, id = id, dat, 
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2), 
+                         intercept = FALSE),
+    time_rng = ns_term(time, knots = 1, Boundary.knots = c(0, 2), 
+                       intercept = TRUE))))
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+attr(start_val, "value")
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 12 + 2 * 9))
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L))
+opt_out$info # convergence code (0 == 'ok')
+-opt_out$value # maximum lower bound value
+logLik(fit) # maximum likelihood from lme4
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+rbind(lme4    = fixef(fit),
+      `This package` = do.call(c, fmt_ests$markers[[1]]), 
+      Actual    = c(fixef_marker, fixef_vary_marker))
+
+# then the random effect covariance matrix
+vcov_est <- VarCorr(fit)[["id"]]
+attributes(vcov_est)[c("stddev", "correlation")] <- NULL
+vcov_est # lme4
+fmt_ests$vcov$vcov_vary # this package
+Psi # the actual values
+
+# the error term variance
+c(lme4 = attr(VarCorr(fit), "sc")^2, 
+  `This package` = fmt_ests$vcov$vcov_marker, 
+  Actual = Sig)
+```
+
 ## Technical Details
 We define the concatenated coefficient vector to be
 
 $$
 \vec \theta = \begin{pmatrix}
-  \vec\gamma_1 \\ \vec\beta_1 \\
-  \vdots \\
-  \vec\gamma_L \\ \vec\beta_L \\
+  \vec\gamma \\ \vec\beta\\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
   \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\

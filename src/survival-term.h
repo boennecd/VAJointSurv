@@ -26,9 +26,9 @@ struct node_weight {
 /**
  * computes the approximate expected cumulative hazard times minus one. That is
  *
- *   E[int_0^t exp(z^T.fixef + b(s)^T.fixef_time + association^T.M(s)u + v)ds]
+ *   E[int_0^t exp(z^T.fixef + b(s)^T.fixef_vary + association^T.M(s)u + v)ds]
  *     ~ int_0^t
- *       exp(z^T.fixef + b(s)^T.fixef_time + (association^T, 1).hat(M)(s).VA_mean
+ *       exp(z^T.fixef + b(s)^T.fixef_vary + (association^T, 1).hat(M)(s).VA_mean
  *         + (association^T, 1).hat(M)(s).VA_vcov.hat(M)(s)^T.(association^T, 1)^T / 2)ds
  *
  * where hat(M)(s) is given by
@@ -94,7 +94,7 @@ public:
   template<class T>
   T operator()(node_weight const &nws, double const lower,
                double const upper, double const *design, T const * fixef,
-               T const * fixef_time, T const * association, T const *VA_mean,
+               T const * fixef_vary, T const * association, T const *VA_mean,
                T const * VA_vcov, T * wk_mem, double * dwk_mem) const {
     T out{0};
     double const delta_bound{upper - lower};
@@ -110,7 +110,7 @@ public:
       double const node_val{delta_bound * nws.ns[i] + lower};
       b(dwk_mem, dwk_mem_basis, node_val);
       T log_hazard
-        {cfaad::dotProd(dwk_mem, dwk_mem + b.n_basis(), fixef_time)};
+        {cfaad::dotProd(dwk_mem, dwk_mem + b.n_basis(), fixef_vary)};
 
       // construct the (association^T, 1).hat(M)(s) vector
       {

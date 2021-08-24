@@ -381,7 +381,7 @@ context("survival_dat is correct") {
     expect_true(comp_obj.n_outcomes == 2);
 
     // compute the lower bound
-    std::vector<double> par(par_idx.n_parms_w_va(), 0);
+    std::vector<double> par(par_idx.n_params_w_va(), 0);
     std::copy(begin(delta1), end(delta1), begin(par) + par_idx.fixef_surv(0));
     std::copy(begin(delta2), end(delta2), begin(par) + par_idx.fixef_surv(1));
 
