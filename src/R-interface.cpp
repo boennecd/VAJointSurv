@@ -1,4 +1,6 @@
+#define PSQN_USE_EIGEN
 #include "arma-wrap.h"
+#include <RcppEigen.h>
 #include "marker-term.h"
 #include "psqn.h"
 #include "psqn-reporter.h"
@@ -464,7 +466,10 @@ double joint_ms_eval_lb
   check_par_length(*obj, val);
 
   obj->set_n_threads(n_threads);
-  return obj->optim().eval(&val[0], nullptr, false);
+  double const out{obj->optim().eval(&val[0], nullptr, false)};
+  wmem::clear_all();
+
+  return out;
 }
 
 /// evaluates the gradient of the lower bound
@@ -477,6 +482,7 @@ Rcpp::NumericVector joint_ms_eval_lb_gr
   Rcpp::NumericVector grad(val.size());
   obj->set_n_threads(n_threads);
   grad.attr("value") = obj->optim().eval(&val[0], &grad[0], true);
+  wmem::clear_all();
 
   return grad;
 }
@@ -594,6 +600,8 @@ Rcpp::NumericVector opt_priv
   obj->set_n_threads(n_threads);
   double const res = obj->optim().optim_priv(&par[0], rel_eps, max_it, c1, c2);
   par.attr("value") = res;
+  wmem::clear_all();
+
   return par;
 }
 
@@ -618,8 +626,9 @@ Rcpp::List joint_ms_opt_lb
     res.n_eval, res.n_grad,  res.n_cg);
   counts.names() =
     Rcpp::CharacterVector::create("function", "gradient", "n_cg");
+  wmem::clear_all();
 
-  int const info = static_cast<int>(res.info);
+  int const info{static_cast<int>(res.info)};
   return Rcpp::List::create(
     Rcpp::_["par"] = par, Rcpp::_["value"] = res.value,
     Rcpp::_["info"] = info, Rcpp::_["counts"] = counts,

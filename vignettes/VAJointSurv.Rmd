@@ -2,15 +2,24 @@
 title: "Joint Survival and Marker Models"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{VAJointSurv}
+  %\VignetteIndexEntry{Joint Survival and Marker Models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
+<style>
+img {
+    border: none; 
+}
+</style>
+
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>")
+  comment = "#>", 
+  fig.width = 7, 
+  fig.height = 4)
 options(digits = 4)
 ```
 
@@ -28,7 +37,7 @@ $$
 \begin{align*}
 \vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
 \epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
-\mu_{i1}(s, U) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
+\mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
   \vec m_1(s)^\top\vec U_{i1} \\
 \vdots &\hphantom{=}\vdots\\\
 \mu_{iL}(s, \vec U_i) &= \vec x_{iL}^\top\vec\gamma_L + \vec g_L(s)^\top\vec\beta_L + 
@@ -39,7 +48,8 @@ $$
 \end{align*}
 $$
 
-where $\vec\epsilon_{ij}$ is an error term of the observation, $\vec U_i$ is an 
+where $\vec\epsilon_{ij}$ is an error term of the observation, $\vec U_i$ is 
+the $R$ dimensional
 unobserved random effect for individual $i$, and the $\vec g_k$s and $\vec m_k$s
 are basis expansions.
 We can write the model more compactly by letting 
@@ -84,6 +94,11 @@ survival outcomes marginally dependent. The $\vec\xi_i$s are frailty effects
 which makes the survival outcomes marginally dependent even if 
 $\vec\alpha = \vec 0$.
 
+The observation process, the $s_{ij}$s, can be modeled as one of $H$ 
+different types of survival process. This can be done by adding each $s_{ij}$ 
+as a left-truncated outcome of the given type of process except for 
+$s_{i1}$ which is not left-truncated.
+
 ### Model Support
 
 The library can handle 
@@ -105,10 +120,12 @@ The following is not supported
    basis expansions in the package but it is not yet implemented.
  - There cannot be more than one set of markers observed 
    at each point in time, $s_{ij}$, for each individual $i$.
+ - There cannot be time-varying effects for a covariate. 
+ - Competing events, terminal events, multi-state models are not supported.
    
    
 ## Examples
-We show a few examples of this package and its API below.
+We show a few examples of this package and its API in this section.
 
 ### Univariate Marker Example
 
@@ -136,6 +153,16 @@ fixef_marker <- c(-.5, 1) # gamma
 Psi <- structure(c(0.18, 0.05, -0.05, 0.05, 0.34, -0.25, -0.05, -0.25, 0.24), 
                  .Dim = c(3L, 3L))
 Sig <- matrix(.6^2, 1)
+
+# plot the true mean curve along with 95% confidence pointwise quantiles
+library(VAJointSurv)
+par(mar = c(5, 5, 1, 1))
+plot_marker(
+  time_fixef = ns_term(
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+  time_rng = ns_term(
+    knots = 1, Boundary.knots = c(0, 2), intercept = TRUE), 
+  fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = Psi)
 
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
@@ -180,11 +207,10 @@ system.time(
               REML = FALSE))
 
 # the maximum log likelihood
-logLik(fit)
+print(logLik(fit), digits = 8)
 
 # estimate the model with this package. Get the object we need for the 
 # optimization
-library(VAJointSurv)
 system.time(comp_obj <- joint_ms_ptr(
   markers = marker_term(
     y ~ X1, id = id, dat, 
@@ -197,7 +223,7 @@ system.time(comp_obj <- joint_ms_ptr(
 system.time(start_val <- joint_ms_start_val(comp_obj))
 
 # lower bound at the starting values
-attr(start_val, "value")
+print(attr(start_val, "value"), digits = 8)
 
 # check that the gradient is correct
 f <- function(x){
@@ -210,15 +236,25 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L))
-opt_out$info # convergence code (0 == 'ok')
--opt_out$value # maximum lower bound value
-logLik(fit) # maximum likelihood from lme4
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+print(logLik(fit), digits = 8) # maximum likelihood from lme4
+
+# find the maximum lower bound with lbfgs
+library(lbfgsb3c)
+system.time(lbfgs_res <- lbfgsb3c(
+  start_val, function(x) joint_ms_lb(comp_obj, x),
+  function(x) joint_ms_lb_gr(comp_obj, x), 
+  control = list(factr = 1e-8, maxit = 5000L)))
+lbfgs_res$convergence # convergence code (0 == 'OK')
+print(-lbfgs_res$value, digits = 8) # maximum lower bound value
+lbfgs_res$counts # may have hit maxit!
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
-rbind(lme4    = fixef(fit),
+rbind(lme4 = fixef(fit),
       `This package` = do.call(c, fmt_ests$markers[[1]]), 
-      Actual    = c(fixef_marker, fixef_vary_marker))
+      Actual = c(fixef_marker, fixef_vary_marker))
 
 # then the random effect covariance matrix
 vcov_est <- VarCorr(fit)[["id"]]
@@ -231,6 +267,173 @@ Psi # the actual values
 c(lme4 = attr(VarCorr(fit), "sc")^2, 
   `This package` = fmt_ests$vcov$vcov_marker, 
   Actual = Sig)
+```
+
+### Two Markers
+
+```{r clean_two_markers, echo=FALSE}
+rm(list = ls())
+```
+
+We provide an example with two markers instead of one. We observe one of the 
+two markers or both at each observation time. 
+
+```{r two_markers}
+# settings for the simulation
+library(splines)
+g_funcs <- list(
+  function(x)
+    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+  function(x)
+    # a raw polynomial
+    outer(x, 1:2, `^`))
+m_funcs <- list(
+  function(x)
+    ns(x, knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+  function(x)
+    # a raw polynomial
+    outer(x, 0:1, `^`))
+
+fixef_vary_marker <- list(c(1.4, -1.2, -2.1), c(.5, .67)) # beta
+fixef_marker <- list(c(-.5, 1), .25) # gamma
+
+Psi <- structure(c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
+                 .Dim = c(4L, 4L))
+Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
+
+# plot the markers' mean curve
+library(VAJointSurv)
+par(mfcol = c(1, 2), mar = c(5, 5, 1, 1))
+plot_marker(
+  time_fixef = ns_term(
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+  time_rng = ns_term(
+    knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+  fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
+  vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
+
+plot_marker(
+  time_fixef = poly_term(degree = 2, raw = TRUE),
+  time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
+  fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
+  vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
+
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat_univariate <- function(n_ids){
+  # simulate the outcomes
+  dat <- lapply(1:n_ids, function(id){
+    # sample the number of outcomes and the fixed effect covariates
+    n_obs <- sample.int(8L, 1L)
+    obs_time <- sort(runif(n_obs, 0, 2))
+    X1 <- cbind(1, rnorm(n_obs))
+    X2 <- matrix(1, n_obs)
+    colnames(X1) <- paste0("X1_", 1:NCOL(X1) - 1L)
+    colnames(X2) <- paste0("X2_", 1:NCOL(X2) - 1L)
+    X <- list(X1, X2)
+    
+    # sample the outcomes
+    U <- drop(rmvnorm(1, sigma = Psi))
+    eta <- sapply(1:2, function(i)
+      X[[i]] %*% fixef_marker[[i]] + 
+      drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] + 
+      drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
+    
+    ys <- eta + rmvnorm(n_obs, sigma = Sig)
+    colnames(ys) <- paste0("Y", 1:2)
+    
+    # mask some observations
+    do_mask <- sample.int(3L, n_obs, replace = TRUE) 
+    ys[do_mask == 2, 1] <- NA
+    ys[do_mask == 3, 2] <- NA
+    
+    X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
+    cbind(ys, X, time = obs_time, id = id)
+  })
+  
+  # combine the data and return
+  out <- as.data.frame(do.call(rbind, dat))
+  out$id <- as.integer(out$id)
+  out
+}
+
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat_univariate(1000L)
+
+# estimate the model with this package. Get the object we need for the 
+# optimization
+marker_1 <- marker_term(
+    Y1 ~ X1_1, id = id, subset(dat, !is.na(Y1)), 
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2), 
+                         intercept = FALSE),
+    time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2), 
+                       intercept = TRUE))
+marker_2 <- marker_term(
+    Y2 ~ 1, id = id, subset(dat, !is.na(Y2)), 
+    time_fixef = poly_term(time, degree = 2, raw = TRUE),
+    time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2))
+rm(marker_1, marker_2)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+print(attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 32 + 2 * 27)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 32 + 2 * 27))
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+
+# find the maximum lower bound with lbfgs
+library(lbfgsb3c)
+system.time(lbfgs_res <- lbfgsb3c(
+  start_val, function(x) joint_ms_lb(comp_obj, x),
+  function(x) joint_ms_lb_gr(comp_obj, x), 
+  control = list(factr = 1e-8, maxit = 10000L)))
+lbfgs_res$convergence # convergence code (0 == 'OK')
+print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
+lbfgs_res$counts # may have hit maxit!
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+fmt_ests_lbfgs <- joint_ms_format(comp_obj, lbfgs_res$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]] 
+fmt_ests_lbfgs$markers[[1]] # with lbfgs
+
+fixef_marker[[1]] # true values
+fixef_vary_marker[[1]] # true values
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+fmt_ests_lbfgs$markers[[2]] # with lbfgs
+fixef_marker[[2]] # true values
+fixef_vary_marker[[2]] # true values
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+fmt_ests_lbfgs$vcov$vcov_vary # with lbfgs
+Psi # the true values
+
+# the parameters for the error term variance
+fmt_ests$vcov$vcov_marker
+fmt_ests_lbfgs$vcov$vcov_marker # with lbfgs
+Sig
 ```
 
 ## Technical Details

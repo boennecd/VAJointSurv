@@ -33,7 +33,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   ord <- order(id, time_var)
   id <- id[ord]
   time_var <- time_var[ord]
-  X <- t(X)[, ord]
+  X <- t(X)[, ord, drop = FALSE]
   y <- y[ord]
 
   structure(list(time = time_var, X = X, y = y, id = id, mt = mt,
