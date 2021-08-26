@@ -35,6 +35,20 @@ double nan_if_fail(T x){
   }
 }
 
+/// static variables used for the Number class
+std::vector<cfaad::Tape> number_tapes;
+/// sets the number of tapes
+void set_num_tapes(vajoint_uint const n_threads){
+  number_tapes.resize(n_threads);
+}
+/// sets the tape for this thread
+void set_my_tape(){
+#ifdef _OPENMP
+  if(get_thread_num())
+    cfaad::Number::tape = &number_tapes[get_thread_num()];
+#endif
+}
+
 } // namespace
 
 using cfaad::Number;
@@ -155,6 +169,7 @@ public:
               lower_bound_caller const &caller, bool const comp_grad) const {
     if(caller.setup_failed)
       return std::numeric_limits<double>::quiet_NaN();
+    set_my_tape();
 
     vajoint_uint const n_rng{par_idx.va_mean_end() - par_idx.va_mean()};
     wmem::rewind();
@@ -443,7 +458,7 @@ public:
   void set_n_threads(unsigned const n_threads){
     optim().set_n_threads(n_threads);
     wmem::setup_working_memory(n_threads);
-    // TODO: we have not set the Number::tape for all threads!
+    set_num_tapes(n_threads);
   }
 };
 

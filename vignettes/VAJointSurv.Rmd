@@ -137,7 +137,8 @@ We do this as we can check that
  - The lower bound is less than or equal to the log marginal likelihood. 
  
 lme4 should used in this case as the linear model is tractable and this is used
-by the lme4 package.
+by the lme4 package. The computation time comparison is not fair as we use 
+four threads with the methods in this package.
 
 ```{r univariate}
 # settings for the simulation
@@ -187,7 +188,7 @@ sim_dat_univariate <- function(n_ids){
   # combine the data and return
   out <- as.data.frame(do.call(rbind, dat))
   out$id <- as.integer(out$id)
-  out
+  out[sample.int(NROW(out)), ] # the order does not matter
 }
 
 # sample a moderately large data set
@@ -216,7 +217,8 @@ system.time(comp_obj <- joint_ms_ptr(
     time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2), 
                          intercept = FALSE),
     time_rng = ns_term(time, knots = 1, Boundary.knots = c(0, 2), 
-                       intercept = TRUE))))
+                       intercept = TRUE)),
+  max_threads = 4L))
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
@@ -354,7 +356,7 @@ sim_dat_univariate <- function(n_ids){
   # combine the data and return
   out <- as.data.frame(do.call(rbind, dat))
   out$id <- as.integer(out$id)
-  out
+  out[sample.int(NROW(out)), ] # the order does not matter
 }
 
 # sample a moderately large data set
@@ -374,7 +376,8 @@ marker_2 <- marker_term(
     time_fixef = poly_term(time, degree = 2, raw = TRUE),
     time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
 
-comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2))
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2), 
+                         max_threads = 4L)
 rm(marker_1, marker_2)
 
 # get the starting values

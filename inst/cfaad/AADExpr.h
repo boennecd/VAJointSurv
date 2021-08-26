@@ -956,7 +956,12 @@ public:
     }
 
     //  Static access to tape, same as traditional
+#ifdef _OPENMP
+    static Tape* tape;
+    #pragma omp threadprivate(tape)
+#else
     static thread_local Tape* tape;
+#endif
 
     //  Constructors
 
