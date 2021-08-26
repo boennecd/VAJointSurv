@@ -163,7 +163,6 @@ plot_marker(
   time_rng = ns_term(
     knots = 1, Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = Psi)
-
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
 sim_dat_univariate <- function(n_ids){
@@ -235,7 +234,8 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
           head(joint_ms_lb_gr(comp_obj, start_val), 12 + 2 * 9))
 
 # find the maximum lower bound estimate
-system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L))
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
+                                    cg_tol = .2, c2 = .1))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 print(logLik(fit), digits = 8) # maximum likelihood from lme4
@@ -276,7 +276,8 @@ rm(list = ls())
 ```
 
 We provide an example with two markers instead of one. We observe one of the 
-two markers or both at each observation time. 
+two markers or both at each observation time. There is also a closed form 
+solution in this case. Thus, this is not the optimal way of doing this.
 
 ```{r two_markers}
 # settings for the simulation
@@ -317,7 +318,6 @@ plot_marker(
   time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
   vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
-
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
 sim_dat_univariate <- function(n_ids){
