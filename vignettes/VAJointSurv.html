@@ -296,7 +296,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>              <span class="co"># to compare with the lower bound from this package</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">REML =</span> <span class="cn">FALSE</span>))</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.809   0.008   0.817</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.909   0.004   0.919</span></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># the maximum log likelihood</span></span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">logLik</span>(fit), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -312,12 +312,12 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_rng =</span> <span class="fu">ns_term</span>(time, <span class="at">knots =</span> <span class="dv">1</span>, <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>), </span>
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                       <span class="at">intercept =</span> <span class="cn">TRUE</span>))))</span>
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.113   0.000   0.114</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.110   0.000   0.109</span></span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.103   0.000   0.103</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.118   0.000   0.119</span></span>
 <span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -337,11 +337,11 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
 <span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   5.428   0.001   5.429</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   6.045   0.000   6.052</span></span>
 <span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
-<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9161.7768</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9161.7764</span></span>
 <span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">logLik</span>(fit), <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum likelihood from lme4</span></span>
 <span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; &#39;log Lik.&#39; -9161.7723 (df=12)</span></span>
 <span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a></span>
@@ -352,11 +352,11 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 5000L)))</span>
 <span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   54.32    0.20   54.50</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  59.579   0.016  59.619</span></span>
 <span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
-<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9162.0287</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9162.0455</span></span>
 <span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>counts <span class="co"># may have hit maxit!</span></span>
 <span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 5000 5000</span></span>
 <span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
@@ -379,10 +379,10 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; m_func(time)2       0.09634       0.29559      -0.26821</span></span>
 <span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; m_func(time)3      -0.04534      -0.26821       0.29652</span></span>
 <span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_vary <span class="co"># this package</span></span>
-<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          [,1]     [,2]     [,3]</span></span>
-<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.16423  0.09468 -0.04609</span></span>
-<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.09468  0.29697 -0.26747</span></span>
-<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.04609 -0.26747  0.29685</span></span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          [,1]    [,2]     [,3]</span></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.16412  0.0948 -0.04603</span></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.09480  0.2969 -0.26748</span></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.04603 -0.2675  0.29688</span></span>
 <span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>Psi <span class="co"># the actual values</span></span>
 <span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       [,1]  [,2]  [,3]</span></span>
 <span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.18  0.05 -0.05</span></span>
@@ -500,7 +500,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.102   0.000   0.102</span></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.123   0.000   0.123</span></span>
 <span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -520,11 +520,11 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  43.472   0.193  43.655</span></span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  46.253   0.008  46.270</span></span>
 <span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb4-86"><a href="#cb4-86" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
-<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -5836.9039</span></span>
+<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -5836.8896</span></span>
 <span id="cb4-88"><a href="#cb4-88" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-89"><a href="#cb4-89" aria-hidden="true" tabindex="-1"></a><span class="co"># find the maximum lower bound with lbfgs</span></span>
 <span id="cb4-90"><a href="#cb4-90" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lbfgsb3c)</span>
@@ -533,11 +533,11 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-93"><a href="#cb4-93" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb4-94"><a href="#cb4-94" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 10000L)))</span>
 <span id="cb4-95"><a href="#cb4-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  97.874   0.697  98.555</span></span>
+<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 119.721   0.016 119.757</span></span>
 <span id="cb4-97"><a href="#cb4-97" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb4-98"><a href="#cb4-98" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb4-99"><a href="#cb4-99" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>)  <span class="co"># maximum lower bound value</span></span>
-<span id="cb4-100"><a href="#cb4-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -5837.3917</span></span>
+<span id="cb4-100"><a href="#cb4-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -5837.2956</span></span>
 <span id="cb4-101"><a href="#cb4-101" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>counts <span class="co"># may have hit maxit!</span></span>
 <span id="cb4-102"><a href="#cb4-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 10000 10000</span></span>
 <span id="cb4-103"><a href="#cb4-103" aria-hidden="true" tabindex="-1"></a></span>
@@ -548,13 +548,13 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-108"><a href="#cb4-108" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the first marker</span></span>
 <span id="cb4-109"><a href="#cb4-109" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>markers[[<span class="dv">1</span>]] </span>
 <span id="cb4-110"><a href="#cb4-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb4-111"><a href="#cb4-111" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.4878  1.0283</span></span>
+<span id="cb4-111"><a href="#cb4-111" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.4877  1.0283</span></span>
 <span id="cb4-112"><a href="#cb4-112" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb4-113"><a href="#cb4-113" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [[2]]</span></span>
 <span id="cb4-114"><a href="#cb4-114" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.539 -1.253 -2.115</span></span>
 <span id="cb4-115"><a href="#cb4-115" aria-hidden="true" tabindex="-1"></a>fmt_ests_lbfgs<span class="sc">$</span>markers[[<span class="dv">1</span>]] <span class="co"># with lbfgs</span></span>
 <span id="cb4-116"><a href="#cb4-116" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb4-117"><a href="#cb4-117" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.4878  1.0287</span></span>
+<span id="cb4-117"><a href="#cb4-117" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.4877  1.0286</span></span>
 <span id="cb4-118"><a href="#cb4-118" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb4-119"><a href="#cb4-119" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [[2]]</span></span>
 <span id="cb4-120"><a href="#cb4-120" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.540 -1.254 -2.115</span></span>
@@ -570,13 +570,13 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-130"><a href="#cb4-130" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2615</span></span>
 <span id="cb4-131"><a href="#cb4-131" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb4-132"><a href="#cb4-132" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [[2]]</span></span>
-<span id="cb4-133"><a href="#cb4-133" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.5277 0.6632</span></span>
+<span id="cb4-133"><a href="#cb4-133" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.5279 0.6631</span></span>
 <span id="cb4-134"><a href="#cb4-134" aria-hidden="true" tabindex="-1"></a>fmt_ests_lbfgs<span class="sc">$</span>markers[[<span class="dv">2</span>]] <span class="co"># with lbfgs</span></span>
 <span id="cb4-135"><a href="#cb4-135" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
 <span id="cb4-136"><a href="#cb4-136" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2613</span></span>
 <span id="cb4-137"><a href="#cb4-137" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb4-138"><a href="#cb4-138" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [[2]]</span></span>
-<span id="cb4-139"><a href="#cb4-139" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.527 0.664</span></span>
+<span id="cb4-139"><a href="#cb4-139" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.5272 0.6638</span></span>
 <span id="cb4-140"><a href="#cb4-140" aria-hidden="true" tabindex="-1"></a>fixef_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
 <span id="cb4-141"><a href="#cb4-141" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.25</span></span>
 <span id="cb4-142"><a href="#cb4-142" aria-hidden="true" tabindex="-1"></a>fixef_vary_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
@@ -585,16 +585,16 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-145"><a href="#cb4-145" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for covariance matrix of the random effects</span></span>
 <span id="cb4-146"><a href="#cb4-146" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_vary</span>
 <span id="cb4-147"><a href="#cb4-147" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          [,1]     [,2]     [,3]    [,4]</span></span>
-<span id="cb4-148"><a href="#cb4-148" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.42658  0.02785 -0.01344 0.11634</span></span>
-<span id="cb4-149"><a href="#cb4-149" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.02785  0.19145 -0.09036 0.04053</span></span>
-<span id="cb4-150"><a href="#cb4-150" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.01344 -0.09036  0.33577 0.06483</span></span>
-<span id="cb4-151"><a href="#cb4-151" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.11634  0.04053  0.06483 0.09534</span></span>
+<span id="cb4-148"><a href="#cb4-148" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.42653  0.02783 -0.01794 0.11450</span></span>
+<span id="cb4-149"><a href="#cb4-149" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.02783  0.19157 -0.09640 0.04419</span></span>
+<span id="cb4-150"><a href="#cb4-150" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.01794 -0.09640  0.33588 0.06472</span></span>
+<span id="cb4-151"><a href="#cb4-151" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.11450  0.04419  0.06472 0.09538</span></span>
 <span id="cb4-152"><a href="#cb4-152" aria-hidden="true" tabindex="-1"></a>fmt_ests_lbfgs<span class="sc">$</span>vcov<span class="sc">$</span>vcov_vary <span class="co"># with lbfgs</span></span>
 <span id="cb4-153"><a href="#cb4-153" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          [,1]     [,2]     [,3]    [,4]</span></span>
-<span id="cb4-154"><a href="#cb4-154" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.42720  0.02713 -0.01016 0.06096</span></span>
-<span id="cb4-155"><a href="#cb4-155" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.02713  0.19049 -0.03918 0.01851</span></span>
-<span id="cb4-156"><a href="#cb4-156" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.01016 -0.03918  0.33586 0.06413</span></span>
-<span id="cb4-157"><a href="#cb4-157" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.06096  0.01851  0.06413 0.09684</span></span>
+<span id="cb4-154"><a href="#cb4-154" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.42738  0.02752 -0.01263 0.07233</span></span>
+<span id="cb4-155"><a href="#cb4-155" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.02752  0.18810 -0.04690 0.02132</span></span>
+<span id="cb4-156"><a href="#cb4-156" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.01263 -0.04690  0.33735 0.06272</span></span>
+<span id="cb4-157"><a href="#cb4-157" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.07233  0.02132  0.06272 0.09815</span></span>
 <span id="cb4-158"><a href="#cb4-158" aria-hidden="true" tabindex="-1"></a>Psi <span class="co"># the true values</span></span>
 <span id="cb4-159"><a href="#cb4-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       [,1]  [,2]  [,3]  [,4]</span></span>
 <span id="cb4-160"><a href="#cb4-160" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.35  0.02 -0.05  0.01</span></span>
@@ -605,12 +605,12 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb4-165"><a href="#cb4-165" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the error term variance</span></span>
 <span id="cb4-166"><a href="#cb4-166" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_marker</span>
 <span id="cb4-167"><a href="#cb4-167" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         [,1]    [,2]</span></span>
-<span id="cb4-168"><a href="#cb4-168" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.35581 0.09341</span></span>
-<span id="cb4-169"><a href="#cb4-169" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.09341 0.16020</span></span>
+<span id="cb4-168"><a href="#cb4-168" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.35581 0.09287</span></span>
+<span id="cb4-169"><a href="#cb4-169" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.09287 0.16020</span></span>
 <span id="cb4-170"><a href="#cb4-170" aria-hidden="true" tabindex="-1"></a>fmt_ests_lbfgs<span class="sc">$</span>vcov<span class="sc">$</span>vcov_marker <span class="co"># with lbfgs</span></span>
 <span id="cb4-171"><a href="#cb4-171" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         [,1]    [,2]</span></span>
-<span id="cb4-172"><a href="#cb4-172" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.35577 0.09798</span></span>
-<span id="cb4-173"><a href="#cb4-173" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.09798 0.15999</span></span>
+<span id="cb4-172"><a href="#cb4-172" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.35598 0.09776</span></span>
+<span id="cb4-173"><a href="#cb4-173" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.09776 0.15975</span></span>
 <span id="cb4-174"><a href="#cb4-174" aria-hidden="true" tabindex="-1"></a>Sig</span>
 <span id="cb4-175"><a href="#cb4-175" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2]</span></span>
 <span id="cb4-176"><a href="#cb4-176" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.36 0.10</span></span>

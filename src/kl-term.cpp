@@ -1,50 +1,31 @@
 #include "kl-term.h"
 #include "lp-joint.h"
+#include <algorithm>
 
 kl_term::kl_term(subset_params const &idx):
   idx(idx),
-  n_vars(idx.n_shared() + idx.n_shared_surv()),
-  vcov_inv     (idx.n_shared(), idx.n_shared()),
-  vcov_inv_chol(idx.n_shared(), idx.n_shared()),
-  vcov_surv_inv
-    (idx.n_shared_surv(), idx.n_shared_surv()),
-  vcov_surv_inv_chol
-    (idx.n_shared_surv(), idx.n_shared_surv())
+  n_vars(idx.n_shared() + idx.n_shared_surv())
   { }
 
 void kl_term::setup(double const *param, double *wk_mem){
-  double &local_eval_constant = eval_constant;
-  local_eval_constant = 0;
+  eval_constant = 0;
 
-  auto setup_vcov_decomps =
-    [&local_eval_constant]
-    (double const *m, vajoint_uint const dim, arma::mat &vcov_inv,
-     arma::mat &vcov_inv_chol){
-      if(dim < 1)
-        return false;
+  if((has_vcov = idx.n_shared())){
+    vajoint_uint const dim{idx.n_shared()};
+    vcov_fac.reset(new cfaad::CholFactorization
+                     (param + idx.vcov_vary(), dim, true));
 
-      arma::mat vcov(const_cast<double*>(m), dim, dim, false);
-      if(!arma::inv(vcov_inv, vcov))
-        throw std::runtime_error("kl_term: inv() failed");
-      if(!arma::chol(vcov_inv_chol, vcov_inv))
-        throw std::runtime_error("kl_term: chol(inv()) failed");
+    eval_constant += log(vcov_fac->determinant()) - static_cast<double>(dim);
+  }
 
-      double log_det;
-      if(!arma::log_det_sympd(log_det, vcov))
-        throw std::runtime_error("kl_term: log_det_sympd(vcov) failed");
+  if((has_vcov_surv = idx.n_shared_surv())){
+    vajoint_uint const dim{idx.n_shared_surv()};
+    vcov_surv_fac.reset(new cfaad::CholFactorization(
+      param + idx.vcov_surv(), dim, true));
 
-      local_eval_constant += (log_det - static_cast<double>(dim)) / 2;
-
-      return true;
-    };
-
-  has_vcov = setup_vcov_decomps
-    (param + idx.vcov_vary(), idx.n_shared(),
-     vcov_inv, vcov_inv_chol);
-
-  has_vcov_surv = setup_vcov_decomps
-    (param + idx.vcov_surv(), idx.n_shared_surv(),
-     vcov_surv_inv, vcov_surv_inv_chol);
+    eval_constant +=
+      log(vcov_surv_fac->determinant()) - static_cast<double>(dim);
+  }
 }
 
 double kl_term::eval(double const *param, double *wk_mem) const {
@@ -61,39 +42,39 @@ double kl_term::eval(double const *param, double *wk_mem) const {
                             false);
       if(!arma::log_det_sympd(log_det, vcov_va_mat))
         throw std::runtime_error("kl_term: log_det_sympd(vcov_va_mat) failed");
-      out -= log_det / 2;
+      out -= log_det;
    }
 
-  vajoint_uint const n_shared{idx.n_shared()};
-  if(has_vcov){
+  // handle the non-determinant term
+  vajoint_uint const n_shared{idx.n_shared()},
+                n_shared_surv{idx.n_shared_surv()};
+
+  auto handle_terms = [&]
+  (vajoint_uint const offset, vajoint_uint const dim,
+   cfaad::CholFactorization const &fact, double const *org){
+    // copy parts of the VA covariance matrix
+    double * const sub_VA_vcov{wk_mem};
+    {
+      double const * ele{va_vcov + offset * (offset + dim + 1)};
+      for(vajoint_uint j = 0; j < dim; ++j, ele += n_vars)
+        std::copy(ele, ele + dim, sub_VA_vcov + j * dim);
+    }
+
+    // handle the two terms
     double term{};
-    // TODO: not numerically stable
-    term += lp_joint::quad_form(va_mean, vcov_inv_chol.memptr(),
-                                n_shared, wk_mem);
+    term += cfaad::quadFormInv(va_mean + offset, sub_VA_vcov, fact);
+    term += cfaad::trInvMatMat(org, sub_VA_vcov, fact);
 
-    // TODO: not numerically stable
-    term += lp_joint::submat_trace(vcov_inv.memptr(), va_vcov,
-                                   n_shared, n_vars, 0);
+    return term;
+  };
 
-    out += term / 2;
-  }
+  if(has_vcov)
+    out += handle_terms(0, n_shared, *vcov_fac, param + idx.vcov_vary());
+  if(has_vcov_surv)
+    out += handle_terms
+    (n_shared, n_shared_surv, *vcov_surv_fac, param + idx.vcov_surv());
 
-  vajoint_uint const n_shared_surv = idx.n_shared_surv();
-  if(has_vcov_surv){
-    double term{};
-    // TODO: not numerically stable
-    term += lp_joint::quad_form
-      (va_mean + n_shared, vcov_surv_inv_chol.memptr(),
-       n_shared_surv, wk_mem);
-
-    // TODO: not numerically stable
-    term += lp_joint::submat_trace(vcov_surv_inv.memptr(), va_vcov,
-                                   n_shared_surv, n_vars, n_shared);
-
-    out += term / 2;
-  }
-
-  return out;
+  return out / 2;
 }
 
 double kl_term::grad(double *g, double const *param, double *wk_mem) const {
@@ -105,8 +86,7 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) const {
 
   // handle some of the terms from the VA covariance matrix
   vajoint_uint const n_shared = idx.n_shared(),
-                n_shared_surv = idx.n_shared_surv(),
-                       n_vars = n_shared + n_shared_surv;
+                n_shared_surv = idx.n_shared_surv();
 
  {
     arma::mat va_cov_mat(const_cast<double*>(va_vcov),
@@ -123,42 +103,56 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) const {
   auto add_vcov_term =
     [&]
     (vajoint_uint const dim, vajoint_uint const offset,
-     vajoint_uint const idx_par,
-     arma::mat const &inv_mat){
+     vajoint_uint const idx_par, cfaad::CholFactorization const &fact){
     arma::mat i1(wk_mem, dim, dim, false),
               i2(i1.end(), dim, dim, false);
 
     {
-      double const *  vcov_surv = param + idx_par;
+      double const *  vcov_ele = param + idx_par;
       double const * va_vcov_ele = va_vcov + offset * (offset + dim + 1);
       double * __restrict__ to = i1.memptr();
       for(vajoint_uint j = 0; j < dim; ++j, va_vcov_ele += n_vars - dim)
         for(vajoint_uint i = 0; i < dim; ++i)
-          *to++ = *vcov_surv++ - *va_vcov_ele++;
+          *to++ = *vcov_ele++ - *va_vcov_ele++;
     }
 
     double const * const va_mean_sub = va_mean + offset;
     lp_joint::rank_one<false>(i1.memptr(), va_mean_sub, dim);
 
-    i2 = inv_mat * i1;
-    i1 = i2 * inv_mat;
+    for(vajoint_uint i = 0; i < dim; ++i)
+      fact.solve(i1.memptr() + i * dim);
+    i2 = i1.t();
+    for(vajoint_uint i = 0; i < dim; ++i)
+      fact.solve(i2.memptr() + i * dim);
 
-    lp_joint::add(g + idx_par, i1.begin(), dim * dim, .5);
+    lp_joint::add(g + idx_par, i2.begin(), dim * dim, .5);
+
+    // copy the upper triangular matrix to the full matrix
+    double * const fact_inv{wk_mem};
+    {
+      double const * v_inv_ele(fact.get_inv());
+      for(vajoint_uint j = 0; j < dim; ++j){
+        for(vajoint_uint i = 0; i < j; ++i, ++v_inv_ele){
+          fact_inv[i + j * dim] = *v_inv_ele;
+          fact_inv[j + i * dim] = *v_inv_ele;
+        }
+        fact_inv[j + j * dim] = *v_inv_ele++;
+      }
+    }
 
     // handle the terms from the VA covariance matrix
-    lp_joint::mat_add(g + idx.va_vcov(), inv_mat.memptr(),
+    lp_joint::mat_add(g + idx.va_vcov(), fact_inv,
                       dim, n_vars, offset, .5);
 
     // handle the terms from the VA mean
-    lp_joint::mat_vec_prod(
-      inv_mat.memptr(), va_mean_sub, g + idx.va_mean() + offset, dim);
+    lp_joint::mat_vec_prod
+      (fact_inv, va_mean_sub, g + idx.va_mean() + offset, dim);
   };
 
   if(has_vcov)
-    add_vcov_term(n_shared, 0, idx.vcov_vary(), vcov_inv);
+    add_vcov_term(n_shared, 0, idx.vcov_vary(), *vcov_fac);
   if(has_vcov_surv)
-    add_vcov_term(n_shared_surv, n_shared, idx.vcov_surv(),
-                  vcov_surv_inv);
+    add_vcov_term(n_shared_surv, n_shared, idx.vcov_surv(), *vcov_surv_fac);
 
   return eval(param, wk_mem);
 }

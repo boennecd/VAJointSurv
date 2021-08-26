@@ -6,6 +6,7 @@
 #include <limits.h>
 #include "arma-wrap.h"
 #include "wmem.h"
+#include <AAD.h>
 
 class kl_term {
   subset_params idx;
@@ -13,10 +14,7 @@ class kl_term {
   vajoint_uint n_wmem_v{2 * n_vars * n_vars};
 
   /// objects used by setup
-  arma::mat vcov_inv,
-            vcov_inv_chol,
-            vcov_surv_inv,
-            vcov_surv_inv_chol;
+  std::unique_ptr<cfaad::CholFactorization> vcov_fac, vcov_surv_fac;
   double eval_constant = std::numeric_limits<double>::quiet_NaN();
 
   bool has_vcov = false,
