@@ -224,7 +224,7 @@ system.time(comp_obj <- joint_ms_ptr(
 system.time(start_val <- joint_ms_start_val(comp_obj))
 
 # lower bound at the starting values
-print(attr(start_val, "value"), digits = 8)
+print(-attr(start_val, "value"), digits = 8)
 
 # check that the gradient is correct
 f <- function(x){
@@ -384,7 +384,7 @@ rm(marker_1, marker_2)
 system.time(start_val <- joint_ms_start_val(comp_obj))
 
 # lower bound at the starting values
-print(attr(start_val, "value"), digits = 8)
+print(-attr(start_val, "value"), digits = 8)
 
 # check that the gradient is correct
 f <- function(x){
@@ -440,6 +440,9 @@ Sig
 ```
 
 ## Two Markers and a Recurrent Event
+
+We simulate from a model with two different types of markers and a recurrent 
+event in this section.
 
 ```{r recurrent_and_marker}
 # settings for the simulation
@@ -512,7 +515,7 @@ par(mar = c(5, 5, 1, 1), mfcol = c(1, 1))
 matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
         ylim = c(0, 1), xaxs = "i", yaxs = "i", xlab = "Time", 
         ylab = "Conditional survival function")
-# compute the average to get an estimate of the marginal hazard
+# compute the average to get an estimate of the marginal survival curve
 plot(tis, rowMeans(surv_vals), type = "l",  bty = "l", ylim = c(0, 1), 
      xaxs = "i", yaxs = "i", xlab = "Time", 
      ylab = "Marginal survival function")
@@ -646,14 +649,14 @@ surv_obj <- surv_term(
   time_fixef = bs_term(y, knots = c(.5, 1.5), Boundary.knots = c(0, 2)))
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
-                         survival_terms = surv_obj, max_threads = 1L)
+                         survival_terms = surv_obj, max_threads = 4L)
 rm(marker_1, marker_2, surv_obj)
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 
 # lower bound at the starting values
-print(attr(start_val, "value"), digits = 8)
+print(-attr(start_val, "value"), digits = 8)
 
 # check that the gradient is correct
 f <- function(x){
@@ -694,23 +697,21 @@ fmt_ests$markers[[2]]
 fixef_marker[[2]] # true values
 fixef_vary_marker[[2]] # true values
 
-# the fixed effects for the survival outcome
-fmt_ests$survival[[1]]$fixef
+# the fixed effects for the survival outcome and the association parameters
+fmt_ests$survival[[1]]
 delta
-fmt_ests$survival[[1]]$fixef_vary
 omega
-fmt_ests$survival[[1]]$associations
 alpha
 
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
 Psi # the true values
 
-# the parameters for the error term covariance
+# the parameters for the error term covariance matrix
 fmt_ests$vcov$vcov_marker
 Sig
 
-# the parameters for the frailty covariance matri
+# the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 Xi
 ```
