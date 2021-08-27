@@ -376,9 +376,9 @@ context("survival_dat is correct") {
                                     par_idx, surv_input);
 
     // basic checks
-    expect_true(comp_obj.get_n_terms(0) == n_obs[0]);
-    expect_true(comp_obj.get_n_terms(1) == n_obs[1]);
-    expect_true(comp_obj.n_outcomes == 2);
+    expect_true(comp_obj.n_terms(0) == n_obs[0]);
+    expect_true(comp_obj.n_terms(1) == n_obs[1]);
+    expect_true(comp_obj.n_outcomes() == 2);
 
     // compute the lower bound
     std::vector<double> par(par_idx.n_params_w_va(), 0);
@@ -401,7 +401,7 @@ context("survival_dat is correct") {
       auto req_wmem = comp_obj.n_wmem();
       double res{};
       for(vajoint_uint i = 0; i < 2; ++i)
-        for(vajoint_uint j = 0; j < comp_obj.get_n_terms(i); ++j)
+        for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
           res += comp_obj
             (par.data(), wmem::get_double_mem(req_wmem[0]), j, i,
              wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
@@ -416,7 +416,7 @@ context("survival_dat is correct") {
     auto req_wmem = comp_obj.n_wmem();
     Number res{0};
     for(vajoint_uint i = 0; i < 2; ++i)
-      for(vajoint_uint j = 0; j < comp_obj.get_n_terms(i); ++j)
+      for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
         res += comp_obj
           (ad_par.data(), wmem::get_Number_mem(req_wmem[0]), j, i,
            wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});

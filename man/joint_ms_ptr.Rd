@@ -4,7 +4,12 @@
 \alias{joint_ms_ptr}
 \title{Creates a joint_ms to Estimate a Joint Survival and Marker Model}
 \usage{
-joint_ms_ptr(markers, max_threads = 1L)
+joint_ms_ptr(
+  markers = list(),
+  survival_terms = list(),
+  max_threads = 1L,
+  quad_rule = NULL
+)
 }
 \description{
 Creates a joint_ms to Estimate a Joint Survival and Marker Model

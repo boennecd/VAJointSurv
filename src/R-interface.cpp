@@ -9,6 +9,12 @@
 #include <AAD.h>
 #include <numeric>
 #include <limits>
+#include "survival-term.h"
+#include <array>
+
+using Rcpp::List;
+using Rcpp::NumericMatrix;
+using Rcpp::NumericVector;
 
 namespace {
 /// function to perform max(a1, a2, a3, ...)
@@ -35,7 +41,7 @@ double nan_if_fail(T x){
   }
 }
 
-/// static variables used for the Number class
+/// tapes used for the Number class
 std::vector<cfaad::Tape> number_tapes;
 /// sets the number of tapes
 void set_num_tapes(vajoint_uint const n_threads){
@@ -48,15 +54,26 @@ void set_my_tape(){
     cfaad::Number::tape = &number_tapes[get_thread_num()];
 #endif
 }
+/// the currently set quadrature rule to use
+survival::node_weight const * cur_quad_rule;
+
+survival::node_weight node_weight_from_list(List dat){
+  NumericVector nodes = dat["node"],
+              weigths = dat["weight"];
+  if(nodes.size() != weigths.size())
+    throw std::runtime_error("nodes.size() != weigths.size()");
+
+  return { &nodes[0], &weigths[0], static_cast<vajoint_uint>(nodes.size()) };
+}
 
 } // namespace
 
 using cfaad::Number;
 
 /// returns a pointer to an expansions given an R List with data.
-std::unique_ptr<joint_bases::basisMixin> get_basis_from_list(Rcpp::List dat){
+std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
   if(Rf_inherits(dat, "poly_term")){
-    Rcpp::List coefs = dat["coefs"];
+    List coefs = dat["coefs"];
     arma::vec alpha{Rcpp::as<arma::vec>(coefs["alpha"])},
               norm2{Rcpp::as<arma::vec>(coefs["norm2"])};
     bool const raw{Rcpp::as<bool>(dat["raw"])},
@@ -94,9 +111,9 @@ std::unique_ptr<joint_bases::basisMixin> get_basis_from_list(Rcpp::List dat){
 
 /// functions which is exported only to check that the bases work as in R
 // [[Rcpp::export(rng = false)]]
-Rcpp::NumericMatrix eval_expansion(Rcpp::List dat, Rcpp::NumericVector const x){
-  auto basis = get_basis_from_list(dat);
-  Rcpp::NumericMatrix out(basis->n_basis(), x.size());
+NumericMatrix eval_expansion(List dat, NumericVector const x){
+  auto basis = basis_from_list(dat);
+  NumericMatrix out(basis->n_basis(), x.size());
 
   wmem::clear_all();
   double *wmem = wmem::get_double_mem(basis->n_wmem());
@@ -135,27 +152,35 @@ public:
 class lower_bound_term {
   subset_params const &par_idx;
   marker::marker_dat const &m_dat;
+  survival::survival_dat const &s_dat;
   kl_term const &kl_dat;
 
   std::vector<vajoint_uint> marker_indices;
+  // indices of survival outcomes stored as (index, type of outcome)
+  std::vector<std::array<vajoint_uint, 2L> > surv_indices;
   size_t n_global, n_private;
 
   friend lower_bound_caller;
 public:
   lower_bound_term
   (subset_params const &par_idx, marker::marker_dat const &m_dat,
-   kl_term const &kl_dat):
-  par_idx(par_idx), m_dat(m_dat), kl_dat(kl_dat),
+   survival::survival_dat const &s_dat, kl_term const &kl_dat):
+  par_idx(par_idx), m_dat(m_dat), s_dat(s_dat), kl_dat(kl_dat),
   n_global(par_idx.n_params<true>()),
   n_private{par_idx.n_va_params<true>()}
   { }
 
-  void add_marker_index(vajoint_uint idx){
+  void add_marker_index(const vajoint_uint idx){
     marker_indices.emplace_back(idx);
+  }
+
+  void add_surv_index(const vajoint_uint idx, const vajoint_uint type){
+    surv_indices.emplace_back(std::array<vajoint_uint, 2L>{idx, type});
   }
 
   void shrink_to_fit() {
     marker_indices.shrink_to_fit();
+    surv_indices.shrink_to_fit();
   }
 
   size_t global_dim() const {
@@ -176,10 +201,12 @@ public:
 
     if(!comp_grad){
       // find the required working memory
+      // TODO: do this once
       vajoint_uint const n_wmem =
         many_max<vajoint_uint>(log_chol::pd_mat::n_wmem(n_rng),
                                m_dat.n_wmem(),
-                               kl_dat.n_wmem());
+                               kl_dat.n_wmem(),
+                               s_dat.n_wmem()[0] + s_dat.n_wmem()[1]);
 
       double * const inter_mem{wmem::get_double_mem(n_wmem)};
       double * const par_vec{wmem::get_double_mem(par_idx.n_params_w_va())};
@@ -197,20 +224,25 @@ public:
       double res = kl_dat.eval(par_vec, inter_mem);
       for(vajoint_uint idx : marker_indices)
         res += m_dat(par_vec, inter_mem, idx);
+      for(auto &idx : surv_indices)
+        res += s_dat(par_vec, inter_mem, idx[0], idx[1],
+                     inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
 
       return res;
     }
 
     // find the required working memory
+    // TODO: compute this once
     vajoint_uint const n_wmem_num
-      {many_max<vajoint_uint>(m_dat.n_wmem())};
+      {many_max<vajoint_uint>(m_dat.n_wmem(), s_dat.n_wmem()[0])};
     vajoint_uint const n_wmem_dub
       {many_max<vajoint_uint>
         (log_chol:: pd_mat::n_wmem(n_rng),
          log_chol::dpd_mat::n_wmem(n_rng),
          log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
          log_chol::dpd_mat::n_wmem(par_idx.surv_info().size()),
-         kl_dat.n_wmem())};
+         kl_dat.n_wmem(),
+         s_dat.n_wmem()[1])};
 
     Number * const inter_mem_num{wmem::get_Number_mem(n_wmem_num)};
     double * const inter_mem_dub{wmem::get_double_mem(n_wmem_dub)};
@@ -250,6 +282,9 @@ public:
     Number res{0};
     for(vajoint_uint idx : marker_indices)
       res += m_dat(par_vec_num, inter_mem_num, idx);
+    for(auto &idx : surv_indices)
+      res += s_dat(par_vec_num, inter_mem_num, idx[0], idx[1],
+                   inter_mem_dub, *cur_quad_rule);
 
     res += kl_dat.grad(par_vec_gr, par_vec_dub, inter_mem_dub);
 
@@ -339,7 +374,6 @@ void lower_bound_caller::setup(double const *val, bool const comp_grad){
     // setup the market data, kl term, and the survival data
     m_dat->setup(par_vec.data(), wmem);
     kl_dat->setup(par_vec.data(), wmem);
-    // TODO: setup for the survival terms
   } catch(...){
     setup_failed = true;
   }
@@ -381,25 +415,31 @@ using lb_optim = PSQN::optimizer
 class problem_data {
   subset_params par_idx;
   marker::marker_dat m_dat;
+  survival::survival_dat s_dat;
   kl_term kl_dat;
   std::unique_ptr<lb_optim> optim_obj;
 
 public:
-  problem_data(Rcpp::List markers, unsigned const max_threads) {
+  problem_data(List markers, List survival_terms,
+               unsigned const max_threads) {
     // handle the markers
     std::vector<marker::setup_marker_dat_helper> input_dat;
     joint_bases::bases_vector bases_fix;
     joint_bases::bases_vector bases_rng;
 
-    for(auto m : markers){
-      Rcpp::List marker = m;
-      bases_fix.emplace_back(get_basis_from_list(marker["time_fixef"]));
-      bases_rng.emplace_back(get_basis_from_list(marker["time_rng"]));
+    input_dat.reserve(markers.size());
+    bases_fix.reserve(markers.size());
+    bases_rng.reserve(markers.size());
 
-      Rcpp::NumericMatrix X{marker["X"]};
+    for(auto m : markers){
+      List marker = m;
+      bases_fix.emplace_back(basis_from_list(marker["time_fixef"]));
+      bases_rng.emplace_back(basis_from_list(marker["time_rng"]));
+
+      NumericMatrix X{marker["X"]};
       Rcpp::IntegerVector id = Rcpp::as<Rcpp::IntegerVector>(marker["id"]);
-      Rcpp::NumericVector y = Rcpp::as<Rcpp::NumericVector>(marker["y"]),
-                       time = Rcpp::as<Rcpp::NumericVector>(marker["time"]);
+      NumericVector y = Rcpp::as<NumericVector>(marker["y"]),
+                       time = Rcpp::as<NumericVector>(marker["time"]);
 
       vajoint_uint const n_fixef = X.nrow(),
                          n_obs   = X.ncol();
@@ -409,31 +449,93 @@ public:
         ({n_fixef, bases_fix.back()->n_basis(), bases_rng.back()->n_basis()});
     }
 
-    // TODO: can first be constructed later when all objects have been added to
-    //       par_idx
+    // handle the survival terms
+    joint_bases::bases_vector bases_fix_surv;
+    std::vector<survival::obs_input> surv_input;
+    std::vector<simple_mat<double> > s_fixef_design;
+    std::vector<Rcpp::IntegerVector> s_id_vecs;
+
+    surv_input.reserve(survival_terms.size());
+    bases_fix_surv.reserve(survival_terms.size());
+    s_fixef_design.reserve(survival_terms.size());
+    s_id_vecs.reserve(survival_terms.size());
+
+    for(auto s : survival_terms){
+      List surv = s;
+      bases_fix_surv.emplace_back(basis_from_list(surv["time_fixef"]));
+
+      NumericMatrix Z{surv["Z"]};
+      s_id_vecs.emplace_back(surv["id"]);
+      NumericMatrix y{surv["y"]};
+
+      vajoint_uint const n_fixef = Z.nrow(),
+                         n_obs   = Z.ncol();
+
+      surv_input.emplace_back
+        (survival::obs_input{n_obs, &y[0], &y[y.nrow()], &y[2 * y.nrow()]});
+      s_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
+      par_idx.add_surv({n_fixef, bases_fix_surv.back()->n_basis()});
+    }
+
+    // construct the objects to compute the different terms of the lower bound
     auto dat_n_idx =
       marker::get_comp_dat(input_dat, par_idx, bases_fix, bases_rng);
-    m_dat = std::move(dat_n_idx.dat);
-
     kl_dat = kl_term(par_idx);
-
-    // TODO: create the other terms
+    m_dat = std::move(dat_n_idx.dat);
+    s_dat = survival::survival_dat
+      (bases_fix_surv, bases_rng, s_fixef_design, par_idx, surv_input);
 
     // create the object to use for optimization
     std::vector<lower_bound_term> ele_funcs;
     ele_funcs.reserve(dat_n_idx.id.size());
 
     {
-      vajoint_uint m_idx{};
-      auto id_marker = dat_n_idx.id.begin();
-      while(id_marker != dat_n_idx.id.end()){
-        int const cur_id{*id_marker++};
-        ele_funcs.emplace_back(par_idx, m_dat, kl_dat);
-        ele_funcs.back().add_marker_index(m_idx++);
+      // check that all ids are sorted
+      for(auto b = dat_n_idx.id.begin(); b != dat_n_idx.id.end(); ++b)
+        if(b != dat_n_idx.id.begin() && *b < *(b - 1))
+          throw std::invalid_argument("Marker ids are not sorted");
 
-        for(; id_marker != dat_n_idx.id.end() && *id_marker == cur_id;
-            ++id_marker)
-          ele_funcs.back().add_marker_index(m_idx++);
+      for(size_t i = 0; i < s_id_vecs.size(); ++i)
+        for(auto b = s_id_vecs[i].begin(); b != s_id_vecs[i].end(); ++b)
+          if(b != s_id_vecs[i].begin() && *b < *(b - 1))
+            throw std::invalid_argument
+              ("ids for survival type " + std::to_string(i + 1) + " are not sorted");
+
+      // add the element functions
+      auto id_marker = dat_n_idx.id.begin();
+      std::vector<Rcpp::IntegerVector::iterator> s_indices(s_id_vecs.size());
+      for(size_t i = 0; i < s_indices.size(); ++i)
+        s_indices[i] = s_id_vecs[i].begin();
+
+      // returns true if all iterators are at the end
+      auto all_at_end = [&]{
+        if(id_marker != dat_n_idx.id.end())
+          return false;
+        for(size_t i = 0; i < s_indices.size(); ++i)
+          if(s_indices[i] != s_id_vecs[i].end())
+            return false;
+        return true;
+      };
+
+      while(!all_at_end()){
+        // find the lowest id as the ids are supposed to be sorted
+        int cur_id{std::numeric_limits<int>::max()};
+        if(id_marker != dat_n_idx.id.end())
+          cur_id = std::min(*id_marker, cur_id);
+        for(size_t i = 0; i < s_indices.size(); ++i)
+          if(s_indices[i] != s_id_vecs[i].end())
+            cur_id = std::min(*s_indices[i], cur_id);
+
+        // add the observation where the id does match
+        ele_funcs.emplace_back(par_idx, m_dat, s_dat, kl_dat);
+        while(id_marker != dat_n_idx.id.end() && *id_marker == cur_id)
+          ele_funcs.back().add_marker_index
+            (std::distance(dat_n_idx.id.begin(), id_marker++));
+
+        for(size_t i = 0; i < s_indices.size(); ++i)
+          while(s_indices[i] != s_id_vecs[i].end() && *s_indices[i] == cur_id)
+            ele_funcs.back().add_surv_index
+              (std::distance(s_id_vecs[i].begin(), s_indices[i]++), i);
 
         ele_funcs.back().shrink_to_fit();
       }
@@ -455,6 +557,19 @@ public:
     return par_idx;
   }
 
+  vajoint_uint n_markers_obs() const {
+    return m_dat.n_obs();
+  }
+
+  vajoint_uint n_surv_obs(vajoint_uint const type) const {
+    return s_dat.n_terms(type);
+  }
+
+  vajoint_uint n_surv_types() const {
+    return s_dat.n_outcomes();
+  }
+
+
   void set_n_threads(unsigned const n_threads){
     optim().set_n_threads(n_threads);
     wmem::setup_working_memory(n_threads);
@@ -462,23 +577,43 @@ public:
   }
 };
 
-inline void check_par_length(problem_data const &obj, Rcpp::NumericVector par){
+inline void check_par_length(problem_data const &obj, NumericVector par){
   if(obj.optim().n_par != static_cast<size_t>(par.size()))
     throw std::invalid_argument("invalid parameter size");
 }
 
 /// returns a pointer to problem_data object
 // [[Rcpp::export(".joint_ms_ptr", rng = false)]]
-SEXP joint_ms_ptr(Rcpp::List markers, unsigned const max_threads){
-  return Rcpp::XPtr<problem_data>(new problem_data(markers, max_threads));
+SEXP joint_ms_ptr
+  (List markers, List survival_terms, unsigned const max_threads){
+  return Rcpp::XPtr<problem_data>
+    (new problem_data(markers, survival_terms, max_threads));
+}
+
+/// returns the number of lower bound terms of different types
+// [[Rcpp::export(rng = false)]]
+List joint_ms_n_terms(SEXP ptr){
+  Rcpp::XPtr<problem_data> obj(ptr);
+
+  Rcpp::IntegerVector surv_count(obj->n_surv_types());
+  for(vajoint_uint i = 0; i < obj->n_surv_types(); ++i)
+    surv_count[i] = obj->n_surv_obs(i);
+
+  return List::create(
+    Rcpp::_("Marker terms") = obj->n_markers_obs(),
+    Rcpp::_("Survival terms") = std::move(surv_count),
+    Rcpp::_("Number of clusters") = obj->optim().get_ele_funcs().size());
 }
 
 /// evaluates the lower bound
 // [[Rcpp::export(rng = false)]]
 double joint_ms_eval_lb
-  (Rcpp::NumericVector val, SEXP ptr, unsigned const n_threads){
+  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
+
+  survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
+  cur_quad_rule = &quad_rule_use;
 
   obj->set_n_threads(n_threads);
   double const out{obj->optim().eval(&val[0], nullptr, false)};
@@ -489,12 +624,15 @@ double joint_ms_eval_lb
 
 /// evaluates the gradient of the lower bound
 // [[Rcpp::export(rng = false)]]
-Rcpp::NumericVector joint_ms_eval_lb_gr
-  (Rcpp::NumericVector val, SEXP ptr, unsigned const n_threads){
+NumericVector joint_ms_eval_lb_gr
+  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
-  Rcpp::NumericVector grad(val.size());
+  survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
+  cur_quad_rule = &quad_rule_use;
+
+  NumericVector grad(val.size());
   obj->set_n_threads(n_threads);
   grad.attr("value") = obj->optim().eval(&val[0], &grad[0], true);
   wmem::clear_all();
@@ -504,7 +642,7 @@ Rcpp::NumericVector joint_ms_eval_lb_gr
 
 /// returns the names of the parameters
 // [[Rcpp::export(rng = false)]]
-Rcpp::List joint_ms_parameter_names(SEXP ptr){
+List joint_ms_parameter_names(SEXP ptr){
   Rcpp::XPtr<problem_data> obj(ptr);
 
   auto param_names = obj->params().param_names(true);
@@ -518,7 +656,7 @@ Rcpp::List joint_ms_parameter_names(SEXP ptr){
   for(size_t i = 0; i < va_param_names.size(); ++i)
     va_param_names_out[i] = va_param_names[i];
 
-  return Rcpp::List::create(
+  return List::create(
     Rcpp::_("param_names") = std::move(param_names_out),
     Rcpp::_("VA_param_names") = std::move(va_param_names_out));
 }
@@ -526,11 +664,11 @@ Rcpp::List joint_ms_parameter_names(SEXP ptr){
 // TODO: need to test this function
 /// returns indices of the parameters
 // [[Rcpp::export(rng = false)]]
-Rcpp::List joint_ms_parameter_indices(SEXP ptr){
+List joint_ms_parameter_indices(SEXP ptr){
   Rcpp::XPtr<problem_data> obj(ptr);
 
   auto &params = obj->params();
-  Rcpp::List m_out(params.marker_info().size()),
+  List m_out(params.marker_info().size()),
              s_out(params.surv_info().size());
 
   // handle the fixed effects
@@ -542,7 +680,7 @@ Rcpp::List joint_ms_parameter_indices(SEXP ptr){
     std::iota(fixef.begin(), fixef.end(), info.idx_fix + 1);
     std::iota(fixef_vary.begin(), fixef_vary.end(), info.idx_varying + 1);
 
-    m_out[i] = Rcpp::List::create(
+    m_out[i] = List::create(
       Rcpp::_("fixef") = std::move(fixef),
       Rcpp::_("fixef_vary") = std::move(fixef_vary));
   }
@@ -559,7 +697,7 @@ Rcpp::List joint_ms_parameter_indices(SEXP ptr){
     std::iota
       (associations.begin(), associations.end(), info.idx_association + 1);
 
-    s_out[i] = Rcpp::List::create(
+    s_out[i] = List::create(
       Rcpp::_("fixef") = std::move(fixef),
       Rcpp::_("fixef_vary") = std::move(fixef_vary),
       Rcpp::_("associations") = std::move(associations));
@@ -581,16 +719,16 @@ Rcpp::List joint_ms_parameter_indices(SEXP ptr){
   std::iota
     (vcov_vary.begin(), vcov_vary.end(), params.vcov_vary<true>() + 1);
 
-  Rcpp::List vcovs = Rcpp::List::create(
+  List vcovs = List::create(
     Rcpp::_("vcov_marker") = std::move(vcov_marker),
     Rcpp::_("vcov_surv") = std::move(vcov_surv),
     Rcpp::_("vcov_vary") = std::move(vcov_vary));
 
-  return Rcpp::List::create(
+  return List::create(
     Rcpp::_("markers") = std::move(m_out),
     Rcpp::_("survival") = std::move(s_out),
     Rcpp::_("vcovs") = std::move(vcovs),
-    Rcpp::_("va_params_start") = params.va_mean<true>(),
+    Rcpp::_("va_params_start") = params.va_mean<true>() + 1,
     Rcpp::_("n_va_params") = params.n_va_params<true>(),
     Rcpp::_("va_dim") = params.va_mean_end() - params.va_mean());
 }
@@ -604,14 +742,17 @@ int joint_ms_n_params(SEXP ptr){
 
 /// optimizes the private parameters
 // [[Rcpp::export(rng = false)]]
-Rcpp::NumericVector opt_priv
-  (Rcpp::NumericVector val, SEXP ptr,
+NumericVector opt_priv
+  (NumericVector val, SEXP ptr,
    double const rel_eps, unsigned const max_it, unsigned const n_threads,
-   double const c1, double const c2){
+   double const c1, double const c2, List quad_rule){
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
-  Rcpp::NumericVector par = clone(val);
+  survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
+  cur_quad_rule = &quad_rule_use;
+
+  NumericVector par = clone(val);
   obj->set_n_threads(n_threads);
   double const res = obj->optim().optim_priv(&par[0], rel_eps, max_it, c1, c2);
   par.attr("value") = res;
@@ -622,30 +763,187 @@ Rcpp::NumericVector opt_priv
 
 /// optimizes the lower bound using the psqn package
 // [[Rcpp::export(rng = false)]]
-Rcpp::List joint_ms_opt_lb
-  (Rcpp::NumericVector val, SEXP ptr, double const rel_eps,
+List joint_ms_opt_lb
+  (NumericVector val, SEXP ptr, double const rel_eps,
    unsigned const max_it, unsigned const n_threads, double const c1,
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
-   unsigned const pre_method){
+   unsigned const pre_method, List quad_rule){
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
-  Rcpp::NumericVector par = clone(val);
+  survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
+  cur_quad_rule = &quad_rule_use;
+
+  NumericVector par = clone(val);
   obj->set_n_threads(n_threads);
   auto res = obj->optim().optim(&par[0], rel_eps, max_it, c1, c2,
                                 use_bfgs, trace, cg_tol, strong_wolfe, max_cg,
                                 static_cast<PSQN::precondition>(pre_method));
 
-  Rcpp::NumericVector counts = Rcpp::NumericVector::create(
+  NumericVector counts = NumericVector::create(
     res.n_eval, res.n_grad,  res.n_cg);
   counts.names() =
     Rcpp::CharacterVector::create("function", "gradient", "n_cg");
   wmem::clear_all();
 
   int const info{static_cast<int>(res.info)};
-  return Rcpp::List::create(
+  return List::create(
     Rcpp::_["par"] = par, Rcpp::_["value"] = res.value,
     Rcpp::_["info"] = info, Rcpp::_["counts"] = counts,
     Rcpp::_["convergence"] =  res.info == PSQN::info_code::converged);
+}
+
+
+/**
+ * class to evaluate the negative log likelihood and its gradient for a
+ * proportional hazard model
+ */
+class ph_model {
+  std::unique_ptr<joint_bases::basisMixin> expansion;
+  simple_mat<double> Z,
+                  surv;
+
+  survival::expected_cum_hazzard cum_haz;
+
+  std::array<size_t, 2> const n_wmem_v;
+
+  double lb(vajoint_uint const idx) const{
+    return *surv.col(idx);
+  }
+  double ub(vajoint_uint const idx) const{
+    return surv.col(idx)[1];
+  }
+  double event(vajoint_uint const idx) const{
+    return surv.col(idx)[2];
+  }
+
+  template<class T>
+  T eval(T const * param, survival::node_weight const &quad_rule,
+           vajoint_uint const start, vajoint_uint const end,
+           T * T_mem, double * wk_mem, double const va_var_in) const{
+
+    T const * const fixef{param},
+            * const fixef_vary{param + Z.n_rows()};
+
+    T out{0.};
+    T association{0};
+    T va_mean(0);
+    T va_var(va_var_in);
+    for(vajoint_uint i = start; i < end; ++i){
+      // the hazard term
+      if(event(i) > 0){
+        out -= cfaad::dotProd(Z.col(i), Z.col(i) + Z.n_rows(), fixef);
+        (*expansion)(wk_mem, wk_mem + expansion->n_basis(), ub(i));
+        out -= cfaad::dotProd
+          (wk_mem, wk_mem + expansion->n_basis(), fixef_vary);
+      }
+
+      // the cumulative hazard term
+      out += cum_haz(quad_rule, lb(i), ub(i), Z.col(i), fixef, fixef_vary,
+                     &association, &va_mean, &va_var, T_mem, wk_mem);
+    }
+
+    return out;
+  }
+
+public:
+  ph_model(joint_bases::basisMixin const * expansion_in,
+           simple_mat<double> const &Z, simple_mat<double> const &surv):
+  expansion{expansion_in->clone()}, Z{Z}, surv{surv},
+  cum_haz{*expansion, survival::bases_vector{}, Z.n_rows()},
+  n_wmem_v{cum_haz.n_wmem()[0],
+           std::max(cum_haz.n_wmem()[1],
+                    expansion->n_wmem() + expansion->n_basis())}
+  { }
+
+  vajoint_uint n_params() const {
+    return Z.n_rows() + expansion->n_basis();
+  }
+
+  std::array<size_t, 2> const & n_wmem() const {
+    return n_wmem_v;
+  }
+
+  double eval(double const *param, survival::node_weight const &quad_rule,
+              double const va_var) const {
+    double * const w1{wmem::get_double_mem(n_wmem()[0])},
+           * const w2{wmem::get_double_mem(n_wmem()[1])};
+    double const out(eval(param, quad_rule, 0, Z.n_cols(), w1, w2, va_var));
+    wmem::clear_all();
+    return out;
+  }
+
+  double gr
+  (double const *param, double *gr,
+   survival::node_weight const &quad_rule, double const va_var) const {
+    Number::tape->clear();
+    Number * const param_num{wmem::get_Number_mem(n_params())};
+    cfaad::convertCollection(param, param + n_params(), param_num);
+
+    Number * const w1{wmem::get_Number_mem(n_wmem()[0])};
+    double * const w2{wmem::get_double_mem(n_wmem()[1])};
+
+    double out{};
+    for(vajoint_uint i = 0; i < Z.n_cols(); ){
+      Number::tape->rewind();
+      cfaad::putOnTape(param_num, param_num + n_params());
+
+      vajoint_uint const inc{std::min<vajoint_uint>(Z.n_cols() - i, 256)};
+      Number res = eval(param_num, quad_rule, i, i + inc, w1, w2, va_var);
+      i += inc;
+      res.propagateToStart();
+      out += res.value();
+
+      for(vajoint_uint i = 0; i < n_params(); ++i)
+        gr[i] += param_num[i].adjoint();
+    }
+
+    Number::tape->clear();
+    wmem::clear_all();
+    return out;
+  }
+};
+
+// [[Rcpp::export(rng = false)]]
+List ph_ll
+  (List time_fixef, NumericMatrix Z, NumericMatrix surv){
+  auto expansion = basis_from_list(time_fixef);
+  simple_mat Z_sm(&Z[0], Z.nrow(), Z.ncol()),
+          surv_sm(&surv[0], surv.nrow(), surv.ncol());
+
+  // basic check
+  if(surv_sm.n_rows() != 3)
+    throw std::invalid_argument("surv.nrow() != 3");
+  if(Z_sm.n_cols() != surv_sm.n_cols())
+    throw std::invalid_argument("Z_sm.n_cols() != surv_sm.n_cols()");
+
+  Rcpp::XPtr<ph_model> ptr(new ph_model(expansion.get(), Z_sm, surv_sm));
+  vajoint_uint const n_params = ptr->n_params();
+
+  return List::create(Rcpp::_("n_params") = n_params,
+                      Rcpp::_("ptr") = std::move(ptr));
+}
+
+// [[Rcpp::export(rng = false)]]
+double ph_eval
+  (SEXP ptr, NumericVector par, List quad_rule, double const va_var){
+  Rcpp::XPtr<ph_model> comp_obj(ptr);
+  if(par.size() != static_cast<R_len_t>(comp_obj->n_params()))
+    throw std::invalid_argument("par.size() != n_params");
+
+  return comp_obj->eval(&par[0], node_weight_from_list(quad_rule), va_var);
+}
+
+// [[Rcpp::export(rng = false)]]
+NumericVector ph_grad
+  (SEXP ptr, NumericVector par, List quad_rule, double const va_var){
+  Rcpp::XPtr<ph_model> comp_obj(ptr);
+  if(par.size() != static_cast<R_len_t>(comp_obj->n_params()))
+    throw std::invalid_argument("par.size() != n_params");
+
+  NumericVector out(comp_obj->n_params(), 0);
+  out.attr("logLik") =
+    comp_obj->gr(&par[0], &out[0], node_weight_from_list(quad_rule), va_var);
+  return out;
 }

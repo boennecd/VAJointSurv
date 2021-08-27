@@ -38,14 +38,14 @@ struct node_weight {
  */
 class expected_cum_hazzard {
   /// the base for the time-varying fixed effect
-  basisMixin const &b;
+  std::unique_ptr<basisMixin> b;
   /// the basis for the time-varying random effects
-  bases_vector const &bases_rng;
+  bases_vector bases_rng;
   /// the number of fixed effects
-  vajoint_uint const n_fixef;
+  vajoint_uint n_fixef;
 
   /// the number of time-varying random effect basis function plus one
-  vajoint_uint const n_basis_rng_p1
+  vajoint_uint n_basis_rng_p1
   { 1 + std::accumulate(
       bases_rng.begin(), bases_rng.end(), vajoint_uint{},
       [](vajoint_uint x, joint_bases::bases_vector::value_type const &r){
@@ -54,10 +54,10 @@ class expected_cum_hazzard {
   };
 
   /// the largest basis dimension
-  vajoint_uint const max_base_dim
+  vajoint_uint max_base_dim
   {
     ([&]{
-      vajoint_uint out{b.n_basis()};
+      vajoint_uint out{b->n_basis()};
       for(auto &b : bases_rng)
         out = std::max(out, b->n_basis());
       return out;
@@ -65,12 +65,12 @@ class expected_cum_hazzard {
   };
 
   /// the required working memory
-  std::array<size_t, 2> const n_wmem_v
+  std::array<size_t, 2> n_wmem_v
   {
     ([&]{
       std::array<size_t, 2> out {0, 0};
 
-      out[1] = b.n_wmem();
+      out[1] = b->n_wmem();
       for(auto &b : bases_rng)
         out[1] = std::max(out[1], b->n_wmem());
 
@@ -82,9 +82,10 @@ class expected_cum_hazzard {
 
 public:
   expected_cum_hazzard
-  (basisMixin const &b, bases_vector const &bases_rng,
+  (basisMixin const &b_in, bases_vector const &bases_rng,
    vajoint_uint const n_fixef):
-  b(b), bases_rng(bases_rng), n_fixef(n_fixef) { }
+  b(b_in.clone()), bases_rng(joint_bases::clone_bases(bases_rng)),
+  n_fixef(n_fixef) { }
 
   /**
    * evaluates the approximate expected cumulative hazard between
@@ -108,9 +109,9 @@ public:
 
       // compute the term from the time-varying fixed effects
       double const node_val{delta_bound * nws.ns[i] + lower};
-      b(dwk_mem, dwk_mem_basis, node_val);
+      (*b)(dwk_mem, dwk_mem_basis, node_val);
       T log_hazard
-        {cfaad::dotProd(dwk_mem, dwk_mem + b.n_basis(), fixef_vary)};
+        {cfaad::dotProd(dwk_mem, dwk_mem + b->n_basis(), fixef_vary)};
 
       // construct the (association^T, 1).hat(M)(s) vector
       {
@@ -147,7 +148,7 @@ public:
    * returns the needed working memory of eval. The first elements is the
    * required T memory and the second element is the required double memory.
    */
-  std::array<size_t, 2> n_wmem(){
+  std::array<size_t, 2> const& n_wmem() const {
     return n_wmem_v;
   }
 };
@@ -192,37 +193,39 @@ class survival_dat {
   /// the largest basis dimension
   vajoint_uint max_basis_dim{};
 
-public:
   /// the indices of the parameters
-  subset_params const par_idx;
+  subset_params par_idx;
   /// the number of type of outcomes
-  vajoint_uint const n_outcomes = bases_fix.size();
+  vajoint_uint n_outcomes_v = bases_fix.size();
   /// the required working memory
   std::array<size_t, 2> wmem_w;
 
+public:
+  survival_dat() = default;
+
   survival_dat
-    (bases_vector const &bases_fix, bases_vector const &bases_rng,
+    (bases_vector const &bases_fix_in, bases_vector const &bases_rng_in,
      std::vector<simple_mat<double> > &design_mats,
      subset_params const &par_idx, std::vector<obs_input> const &input):
-    bases_fix{joint_bases::clone_bases(bases_fix)},
-    bases_rng{joint_bases::clone_bases(bases_rng)},
+    bases_fix{joint_bases::clone_bases(bases_fix_in)},
+    bases_rng{joint_bases::clone_bases(bases_rng_in)},
     design_mats{design_mats},
     par_idx{par_idx}
   {
-    if(par_idx.surv_info().size() != n_outcomes)
+    if(par_idx.surv_info().size() != n_outcomes_v)
       throw std::invalid_argument("surv_info().size() != n_outcomes");
-    if(design_mats.size() != n_outcomes)
+    if(design_mats.size() != n_outcomes_v)
       throw std::invalid_argument("design_mats.size() != n_outcomes");
-    if(bases_fix.size() != n_outcomes)
+    if(bases_fix.size() != n_outcomes_v)
       throw std::invalid_argument("bases_fix.size() != n_outcomes");
-    if(input.size() != n_outcomes)
+    if(input.size() != n_outcomes_v)
       throw std::invalid_argument("input.size() != n_outcomes");
     if(bases_rng.size() != par_idx.marker_info().size())
       throw std::invalid_argument("bases_rng.size() != marker_info().size()");
 
     // create the cum_hazs
-    cum_hazs.reserve(n_outcomes);
-    for(vajoint_uint i = 0; i < n_outcomes; ++i)
+    cum_hazs.reserve(n_outcomes_v);
+    for(vajoint_uint i = 0; i < n_outcomes_v; ++i)
       cum_hazs.emplace_back(*bases_fix[i], bases_rng, design_mats[i].n_rows());
 
     // set the required working memory
@@ -242,8 +245,8 @@ public:
     wmem_w[1] += max_basis_dim;
 
     // add the observations
-    obs_info.resize(n_outcomes);
-    for(vajoint_uint i = 0; i < n_outcomes; ++i){
+    obs_info.resize(n_outcomes_v);
+    for(vajoint_uint i = 0; i < n_outcomes_v; ++i){
       obs_info[i].reserve(input[i].n_obs);
       if(input[i].n_obs != design_mats[i].n_cols())
         throw std::invalid_argument
@@ -257,8 +260,13 @@ public:
   }
 
   /// returns the number of lower bound terms of a given type
-  vajoint_uint get_n_terms(const vajoint_uint type){
+  vajoint_uint n_terms(const vajoint_uint type) const {
     return obs_info[type].size();
+  }
+
+  /// returns the number of types of survival processes
+  vajoint_uint n_outcomes() const {
+    return n_outcomes_v;
   }
 
   /// evaluates the lower bound of observation idx for the type of outcome
@@ -342,7 +350,7 @@ public:
    * returns the needed working memory of eval. The first elements is the
    * required T memory and the second element is the required double memory.
    */
-  std::array<size_t, 2> n_wmem(){
+  std::array<size_t, 2> const & n_wmem() const {
     return wmem_w;
   }
 };

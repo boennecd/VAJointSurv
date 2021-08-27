@@ -4,7 +4,12 @@
 \alias{joint_ms_lb}
 \title{Evaluates the Lower Bound}
 \usage{
-joint_ms_lb(object, par, n_threads = object$max_threads)
+joint_ms_lb(
+  object,
+  par,
+  n_threads = object$max_threads,
+  quad_rule = object$quad_rule
+)
 }
 \description{
 Evaluates the Lower Bound

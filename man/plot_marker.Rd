@@ -2,10 +2,20 @@
 % Please edit documentation in R/plot.R
 \name{plot_marker}
 \alias{plot_marker}
-\title{Plots a Markers Mean Curve}
+\title{Plots a Markers Mean Curve with Pointwise Quantiles}
 \usage{
-plot_marker(time_fixef, time_rng, fixef_vary, x_range, vcov_vary)
+plot_marker(
+  time_fixef,
+  time_rng,
+  fixef_vary,
+  x_range,
+  vcov_vary,
+  p = 0.95,
+  xlab = "Time",
+  ylab = "Marker",
+  ...
+)
 }
 \description{
-Plots a Markers Mean Curve
+Plots a Markers Mean Curve with Pointwise Quantiles
 }

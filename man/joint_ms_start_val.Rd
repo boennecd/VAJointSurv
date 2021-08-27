@@ -10,7 +10,8 @@ joint_ms_start_val(
   rel_eps = 1e-08,
   c1 = 1e-04,
   c2 = 0.9,
-  max_it = 100L
+  max_it = 100L,
+  quad_rule = object$quad_rule
 )
 }
 \description{

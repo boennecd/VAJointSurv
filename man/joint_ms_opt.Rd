@@ -17,7 +17,8 @@ joint_ms_opt(
   cg_tol = 0.5,
   strong_wolfe = TRUE,
   max_cg = 0L,
-  pre_method = 1L
+  pre_method = 1L,
+  quad_rule = object$quad_rule
 )
 }
 \description{

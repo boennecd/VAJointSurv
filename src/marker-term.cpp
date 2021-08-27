@@ -111,14 +111,14 @@ comp_dat_return get_comp_dat
     double min_time{std::numeric_limits<double>::max()};
 
     for(vajoint_uint i = 0; i < n_markers; ++i){
-      if(ids_ptr[i] == ids_ptr_end[i] ||
-         *ids_ptr[i] > min_id ||
-         *obs_time_ptr[i] > min_time)
-         continue;
-
-      // update the minimums
-      min_id = *ids_ptr[i];
-      min_time = *obs_time_ptr[i];
+      if(ids_ptr[i] == ids_ptr_end[i])
+        continue;
+      if(*ids_ptr[i] < min_id ||
+          (*obs_time_ptr[i] < min_time && *ids_ptr[i] == min_id)){
+        // update the minimums
+        min_id = *ids_ptr[i];
+        min_time = *obs_time_ptr[i];
+      }
     }
 
     unique_ids.emplace_back(min_id);

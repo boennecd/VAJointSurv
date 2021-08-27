@@ -392,8 +392,8 @@ f <- function(x){
   joint_ms_lb(comp_obj, start_val)
 }
 
-all.equal(numDeriv::grad(f, head(start_val, 32 + 2 * 27)), 
-          head(joint_ms_lb_gr(comp_obj, start_val), 32 + 2 * 27))
+all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 22 + 2 * 14))
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
@@ -437,6 +437,282 @@ Psi # the true values
 fmt_ests$vcov$vcov_marker
 fmt_ests_lbfgs$vcov$vcov_marker # with lbfgs
 Sig
+```
+
+## Two Markers and a Recurrent Event
+
+```{r recurrent_and_marker}
+# settings for the simulation
+library(splines)
+g_funcs <- list(
+  function(x)
+    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+  function(x)
+    # a raw polynomial
+    outer(x, 1:2, `^`))
+m_funcs <- list(
+  function(x)
+    ns(x, knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+  function(x)
+    # a raw polynomial
+    outer(x, 0:1, `^`))
+
+fixef_vary_marker <- list(c(1.4, -1.2, -2.1), c(.5, .67)) # beta
+fixef_marker <- list(c(-.5, 1), .25) # gamma
+
+Psi <- structure(c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
+                 .Dim = c(4L, 4L))
+Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
+
+# plot the markers' mean curve
+library(VAJointSurv)
+par(mfcol = c(1, 2), mar = c(5, 5, 1, 1))
+plot_marker(
+  time_fixef = ns_term(
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+  time_rng = ns_term(
+    knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+  fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
+  vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
+
+plot_marker(
+  time_fixef = poly_term(degree = 2, raw = TRUE),
+  time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
+  fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
+  vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
+# the survival parameters
+delta <- c(-1, .25)
+alpha <- c(-.8, .7)
+omega <- c(.5, .1, -.2, .11)
+Xi <- matrix(.5^2, 1)
+
+b_func <- function(x)
+  bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
+
+# draw a few survival curves an plot them 
+library(SimSurvNMarker)
+ # time points where we evaluate the conditional survival functions
+tis <- seq(0, 2, length.out = 50)
+set.seed(1)
+Us <- mvtnorm::rmvnorm(250, sigma = Psi) # the random effects
+# compute the conditional survival functions disregarding the fixed effect
+surv_vals <- apply(Us, 1, function(U){
+  expansion <- function(x)
+    cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2], 
+          m_funcs[[2]](x) %*% U[3:4])
+  
+  err <- rnorm(1, sd = sqrt(Xi))
+  
+  eval_surv_base_fun(
+    ti = tis, omega = c(omega, alpha), b_func = expansion, 
+    gl_dat = get_gl_rule(100), delta = delta[1] + err)
+})
+
+par(mar = c(5, 5, 1, 1), mfcol = c(1, 1))
+matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
+        ylim = c(0, 1), xaxs = "i", yaxs = "i", xlab = "Time", 
+        ylab = "Conditional survival function")
+# compute the average to get an estimate of the marginal hazard
+plot(tis, rowMeans(surv_vals), type = "l",  bty = "l", ylim = c(0, 1), 
+     xaxs = "i", yaxs = "i", xlab = "Time", 
+     ylab = "Marginal survival function")
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat_univariate <- function(n_ids){
+  # simulate the outcomes
+  gl_dat <- get_gl_rule(100L)
+  dat <- lapply(1:n_ids, function(id){
+    # sample the number of outcomes and the fixed effect covariates
+    n_obs <- sample.int(8L, 1L)
+    obs_time <- sort(runif(n_obs, 0, 2))
+    X1 <- cbind(1, rnorm(n_obs))
+    X2 <- matrix(1, n_obs)
+    colnames(X1) <- paste0("X1_", 1:NCOL(X1) - 1L)
+    colnames(X2) <- paste0("X2_", 1:NCOL(X2) - 1L)
+    X <- list(X1, X2)
+
+    # sample the outcomes
+    U <- drop(rmvnorm(1, sigma = Psi))
+    eta <- sapply(1:2, function(i)
+      X[[i]] %*% fixef_marker[[i]] +
+      drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] +
+      drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
+
+    ys <- eta + rmvnorm(n_obs, sigma = Sig)
+    colnames(ys) <- paste0("Y", 1:2)
+
+    # mask some observations
+    do_mask <- sample.int(3L, n_obs, replace = TRUE)
+    ys[do_mask == 2, 1] <- NA
+    ys[do_mask == 3, 2] <- NA
+
+    X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
+    marker_data <- cbind(ys, X, time = obs_time, id = id)
+
+    # simulate the survival outcome
+    rng_surv <- rnorm(1, sd = sqrt(Xi))
+    Z <- c(1, runif(1, -1, 1))
+    log_haz_offset <- sum(Z * delta) + rng_surv
+
+    expansion <- function(x)
+      cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
+            m_funcs[[2]](x) %*% U[3:4])
+
+    # the conditional survival function
+    surv_func <- function(ti)
+      eval_surv_base_fun(
+        ti = ti, omega = c(omega, alpha), b_func = expansion,
+        gl_dat = gl_dat, delta = log_haz_offset)
+
+    # simulate the recurrent events one at a time
+    max_sample <- 10L
+    Z <- matrix(rep(Z, each = max_sample), max_sample)
+    event <- y <- lf_trunc <- rep(NA_real_, max_sample)
+    lf_trunc_i <- 0
+    left_trunc_surv <- 1
+    for(i in 1:max_sample){
+      # sample a random uniform variable and invert the survival function
+      rng_i <- runif(1)
+      lf_trunc[i] <- lf_trunc_i
+
+      root_func <- function(x) rng_i - surv_func(x) / left_trunc_surv
+      if(root_func(2) < 0){
+        # the observation is right-censored and we can exit
+        y[i] <- 2
+        event[i] <- 0
+        break
+      }
+
+      # we need to invert the survival function to find the observation time
+      root <- uniroot(root_func, c(lf_trunc_i, 2), tol = 1e-6)
+      lf_trunc_i <- y[i] <- root$root
+      event[i] <- 1
+      left_trunc_surv <- surv_func(y[i])
+    }
+
+    # keep the needed data and return
+    colnames(Z) <- paste0("Z_", 1:NCOL(Z) - 1L)
+
+    surv_data <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i], event = event[1:i],
+                       Z[1:i, -1, drop = FALSE], id = id)
+
+    list(marker_data = marker_data, surv_data = surv_data)
+  })
+
+  # combine the data and return
+  marker_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "marker_data")))
+  marker_data$id <- as.integer(marker_data$id)
+  # the order does not matter
+  marker_data <- marker_data[sample.int(NROW(marker_data)), ]
+
+  surv_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "surv_data")))
+  surv_data$id <- as.integer(surv_data$id)
+  # the order does not matter
+  surv_data <- surv_data[sample.int(NROW(surv_data)), ]
+
+  list(marker_data = marker_data, surv_data = surv_data)
+}
+
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat_univariate(1000L)
+
+# we show a few properties of the data below
+NROW(dat$marker_data) # number of observed marker
+NROW(dat$surv_data) # number of survival outcomes
+sum(dat$surv_data$event) # number of observed events
+
+# distribution of observed events per individual
+proportions(table(table(dat$surv_data$id) - 1L))
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+marker_1 <- marker_term(
+    Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2),
+                         intercept = FALSE),
+    time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2),
+                       intercept = TRUE))
+marker_2 <- marker_term(
+    Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
+    time_fixef = poly_term(time, degree = 2, raw = TRUE),
+    time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+library(survival)
+surv_obj <- surv_term(
+  Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
+  time_fixef = bs_term(y, knots = c(.5, 1.5), Boundary.knots = c(0, 2)))
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
+                         survival_terms = surv_obj, max_threads = 1L)
+rm(marker_1, marker_2, surv_obj)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+print(attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 31 + 2 * 20)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 31 + 2 * 20))
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+
+# find the maximum lower bound with lbfgs
+library(lbfgsb3c)
+system.time(lbfgs_res <- lbfgsb3c(
+  start_val, function(x) joint_ms_lb(comp_obj, x),
+  function(x) joint_ms_lb_gr(comp_obj, x), 
+  control = list(factr = 1e-8, maxit = 2000L)))
+lbfgs_res$convergence # convergence code (0 == 'OK')
+print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
+lbfgs_res$counts # may have hit maxit!
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]] 
+
+fixef_marker[[1]] # true values
+fixef_vary_marker[[1]] # true values
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+fixef_marker[[2]] # true values
+fixef_vary_marker[[2]] # true values
+
+# the fixed effects for the survival outcome
+fmt_ests$survival[[1]]$fixef
+delta
+fmt_ests$survival[[1]]$fixef_vary
+omega
+fmt_ests$survival[[1]]$associations
+alpha
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+Psi # the true values
+
+# the parameters for the error term covariance
+fmt_ests$vcov$vcov_marker
+Sig
+
+# the parameters for the frailty covariance matri
+fmt_ests$vcov$vcov_surv
+Xi
 ```
 
 ## Technical Details
@@ -554,7 +830,7 @@ of integration. Then the lower bounds term is
 
 $$
 \xi_{ik} = -\exp(\vec z_{ik}^\top\vec\delta_k)\int_0^{t_{ij}}
-  \exp\left(\omega_k^\top \vec b_k(s) + 
+  \exp\left(\omega_k^\top \vec b_k(s) 
   + \zeta_{R + k } +\frac 12 
   (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
     \vec\alpha_k \\ 1

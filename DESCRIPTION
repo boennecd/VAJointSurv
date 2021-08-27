@@ -20,7 +20,8 @@ Imports:
     Rcpp,
     splines, 
     utils, 
-    stats
+    stats,
+    SimSurvNMarker
 Suggests: 
     rmarkdown,
     knitr,

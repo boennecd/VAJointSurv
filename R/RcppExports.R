@@ -5,16 +5,20 @@ eval_expansion <- function(dat, x) {
     .Call(`_VAJointSurv_eval_expansion`, dat, x)
 }
 
-.joint_ms_ptr <- function(markers, max_threads) {
-    .Call(`_VAJointSurv_joint_ms_ptr`, markers, max_threads)
+.joint_ms_ptr <- function(markers, survival_terms, max_threads) {
+    .Call(`_VAJointSurv_joint_ms_ptr`, markers, survival_terms, max_threads)
 }
 
-joint_ms_eval_lb <- function(val, ptr, n_threads) {
-    .Call(`_VAJointSurv_joint_ms_eval_lb`, val, ptr, n_threads)
+joint_ms_n_terms <- function(ptr) {
+    .Call(`_VAJointSurv_joint_ms_n_terms`, ptr)
 }
 
-joint_ms_eval_lb_gr <- function(val, ptr, n_threads) {
-    .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads)
+joint_ms_eval_lb <- function(val, ptr, n_threads, quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb`, val, ptr, n_threads, quad_rule)
+}
+
+joint_ms_eval_lb_gr <- function(val, ptr, n_threads, quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads, quad_rule)
 }
 
 joint_ms_parameter_names <- function(ptr) {
@@ -29,11 +33,23 @@ joint_ms_n_params <- function(ptr) {
     .Call(`_VAJointSurv_joint_ms_n_params`, ptr)
 }
 
-opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2) {
-    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2)
+opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule) {
+    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule)
 }
 
-joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method) {
-    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method)
+joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule)
+}
+
+ph_ll <- function(time_fixef, Z, surv) {
+    .Call(`_VAJointSurv_ph_ll`, time_fixef, Z, surv)
+}
+
+ph_eval <- function(ptr, par, quad_rule, va_var) {
+    .Call(`_VAJointSurv_ph_eval`, ptr, par, quad_rule, va_var)
+}
+
+ph_grad <- function(ptr, par, quad_rule, va_var) {
+    .Call(`_VAJointSurv_ph_grad`, ptr, par, quad_rule, va_var)
 }
 

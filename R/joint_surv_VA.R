@@ -1,12 +1,42 @@
+# use Gauss-Legendre quadrature by default
+#' @importFrom SimSurvNMarker get_gl_rule
+default_quad_rule <- function(){
+  rule <- get_gl_rule(50)
+  within(rule, {
+    node <- node / 2 + .5
+    weight <- weight / 2
+  })
+}
+
+# check a quadrature rule the integral from zero to one
+check_quad_rule <- function(quad_rule)
+  with(quad_rule, {
+    stopifnot(is.list(quad_rule),
+              is.numeric(node), all(is.finite(node)),
+              all(node >= 0), all(node <= 1),
+              is.numeric(weight), all(is.finite(weight)),
+              length(node) == length(weight))
+  })
+
+
 #' Creates a joint_ms to Estimate a Joint Survival and Marker Model
 #' @export
-joint_ms_ptr <- function(markers, max_threads = 1L){
+joint_ms_ptr <- function(markers = list(), survival_terms = list(),
+                         max_threads = 1L, quad_rule = NULL){
   if(inherits(markers, "marker_term"))
     markers <- list(markers)
   else
     stopifnot(all(sapply(markers, inherits, "marker_term")))
+  if(inherits(survival_terms, "surv_term"))
+    survival_terms <- list(survival_terms)
+  else
+    stopifnot(all(sapply(survival_terms, inherits, "surv_term")))
 
-  ptr <- .joint_ms_ptr(markers, max_threads = max_threads)
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
+  check_quad_rule(quad_rule)
+
+  ptr <- .joint_ms_ptr(markers, survival_terms, max_threads = max_threads)
   param_names <- joint_ms_parameter_names(ptr)
   out <- list(param_names = param_names, ptr = ptr)
   indices <- joint_ms_parameter_indices(ptr)
@@ -21,13 +51,38 @@ joint_ms_ptr <- function(markers, max_threads = 1L){
     sigma[i, i] <- m_start_val[[i]]$var
   }
 
-  start_val[indices$vcovs$vcov_marker] <- .log_chol(sigma)
+  if(length(markers) > 0)
+    start_val[indices$vcovs$vcov_marker] <- .log_chol(sigma)
 
-  # TODO: set the starting values for the survival outcomes
+  # compute the starting values for the survival outcomes. Set the covariance
+  # matrix for the frailties to some low value
+  def_frailty_var <- 1e-2
+  if(length(survival_terms) > 0){
+    Xi <- diag(def_frailty_var, length(survival_terms))
+    start_val[indices$vcovs$vcov_surv] <- .log_chol(Xi)
+  }
+
+  s_start_val <- lapply(survival_terms, surv_term_start_value,
+                        quad_rule = quad_rule, va_var = def_frailty_var)
+  for(i in seq_along(survival_terms)){
+    start_val[indices$survival[[i]]$fixef] <- s_start_val[[i]]$fixef
+    start_val[indices$survival[[i]]$fixef_vary] <- s_start_val[[i]]$fixef_vary
+  }
+
+  # fill in default values for the VA parameters
+  va_dim <- indices$va_dim
+  va_vcov_default <- diag(va_dim)
+  if(length(indices$survival) > 0)
+    diag(va_vcov_default)[va_dim:(va_dim - length(indices$survival) + 1L)] <-
+    def_frailty_var
+
+  va_default <- c(numeric(va_dim), .log_chol(va_vcov_default))
+  start_val[-(1:(indices$va_params_start - 1L))] <- va_default
 
   structure(
     list(param_names = param_names, indices = indices, ptr = ptr,
-         start_val = start_val, max_threads = max_threads),
+         start_val = start_val, max_threads = max_threads,
+         quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr)),
     class = "joint_ms")
 }
 
@@ -35,24 +90,44 @@ joint_ms_ptr <- function(markers, max_threads = 1L){
 #' @export
 joint_ms_start_val <- function(object, n_threads = object$max_threads,
                                rel_eps = 1e-8, c1 = 1e-4, c2 = .9,
-                               max_it = 100L){
+                               max_it = 100L, quad_rule = object$quad_rule){
   stopifnot(inherits(object, "joint_ms"))
+
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
+  check_quad_rule(quad_rule)
+
   opt_priv(val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
-           max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2)
+           max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+           quad_rule = quad_rule)
 }
 
 #' Evaluates the Lower Bound
 #' @export
-joint_ms_lb <- function(object, par, n_threads = object$max_threads){
+joint_ms_lb <- function(object, par, n_threads = object$max_threads,
+                        quad_rule = object$quad_rule){
   stopifnot(inherits(object, "joint_ms"))
-  joint_ms_eval_lb(val = par, ptr = object$ptr, n_threads = n_threads)
+
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
+  check_quad_rule(quad_rule)
+
+  joint_ms_eval_lb(val = par, ptr = object$ptr, n_threads = n_threads,
+                   quad_rule = quad_rule)
 }
 
 #' Evaluates the Gradient of the Lower Bound
 #' @export
-joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads){
+joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
+                           quad_rule = object$quad_rule){
   stopifnot(inherits(object, "joint_ms"))
-  joint_ms_eval_lb_gr(val = par, ptr = object$ptr, n_threads = n_threads)
+
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
+  check_quad_rule(quad_rule)
+
+  joint_ms_eval_lb_gr(val = par, ptr = object$ptr, n_threads = n_threads,
+                      quad_rule = quad_rule)
 }
 
 #' Optimizes the Lower Bound
@@ -61,14 +136,17 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          max_it = 100L, n_threads = object$max_threads,
                          c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0L,
                          cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
-                         pre_method = 1L){
+                         pre_method = 1L, quad_rule = object$quad_rule){
   stopifnot(inherits(object, "joint_ms"))
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
+  check_quad_rule(quad_rule)
 
   joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,
                   max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
                   use_bfgs = use_bfgs, trace = trace, cg_tol = cg_tol,
                   strong_wolfe = strong_wolfe, max_cg = max_cg,
-                  pre_method = pre_method)
+                  pre_method = pre_method, quad_rule = quad_rule)
 }
 
 #' Formats the Parameter Vector
@@ -87,7 +165,7 @@ joint_ms_format <- function(object, par = object$start_val){
   # handle the survival outcomes
   survival <- lapply(seq_along(indices$survival), function(i)
     list(fixef = par[indices$survival[[i]]$fixef],
-         fixef_vary <- par[indices$survival[[i]]$fixef_vary],
+         fixef_vary = par[indices$survival[[i]]$fixef_vary],
          associations = par[indices$survival[[i]]$associations]))
 
   # the covariance matrices
