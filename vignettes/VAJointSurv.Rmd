@@ -439,7 +439,167 @@ fmt_ests_lbfgs$vcov$vcov_marker # with lbfgs
 Sig
 ```
 
+## A Recurrent Event
+
+```{r clean_only_recurrent, echo=FALSE}
+rm(list = ls())
+```
+
+We simulate from a model with a recurrent event in this section.
+
+```{r only_recurrent}
+# the survival parameters
+delta <- c(-.5, .25)
+omega <- c(.5, .1, -.2, .11)
+Xi <- matrix(.2^2, 1)
+
+library(splines)
+b_func <- function(x)
+  bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
+
+# draw a few survival curves an plot them 
+library(SimSurvNMarker)
+ # time points where we evaluate the conditional survival functions
+tis <- seq(0, 2, length.out = 50)
+set.seed(1)
+# compute the conditional survival functions disregarding the fixed effect
+surv_vals <- replicate(100, {
+  err <- rnorm(1, sd = sqrt(Xi))
+  eval_surv_base_fun(
+    ti = tis, omega = omega, b_func = b_func, 
+    gl_dat = get_gl_rule(100), delta = delta[1] + err)
+})
+
+par(mar = c(5, 5, 1, 1), mfcol = c(1, 1))
+matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
+        ylim = c(0, 1), xaxs = "i", yaxs = "i", xlab = "Time", 
+        ylab = "Conditional survival function")
+# compute the average to get an estimate of the marginal survival curve
+plot(tis, rowMeans(surv_vals), type = "l",  bty = "l", ylim = c(0, 1), 
+     xaxs = "i", yaxs = "i", xlab = "Time", 
+     ylab = "Marginal survival function")
+# simulates from the model by sampling a given number of individuals
+sim_dat_univariate <- function(n_ids){
+  # simulate the outcomes
+  gl_dat <- get_gl_rule(100L)
+  dat <- lapply(1:n_ids, function(id){
+    # simulate the survival outcome
+    rng_surv <- rnorm(1, sd = sqrt(Xi))
+    Z <- c(1, runif(1, -1, 1))
+    log_haz_offset <- sum(Z * delta) + rng_surv
+
+    # the conditional survival function
+    surv_func <- function(ti)
+      eval_surv_base_fun(
+        ti = ti, omega = omega, b_func = b_func, gl_dat = gl_dat,
+        delta = log_haz_offset)
+
+    # simulate the recurrent events one at a time
+    max_sample <- 10L
+    Z <- matrix(rep(Z, each = max_sample), max_sample)
+    event <- y <- lf_trunc <- rep(NA_real_, max_sample)
+    lf_trunc_i <- 0
+    rngs <- runif(max_sample)
+    left_trunc_surv <- 1
+    for(i in 1:max_sample){
+      # sample a random uniform variable and invert the survival function
+      rng_i <- rngs[i]
+      lf_trunc[i] <- lf_trunc_i
+
+      root_func <- function(x) rng_i - surv_func(x) / left_trunc_surv
+      if(root_func(2) < 0){
+        # the observation is right-censored and we can exit
+        y[i] <- 2
+        event[i] <- 0
+        break
+      }
+
+      # we need to invert the survival function to find the observation time
+      root <- uniroot(root_func, c(lf_trunc_i, 2), tol = 1e-6)
+      lf_trunc_i <- y[i] <- root$root
+      event[i] <- 1
+      left_trunc_surv <- surv_func(y[i])
+    }
+
+    # keep the needed data and return
+    colnames(Z) <- paste0("Z_", 1:NCOL(Z) - 1L)
+
+    surv_data <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i], event = event[1:i],
+                       Z[1:i, -1, drop = FALSE], id = id)
+
+    list(surv_data = surv_data)
+  })
+
+  # combine the data and return
+
+  surv_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "surv_data")))
+  surv_data$id <- as.integer(surv_data$id)
+  # the order does not matter
+  surv_data <- surv_data[sample.int(NROW(surv_data)), ]
+
+  list(surv_data = surv_data)
+}
+
+# sample a moderately large data set
+set.seed(3)
+dat <- sim_dat_univariate(1000L)
+
+# we show a few properties of the data below
+NROW(dat$surv_data) # number of survival outcomes
+sum(dat$surv_data$event) # number of observed events
+
+# distribution of observed events per individual
+proportions(table(table(dat$surv_data$id) - 1L))
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+library(survival)
+library(VAJointSurv)
+surv_obj <- surv_term(
+  Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
+  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
+
+comp_obj <- joint_ms_ptr(markers = list(),
+                         survival_terms = surv_obj, max_threads = 1L)
+rm(surv_obj)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val <- comp_obj$start_val
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)), 
+          head(joint_ms_lb_gr(comp_obj, comp_obj$start_val), 7 + 2 * 2), 
+          tolerance = 1e-6)
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+
+# check the estimates
+fmt_est <- joint_ms_format(comp_obj, opt_out$par)
+
+rbind(estimate = fmt_est$survival[[1]]$fixef, truth = delta)
+rbind(estimate = fmt_est$survival[[1]]$fixef_vary, truth = omega)
+c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(Xi))
+```
+
 ## Two Markers and a Recurrent Event
+
+```{r clean_recurrent_and_marker, echo=FALSE}
+rm(list = ls())
+```
 
 We simulate from a model with two different types of markers and a recurrent 
 event in this section.
@@ -484,10 +644,10 @@ plot_marker(
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
   vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
 # the survival parameters
-delta <- c(-1, .25)
+delta <- c(-.5, .25)
 alpha <- c(-.8, .7)
 omega <- c(.5, .1, -.2, .11)
-Xi <- matrix(.5^2, 1)
+Xi <- matrix(.2^2, 1)
 
 b_func <- function(x)
   bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
@@ -646,7 +806,7 @@ marker_2 <- marker_term(
 library(survival)
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
-  time_fixef = bs_term(y, knots = c(.5, 1.5), Boundary.knots = c(0, 2)))
+  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = surv_obj, max_threads = 4L)
