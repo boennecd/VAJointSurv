@@ -11,6 +11,7 @@
 #include <limits>
 #include "survival-term.h"
 #include <array>
+#include "prof-vajoint.h"
 
 using Rcpp::List;
 using Rcpp::NumericMatrix;
@@ -586,6 +587,8 @@ inline void check_par_length(problem_data const &obj, NumericVector par){
 // [[Rcpp::export(".joint_ms_ptr", rng = false)]]
 SEXP joint_ms_ptr
   (List markers, List survival_terms, unsigned const max_threads){
+  profiler pp(".joint_ms_ptr");
+
   return Rcpp::XPtr<problem_data>
     (new problem_data(markers, survival_terms, max_threads));
 }
@@ -593,6 +596,8 @@ SEXP joint_ms_ptr
 /// returns the number of lower bound terms of different types
 // [[Rcpp::export(rng = false)]]
 List joint_ms_n_terms(SEXP ptr){
+  profiler pp("joint_ms_n_terms");
+
   Rcpp::XPtr<problem_data> obj(ptr);
 
   Rcpp::IntegerVector surv_count(obj->n_surv_types());
@@ -609,6 +614,8 @@ List joint_ms_n_terms(SEXP ptr){
 // [[Rcpp::export(rng = false)]]
 double joint_ms_eval_lb
   (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
+  profiler pp("joint_ms_eval_lb");
+
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
@@ -626,6 +633,8 @@ double joint_ms_eval_lb
 // [[Rcpp::export(rng = false)]]
 NumericVector joint_ms_eval_lb_gr
   (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
+  profiler pp("joint_ms_eval_lb_gr");
+
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
@@ -746,6 +755,8 @@ NumericVector opt_priv
   (NumericVector val, SEXP ptr,
    double const rel_eps, unsigned const max_it, unsigned const n_threads,
    double const c1, double const c2, List quad_rule){
+  profiler pp("opt_priv");
+
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
@@ -769,6 +780,8 @@ List joint_ms_opt_lb
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
    unsigned const pre_method, List quad_rule){
+  profiler pp("joint_ms_opt_lb");
+
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
@@ -908,6 +921,8 @@ public:
 // [[Rcpp::export(rng = false)]]
 List ph_ll
   (List time_fixef, NumericMatrix Z, NumericMatrix surv){
+  profiler pp("ph_ll");
+
   auto expansion = basis_from_list(time_fixef);
   simple_mat Z_sm(&Z[0], Z.nrow(), Z.ncol()),
           surv_sm(&surv[0], surv.nrow(), surv.ncol());
@@ -928,6 +943,8 @@ List ph_ll
 // [[Rcpp::export(rng = false)]]
 double ph_eval
   (SEXP ptr, NumericVector par, List quad_rule, double const va_var){
+  profiler pp("ph_eval");
+
   Rcpp::XPtr<ph_model> comp_obj(ptr);
   if(par.size() != static_cast<R_len_t>(comp_obj->n_params()))
     throw std::invalid_argument("par.size() != n_params");
@@ -938,6 +955,8 @@ double ph_eval
 // [[Rcpp::export(rng = false)]]
 NumericVector ph_grad
   (SEXP ptr, NumericVector par, List quad_rule, double const va_var){
+  profiler pp("ph_grad");
+
   Rcpp::XPtr<ph_model> comp_obj(ptr);
   if(par.size() != static_cast<R_len_t>(comp_obj->n_params()))
     throw std::invalid_argument("par.size() != n_params");

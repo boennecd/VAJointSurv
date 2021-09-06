@@ -370,6 +370,117 @@ struct vectorOps {
             }
     }
     
+    template<class I1, class I2>
+    static T quad_form_sym_mat(I1 x, I2 yf, I2 ye){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(!is_it_value_type<I2, T>::value,
+                      "First iterator is to Ts");
+                      
+        const size_t n{static_cast<size_t>(std::distance(yf, ye))};
+        T res;
+        res.createNode(n * n);
+        res.myValue = 0;
+        
+        for(size_t j = 0; j < n; ++j){
+            for(size_t i = 0; i < j; ++i){
+                double const y_prod{yf[i] * yf[j]};
+                res.myValue += 2 * x[i + j * n].value() * y_prod;
+                
+                res.setpAdjPtrs    (i + j * n, x[i + j * n]);
+                res.setpDerivatives(i + j * n, y_prod);
+                res.setpAdjPtrs    (j + i * n, x[j + i * n]);
+                res.setpDerivatives(j + i * n, y_prod);
+                
+            }
+            
+            double const y_prod{yf[j] * yf[j]};
+            res.myValue += x[j + j * n].value() * y_prod;
+            res.setpAdjPtrs    (j + j * n, x[j + j * n]);
+            res.setpDerivatives(j + j * n, y_prod);
+        }
+        
+        return res;
+    }
+    
+    template<class I1, class I2>
+    static T quad_form_sym_vec(I1 x, I2 yf, I2 ye){
+        static_assert(!is_it_value_type<I1, T>::value,
+                      "First iterator is to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "First iterator is not to Ts");
+                      
+        const size_t n{static_cast<size_t>(std::distance(yf, ye))};
+        T res;
+        res.createNode(n);
+        res.myValue = 0;
+        double *derivs{T::tape->getWKMem(n)};
+        std::fill(derivs, derivs + n, 0);
+        
+        for(size_t j = 0; j < n; ++j){
+            for(size_t i = 0; i < j; ++i){
+                double const y_prod{yf[i].value() * yf[j].value()};
+                res.myValue += 2 * x[i + j * n] * y_prod;
+                derivs[i] += 2 * x[i + j * n] * yf[j].value();
+                derivs[j] += 2 * x[i + j * n] * yf[i].value();
+            }
+            
+            double const y_prod{yf[j].value() * yf[j].value()};
+            res.myValue += x[j + j * n] * y_prod;
+            derivs[j] += 2 * x[j + j * n] *  yf[j].value();
+        }
+        
+        for(size_t i = 0; i < n; ++i){
+            res.setpAdjPtrs    (i, yf[i]);
+            res.setpDerivatives(i, derivs[i]);
+        }
+        
+        return res;
+    }
+    
+    template<class I1, class I2>
+    static T quad_form_sym_both(I1 x, I2 yf, I2 ye){
+        static_assert(is_it_value_type<I1, T>::value,
+                      "First iterator is not to Ts");
+        static_assert(is_it_value_type<I2, T>::value,
+                      "First iterator is not to Ts");
+                      
+        const size_t n{static_cast<size_t>(std::distance(yf, ye))};
+        T res;
+        res.createNode(n * (n + 1));
+        res.myValue = 0;
+        double *derivs{T::tape->getWKMem(n)};
+        std::fill(derivs, derivs + n, 0);
+        
+        for(size_t j = 0; j < n; ++j){
+            for(size_t i = 0; i < j; ++i){
+                double const y_prod{yf[i].value() * yf[j].value()};
+                res.myValue += 2 * x[i + j * n].value() * y_prod;
+                
+                res.setpAdjPtrs    (i + j * n, x[i + j * n]);
+                res.setpDerivatives(i + j * n, y_prod);
+                res.setpAdjPtrs    (j + i * n, x[j + i * n]);
+                res.setpDerivatives(j + i * n, y_prod);
+                
+                derivs[i] += 2 * x[i + j * n].value() * yf[j].value();
+                derivs[j] += 2 * x[i + j * n].value() * yf[i].value();
+            }
+            
+            double const y_prod{yf[j].value() * yf[j].value()};
+            res.myValue += x[j + j * n].value() * y_prod;
+            res.setpAdjPtrs    (j + j * n, x[j + j * n]);
+            res.setpDerivatives(j + j * n, y_prod);
+            derivs[j] += 2 * x[j + j * n].value() *  yf[j].value();
+        }
+        
+        for(size_t i = 0; i < n; ++i){
+            res.setpAdjPtrs    (i + n * n, yf[i]);
+            res.setpDerivatives(i + n * n, derivs[i]);
+        }
+        
+        return res;
+    }
+    
 #if AADLAPACK
 
     /**

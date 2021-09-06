@@ -74,7 +74,7 @@ class expected_cum_hazzard {
       for(auto &b : bases_rng)
         out[1] = std::max(out[1], b->n_wmem());
 
-      out[0] += 2 * n_basis_rng_p1;
+      out[0] += n_basis_rng_p1;
       out[1] += max_base_dim;
       return out;
     })()
@@ -104,14 +104,11 @@ public:
     wk_mem += n_basis_rng_p1;
     double * const dwk_mem_basis{dwk_mem + max_base_dim};
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
-      if(nws.ws[i] == 0)
-        continue;
-
       // compute the term from the time-varying fixed effects
       double const node_val{delta_bound * nws.ns[i] + lower};
       (*b)(dwk_mem, dwk_mem_basis, node_val);
-      T log_hazard
-        {cfaad::dotProd(dwk_mem, dwk_mem + b->n_basis(), fixef_vary)};
+      auto fixef_term =
+        cfaad::dotProd(dwk_mem, dwk_mem + b->n_basis(), fixef_vary);
 
       // construct the (association^T, 1).hat(M)(s) vector
       {
@@ -125,18 +122,15 @@ public:
       }
 
       // add the mean log hazard term
-      log_hazard += cfaad::dotProd
+      auto mean_term = cfaad::dotProd
         (association_M, association_M + n_basis_rng_p1, VA_mean);
 
       // add the quadratic term
-      cfaad::matVecProd(VA_vcov, VA_vcov + n_basis_rng_p1 * n_basis_rng_p1,
-                        association_M, association_M + n_basis_rng_p1, wk_mem,
-                        false);
-      log_hazard += cfaad::dotProd
-        (association_M, association_M + n_basis_rng_p1, wk_mem) / 2;
+      auto quad_term = cfaad::quadFormSym
+        (VA_vcov, association_M, association_M + n_basis_rng_p1) / 2;
 
       // add the hazard term multiplied by the weight
-      out += nws.ws[i] * exp(log_hazard);
+      out += nws.ws[i] * exp(quad_term + mean_term + fixef_term);
     }
 
     // compute the fixed effect on the log hazard scale, add it, and return

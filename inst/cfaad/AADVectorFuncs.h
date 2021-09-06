@@ -394,6 +394,63 @@ logDeter(I begin, const CholFactorization &chol){
         ::log_deter(begin, chol);
 }
 
+// quadratic form
+
+namespace implementation {
+template<class I1, class I2, class V1, class V2>
+struct quadFormSymOP {
+    /// the general case
+    using returnT = double;
+    static double quad_form_sym(I1 x, I2 yf, I2 ye){
+        const size_t n{static_cast<size_t>(std::distance(yf, ye))};
+        
+        // compute the result
+        double res{};
+        for(size_t j = 0; j < n; ++j, x += n){
+            for(size_t i = 0; i < j; ++i)
+                res += 2 * x[i] * yf[i] * yf[j];
+            res += x[j] * yf[j] * yf[j];
+        }
+            
+        return res;
+    }
+};
+
+template<class I1, class I2, class V2>
+struct quadFormSymOP<I1, I2, Number, V2> {
+    using returnT = Number;
+    static Number quad_form_sym(I1 x, I2 yf, I2 ye){
+        return Number::quad_form_sym_mat(x, yf, ye);
+    }
+};
+
+template<class I1, class I2, class V1>
+struct quadFormSymOP<I1, I2, V1, Number> {
+    using returnT = Number;
+    static Number quad_form_sym(I1 x, I2 yf, I2 ye){
+        return Number::quad_form_sym_vec(x, yf, ye);
+    }
+};
+
+template<class I1, class I2>
+struct quadFormSymOP<I1, I2, Number, Number> {
+    using returnT = Number;
+    static Number quad_form_sym(I1 x, I2 yf, I2 ye){
+        return Number::quad_form_sym_both(x, yf, ye);
+    }
+};
+
+} // namespace implementation
+
+template<class I1, class I2>
+typename implementation::quadFormSymOP
+<I1, I2, it_value_type<I1>, it_value_type<I2> >::returnT
+quadFormSym(I1 x, I2 yf, I2 ye){
+    return implementation::quadFormSymOP
+      <I1, I2, it_value_type<I1>, it_value_type<I2> >
+        ::quad_form_sym(x, yf, ye);
+}
+
 #endif // if AADLAPACK
 
 } // namespace cfadd
