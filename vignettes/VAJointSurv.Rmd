@@ -26,7 +26,8 @@ options(digits = 4)
 This package provides means of estimating joint models for a mixture of 
 different types of markers and different types of survival outcomes. The models
 are estimated with Gaussian variational approximations (GVAs). We will start 
-by covering the model and then cover the implementation.
+by covering the model, then cover some examples, and end with details 
+about the implementation.
 
 ### The Markers
 We assume that there are $L$ observed markers at each time point. We let 
@@ -89,7 +90,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
   &\sim N^{(H)}(\vec 0, \Xi)
 \end{align*}
 $$
-The $\vec\alpha$s are associations parameters which makes the markers and the 
+The $\vec\alpha$s are association parameters which makes the markers and the 
 survival outcomes marginally dependent. The $\vec\xi_i$s are frailty effects 
 which makes the survival outcomes marginally dependent even if 
 $\vec\alpha = \vec 0$.
@@ -104,28 +105,33 @@ $s_{i1}$ which is not left-truncated.
 The library can handle 
  
  - Mixed type of basis expansions in $G$, $M$, and $b_1,\dots,b_H$.
- - Arbitrary number of markers, $L$, and survival outcomes, $H$.
- - Only observing a subset of the $L$ markers at a given point in time.
- - Any number of observed markers. 
- - Left-truncation and right-censoring. 
- - Multiple observed outcomes for each survival type for an individual $i$.
+ - A maximum $L = 31$ different markers, and an arbitrary number
+   survival outcome types, $H$ (though, identification of parameters quickly 
+   becomes an issue).
+ - Only observing a subset of the $L$ markers at a given point in time
+   $s_{ij}$.
+ - Any number of observed markers and survival outcomes for each individual.
+ - Left-truncation and right-censoring.
  
 The following is not supported
  
  - Interval-censoring and left-censoring are not supported although this is not
    a complicated extension.
- - One may want either want the integral or the derivatives of $M(t)$ with 
-   respect to $t$ in the log-hazards.
+ - One may either want the integral or the derivatives of $M(t)$ with 
+   respect to $t$ in the log hazards.
    This is not too complicated to implement for many of the 
    basis expansions in the package but it is not yet implemented.
- - There cannot be more than one set of markers observed 
-   at each point in time, $s_{ij}$, for each individual $i$.
+ - One may want to evaluate $\vec b_i$ at $\log t$ rather than $t$ in the log
+   hazard. This is not too complicated to implement but not yet implemented.
+ - There cannot be multiple observed markers of the same type at each point
+   $s_{ij}$ for each individual $i$.
  - There cannot be time-varying effects for a covariate. 
- - Competing events, terminal events, multi-state models are not supported.
-   
+   This is not too complicated to implement but not yet implemented. 
+ - Competing events, terminal events, and multi-state models are not supported.
    
 ## Examples
-We show a few examples of this package and its API in this section.
+We show a few examples of using this package and illustrate its API in this 
+section.
 
 ### Univariate Marker Example
 
@@ -136,7 +142,7 @@ We do this as we can check that
    likelihood). 
  - The lower bound is less than or equal to the log marginal likelihood. 
  
-lme4 should used in this case as the linear model is tractable and this is used
+lme4 should be used in this case as the linear model is tractable and this is used
 by the lme4 package. The computation time comparison is not fair as we use 
 four threads with the methods in this package.
 
@@ -164,9 +170,12 @@ plot_marker(
   time_rng = ns_term(
     knots = 1, Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = Psi)
+```
+
+```{r sim_n_fit_univariate}
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
-sim_dat_univariate <- function(n_ids){
+sim_dat <- function(n_ids){
   # simulate the outcomes
   sig_sqrt <- sqrt(Sig)
   dat <- lapply(1:n_ids, function(id){
@@ -193,10 +202,13 @@ sim_dat_univariate <- function(n_ids){
 
 # sample a moderately large data set
 set.seed(2)
-dat <- sim_dat_univariate(2000L)
+dat <- sim_dat(2000L)
 
 # the number of observed outcomes
 nrow(dat)
+
+# example of one individual's outcomes
+subset(dat, id == 1)
 
 # fit the model with lme4
 library(lme4)
@@ -279,7 +291,8 @@ rm(list = ls())
 
 We provide an example with two markers instead of one. We observe one of the 
 two markers or both at each observation time. There is also a closed form 
-solution in this case. Thus, this is not the optimal way of doing this.
+solution in this case. Thus, this is not the optimal way of doing this and 
+it is only shown as an example and as a sanity check.
 
 ```{r two_markers}
 # settings for the simulation
@@ -306,7 +319,7 @@ Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
 
 # plot the markers' mean curve
 library(VAJointSurv)
-par(mfcol = c(1, 2), mar = c(5, 5, 1, 1))
+par(mar = c(5, 5, 1, 1))
 plot_marker(
   time_fixef = ns_term(
     knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
@@ -314,15 +327,17 @@ plot_marker(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
   vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
-
 plot_marker(
   time_fixef = poly_term(degree = 2, raw = TRUE),
   time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
   vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
+```
+
+```{r sim_n_fit_two_markers}
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
-sim_dat_univariate <- function(n_ids){
+sim_dat <- function(n_ids){
   # simulate the outcomes
   dat <- lapply(1:n_ids, function(id){
     # sample the number of outcomes and the fixed effect covariates
@@ -361,7 +376,10 @@ sim_dat_univariate <- function(n_ids){
 
 # sample a moderately large data set
 set.seed(2)
-dat <- sim_dat_univariate(1000L)
+dat <- sim_dat(1000L)
+
+# example of the data for one individual
+subset(dat, id == 1)
 
 # estimate the model with this package. Get the object we need for the 
 # optimization
@@ -439,13 +457,15 @@ fmt_ests_lbfgs$vcov$vcov_marker # with lbfgs
 Sig
 ```
 
-## A Recurrent Event
+### A Recurrent Event
 
 ```{r clean_only_recurrent, echo=FALSE}
 rm(list = ls())
 ```
 
-We simulate from a model with a recurrent event in this section.
+We simulate from a model with a recurrent event in this section. This is a 
+more relevant example as there is not a closed form solution of the marginal 
+likelihood.
 
 ```{r only_recurrent}
 # the survival parameters
@@ -457,7 +477,7 @@ library(splines)
 b_func <- function(x)
   bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
 
-# draw a few survival curves an plot them 
+# sample a few survival curves and plot them 
 library(SimSurvNMarker)
  # time points where we evaluate the conditional survival functions
 tis <- seq(0, 2, length.out = 50)
@@ -470,7 +490,7 @@ surv_vals <- replicate(100, {
     gl_dat = get_gl_rule(100), delta = delta[1] + err)
 })
 
-par(mar = c(5, 5, 1, 1), mfcol = c(1, 1))
+par(mar = c(5, 5, 1, 1))
 matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
         ylim = c(0, 1), xaxs = "i", yaxs = "i", xlab = "Time", 
         ylab = "Conditional survival function")
@@ -479,7 +499,7 @@ plot(tis, rowMeans(surv_vals), type = "l",  bty = "l", ylim = c(0, 1),
      xaxs = "i", yaxs = "i", xlab = "Time", 
      ylab = "Marginal survival function")
 # simulates from the model by sampling a given number of individuals
-sim_dat_univariate <- function(n_ids){
+sim_dat <- function(n_ids){
   # simulate the outcomes
   gl_dat <- get_gl_rule(100L)
   dat <- lapply(1:n_ids, function(id){
@@ -523,7 +543,6 @@ sim_dat_univariate <- function(n_ids){
 
     # keep the needed data and return
     colnames(Z) <- paste0("Z_", 1:NCOL(Z) - 1L)
-
     surv_data <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i], event = event[1:i],
                        Z[1:i, -1, drop = FALSE], id = id)
 
@@ -531,7 +550,6 @@ sim_dat_univariate <- function(n_ids){
   })
 
   # combine the data and return
-
   surv_data <- as.data.frame(do.call(
     rbind, lapply(dat, `[[`, "surv_data")))
   surv_data$id <- as.integer(surv_data$id)
@@ -543,11 +561,14 @@ sim_dat_univariate <- function(n_ids){
 
 # sample a moderately large data set
 set.seed(3)
-dat <- sim_dat_univariate(1000L)
+dat <- sim_dat(1000L)
 
 # we show a few properties of the data below
 NROW(dat$surv_data) # number of survival outcomes
 sum(dat$surv_data$event) # number of observed events
+
+# example of the data for three individuals
+subset(dat$surv_data, id %in% 1:3)
 
 # distribution of observed events per individual
 proportions(table(table(dat$surv_data$id) - 1L))
@@ -629,7 +650,7 @@ Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
 
 # plot the markers' mean curve
 library(VAJointSurv)
-par(mfcol = c(1, 2), mar = c(5, 5, 1, 1))
+par(mar = c(5, 5, 1, 1))
 plot_marker(
   time_fixef = ns_term(
     knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
@@ -637,7 +658,6 @@ plot_marker(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
   vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
-
 plot_marker(
   time_fixef = poly_term(degree = 2, raw = TRUE),
   time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
@@ -652,7 +672,7 @@ Xi <- matrix(.2^2, 1)
 b_func <- function(x)
   bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
 
-# draw a few survival curves an plot them 
+# compute a few survival curves and plot them 
 library(SimSurvNMarker)
  # time points where we evaluate the conditional survival functions
 tis <- seq(0, 2, length.out = 50)
@@ -671,7 +691,6 @@ surv_vals <- apply(Us, 1, function(U){
     gl_dat = get_gl_rule(100), delta = delta[1] + err)
 })
 
-par(mar = c(5, 5, 1, 1), mfcol = c(1, 1))
 matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
         ylim = c(0, 1), xaxs = "i", yaxs = "i", xlab = "Time", 
         ylab = "Conditional survival function")
@@ -681,7 +700,7 @@ plot(tis, rowMeans(surv_vals), type = "l",  bty = "l", ylim = c(0, 1),
      ylab = "Marginal survival function")
 library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
-sim_dat_univariate <- function(n_ids){
+sim_dat <- function(n_ids){
   # simulate the outcomes
   gl_dat <- get_gl_rule(100L)
   dat <- lapply(1:n_ids, function(id){
@@ -780,12 +799,16 @@ sim_dat_univariate <- function(n_ids){
 
 # sample a moderately large data set
 set.seed(2)
-dat <- sim_dat_univariate(1000L)
+dat <- sim_dat(1000L)
 
 # we show a few properties of the data below
 NROW(dat$marker_data) # number of observed marker
 NROW(dat$surv_data) # number of survival outcomes
 sum(dat$surv_data$event) # number of observed events
+
+# the data for one individual
+subset(dat$marker_data, id == 1)
+subset(dat$surv_data, id == 1)
 
 # distribution of observed events per individual
 proportions(table(table(dat$surv_data$id) - 1L))
@@ -877,10 +900,11 @@ Xi
 ```
 
 ## Technical Details
-We define the concatenated coefficient vector to be
+We provide a few technical details in this section.
+The concatenated coefficient is given by
 
 $$
-\vec \theta = \begin{pmatrix}
+\vec\theta = \begin{pmatrix}
   \vec\gamma \\ \vec\beta\\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
@@ -891,8 +915,16 @@ $$
 
 where $\text{vec}(\cdot)$ is the vectorization function
 that stacks the column of a matrix 
-on top of each other. There are different types of terms in the lower bound 
-in the GVA. We cover the types below.
+on top of each other. $\vec\theta$ is with the parameters from the variational 
+approximation.
+We work with log Cholesky decompositions of the 
+covariance matrices in practice. The `joint_ms_format` is a utility functions
+which returns a list with each of parameter separately.
+
+There are different types of terms in the lower bound 
+in the GVA. We cover the types below. The lower bound has many parameters even
+with a moderate amount of parameters. However, we quickly optimize the 
+lower bound using the [psqn package](https://github.com/boennecd/psqn). 
 
 ## Kullback–Leibler Divergence Term
 In the GVA, we assume that the conditional distribution of 
@@ -987,12 +1019,12 @@ d_{ik}\left(\vec z_{ik}^\top\vec\delta_k +
 $$
 
 As for the expected cumulative hazard term, assume that we can interchange the order 
-of integration. Then the lower bounds term is
+of integration. Then the lower bound term is
 
 $$
-\xi_{ik} = -\exp(\vec z_{ik}^\top\vec\delta_k)\int_0^{t_{ij}}
+-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}}
   \exp\left(\omega_k^\top \vec b_k(s) 
-  + \zeta_{R + k } +\frac 12 
+  +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac 12 
   (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
     \vec\alpha_k \\ 1
   \end{pmatrix}\right) ds
