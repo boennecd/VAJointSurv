@@ -408,11 +408,11 @@ struct quadFormSymOP {
         double res{};
         for(size_t j = 0; j < n; ++j, x += n){
             for(size_t i = 0; i < j; ++i)
-                res += 2 * x[i] * yf[i] * yf[j];
-            res += x[j] * yf[j] * yf[j];
+                res += x[i] * yf[i] * yf[j];
+            res += .5 * x[j] * yf[j] * yf[j];
         }
             
-        return res;
+        return 2 * res;
     }
 };
 

@@ -7,6 +7,7 @@
 #include "VA-joint-config.h"
 #include <memory.h>
 #include "wmem.h"
+#include "lp-joint.h"
 
 namespace joint_bases {
 
@@ -357,15 +358,10 @@ public:
     wk_mem += bspline.n_basis();
     bspline(b, wk_mem, x, ders);
 
-    if(intercept){
-      arma::vec dot_pro_res(lhs, q_matrix.n_rows, false);
-      dot_pro_res = q_matrix * arma::vec(b, bspline.n_basis(), false);
-
-    } else {
-      arma::vec dot_pro_res(lhs, q_matrix.n_rows, false);
-      dot_pro_res = q_matrix * arma::vec(b + 1, bspline.n_basis() - 1, false);
-
-    }
+    std::fill(lhs, lhs + q_matrix.n_rows, 0);
+    lp_joint::mat_vec
+      (lhs, q_matrix.begin(), b + (!intercept), q_matrix.n_rows,
+       q_matrix.n_cols);
 
     std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
   }

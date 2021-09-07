@@ -385,7 +385,7 @@ struct vectorOps {
         for(size_t j = 0; j < n; ++j){
             for(size_t i = 0; i < j; ++i){
                 double const y_prod{yf[i] * yf[j]};
-                res.myValue += 2 * x[i + j * n].value() * y_prod;
+                res.myValue += x[i + j * n].value() * y_prod;
                 
                 res.setpAdjPtrs    (i + j * n, x[i + j * n]);
                 res.setpDerivatives(i + j * n, y_prod);
@@ -395,11 +395,12 @@ struct vectorOps {
             }
             
             double const y_prod{yf[j] * yf[j]};
-            res.myValue += x[j + j * n].value() * y_prod;
+            res.myValue += .5 * x[j + j * n].value() * y_prod;
             res.setpAdjPtrs    (j + j * n, x[j + j * n]);
             res.setpDerivatives(j + j * n, y_prod);
         }
         
+        res.myValue *= 2;
         return res;
     }
     
@@ -420,21 +421,22 @@ struct vectorOps {
         for(size_t j = 0; j < n; ++j){
             for(size_t i = 0; i < j; ++i){
                 double const y_prod{yf[i].value() * yf[j].value()};
-                res.myValue += 2 * x[i + j * n] * y_prod;
-                derivs[i] += 2 * x[i + j * n] * yf[j].value();
-                derivs[j] += 2 * x[i + j * n] * yf[i].value();
+                res.myValue += x[i + j * n] * y_prod;
+                derivs[i] += x[i + j * n] * yf[j].value();
+                derivs[j] += x[i + j * n] * yf[i].value();
             }
             
             double const y_prod{yf[j].value() * yf[j].value()};
-            res.myValue += x[j + j * n] * y_prod;
-            derivs[j] += 2 * x[j + j * n] *  yf[j].value();
+            res.myValue += .5 * x[j + j * n] * y_prod;
+            derivs[j] += x[j + j * n] *  yf[j].value();
         }
         
         for(size_t i = 0; i < n; ++i){
             res.setpAdjPtrs    (i, yf[i]);
-            res.setpDerivatives(i, derivs[i]);
+            res.setpDerivatives(i, 2 * derivs[i]);
         }
         
+        res.myValue *= 2;
         return res;
     }
     
@@ -455,29 +457,30 @@ struct vectorOps {
         for(size_t j = 0; j < n; ++j){
             for(size_t i = 0; i < j; ++i){
                 double const y_prod{yf[i].value() * yf[j].value()};
-                res.myValue += 2 * x[i + j * n].value() * y_prod;
+                res.myValue += x[i + j * n].value() * y_prod;
                 
                 res.setpAdjPtrs    (i + j * n, x[i + j * n]);
                 res.setpDerivatives(i + j * n, y_prod);
                 res.setpAdjPtrs    (j + i * n, x[j + i * n]);
                 res.setpDerivatives(j + i * n, y_prod);
                 
-                derivs[i] += 2 * x[i + j * n].value() * yf[j].value();
-                derivs[j] += 2 * x[i + j * n].value() * yf[i].value();
+                derivs[i] += x[i + j * n].value() * yf[j].value();
+                derivs[j] += x[i + j * n].value() * yf[i].value();
             }
             
             double const y_prod{yf[j].value() * yf[j].value()};
-            res.myValue += x[j + j * n].value() * y_prod;
+            res.myValue += .5 * x[j + j * n].value() * y_prod;
             res.setpAdjPtrs    (j + j * n, x[j + j * n]);
             res.setpDerivatives(j + j * n, y_prod);
-            derivs[j] += 2 * x[j + j * n].value() *  yf[j].value();
+            derivs[j] += x[j + j * n].value() *  yf[j].value();
         }
         
         for(size_t i = 0; i < n; ++i){
             res.setpAdjPtrs    (i + n * n, yf[i]);
-            res.setpDerivatives(i + n * n, derivs[i]);
+            res.setpDerivatives(i + n * n, 2 * derivs[i]);
         }
         
+        res.myValue *= 2;
         return res;
     }
     

@@ -66,6 +66,18 @@ noexcept {
       *A++ += v * *B++;
 }
 
+/**
+ * simple matrix vector product y <- y + Xx where y is a k matrix and X is
+ * k x n matrix.
+ */
+inline void mat_vec
+(double * __restrict__ y, double const * __restrict__ X,
+ double const * __restrict__ x, vajoint_uint const k, vajoint_uint const n){
+  for(vajoint_uint j = 0; j < n; ++j)
+    for(vajoint_uint i = 0; i < k; ++i)
+      y[i] += *X++ * x[j];
+}
+
 /// computes x <- x + v * b.
 inline void add(double * __restrict__ x, double const * b,
                 vajoint_uint const dim, double const v) noexcept {
