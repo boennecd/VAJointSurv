@@ -1,3 +1,8 @@
+#' Term for Orthogonal Polynomials
+#'
+#' @param x,degree,coefs,raw same as \code{\link{poly}}.
+#' @param intercept \code{TRUE} if there should be an intercept.
+#'
 #' @importFrom stats poly
 #' @export
 poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
@@ -13,6 +18,10 @@ poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
   structure(out, class = "poly_term")
 }
 
+#' Term for a Basis Matrix for Natural Cubic Splines
+#'
+#' @param x,df,knots,intercept,Boundary.knots same as \code{\link{ns}}.
+#'
 #' @importFrom splines ns
 #' @export
 ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
@@ -29,6 +38,10 @@ ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
   structure(out, class = "ns_term")
 }
 
+#' Term for a B-Spline Basis for Polynomial Splines
+#'
+#' @param x,df,knots,degree,intercept,Boundary.knots same as \code{\link{bs}}.
+#'
 #' @importFrom splines bs
 #' @export
 bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,

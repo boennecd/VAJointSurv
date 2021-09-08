@@ -1,3 +1,24 @@
+#' Creates Data for One Type of Marker
+#'
+#' @param formula a two-sided \code{\link{formula}} with the marker outcome
+#' on the left-hand side and fixed effect covariates on the right-hand
+#' side.
+#' @param id the variable for the id of each individual.
+#' @param data a \code{data.frame} or environment to look at up the
+#' variables in.
+#' @param time_fixef the time-varying fixed effects. See .e.g.
+#' \code{\link{poly_term}}.
+#' @param time_rng the time-varying random effects. See .e.g.
+#' \code{\link{poly_term}}.
+#'
+#' @details
+#' The \code{time_fixef} should likely not include an intercept as this is
+#' often included in \code{formula}. Use
+#' \code{poly_term(degree = 0, raw = TRUE, intercept = TRUE)} if you want only
+#' a random intercept.
+#'
+#' @importFrom stats model.frame model.matrix model.response
+#'
 #' @export
 marker_term <- function(formula, id, data, time_fixef, time_rng){
   # get the input data

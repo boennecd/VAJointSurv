@@ -6,6 +6,12 @@
 \usage{
 joint_ms_format(object, par = object$start_val)
 }
+\arguments{
+\item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
+
+\item{par}{parameter vector to be formatted.}
+}
 \description{
-Formats the Parameter Vector
+Formats a parameter vector by putting the model parameters into a \code{list}
+with elements for each type of parameter.
 }

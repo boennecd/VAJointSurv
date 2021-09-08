@@ -2,7 +2,8 @@
 % Please edit documentation in R/joint_surv_VA.R
 \name{joint_ms_lb}
 \alias{joint_ms_lb}
-\title{Evaluates the Lower Bound}
+\alias{joint_ms_lb_gr}
+\title{Evaluates the Lower Bound or the Gradient of the Lower Bound}
 \usage{
 joint_ms_lb(
   object,
@@ -10,7 +11,24 @@ joint_ms_lb(
   n_threads = object$max_threads,
   quad_rule = object$quad_rule
 )
+
+joint_ms_lb_gr(
+  object,
+  par,
+  n_threads = object$max_threads,
+  quad_rule = object$quad_rule
+)
+}
+\arguments{
+\item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
+
+\item{par}{parameter vector the lower bound is evaluated at.}
+
+\item{n_threads}{number of threads to use.}
+
+\item{quad_rule}{list with nodes and weights for a quadrature rule for the
+integral from zero to one.}
 }
 \description{
-Evaluates the Lower Bound
+Evaluates the Lower Bound or the Gradient of the Lower Bound
 }

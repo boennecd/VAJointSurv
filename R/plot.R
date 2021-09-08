@@ -1,6 +1,15 @@
 #' Plots a Markers Mean Curve with Pointwise Quantiles
+#'
+#' @inheritParams marker_term
+#' @param fixef_vary fixed effect coefficients for \code{time_fixef}.
+#' @param x_range 2D numeric vector with start and end points.
+#' @param vcov_vary the covariance matrix for \code{time_rng}.
+#' @param p coverage of the two quantiles.
+#' @param xlab,ylab,... arguments passed to \code{\link{plot}}.
+#'
 #' @importFrom stats qnorm
 #' @importFrom graphics polygon grid
+#' @importFrom grDevices gray
 #' @export
 plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
                         p = .95, xlab = "Time", ylab = "Marker", ...){

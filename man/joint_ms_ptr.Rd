@@ -2,7 +2,7 @@
 % Please edit documentation in R/joint_surv_VA.R
 \name{joint_ms_ptr}
 \alias{joint_ms_ptr}
-\title{Creates a joint_ms to Estimate a Joint Survival and Marker Model}
+\title{Creates a joint_ms Object to Estimate a Joint Survival and Marker Model}
 \usage{
 joint_ms_ptr(
   markers = list(),
@@ -11,6 +11,18 @@ joint_ms_ptr(
   quad_rule = NULL
 )
 }
+\arguments{
+\item{markers}{either an object from \code{\link{marker_term}} or a list
+of such objects.}
+
+\item{survival_terms}{either an object from \code{\link{surv_term}} or a list
+of such objects.}
+
+\item{max_threads}{maximum number of threads to use.}
+
+\item{quad_rule}{list with nodes and weights for a quadrature rule for the
+integral from zero to one.}
+}
 \description{
-Creates a joint_ms to Estimate a Joint Survival and Marker Model
+Creates a joint_ms Object to Estimate a Joint Survival and Marker Model
 }

@@ -1,3 +1,19 @@
+#' Creates Data for One Type of Survival Outcome
+#'
+#' @inheritParams marker_term
+#' @param formula a two-sided \code{\link{formula}} with the survival outcome
+#' on the left-hand side and fixed effect covariates on the right-hand
+#' side. The left-hand side needs to be a \code{\link{Surv}} object and can
+#' be either right-censored and left-truncated.
+#' @param time_fixef the time-varying fixed effects. See .e.g.
+#' \code{\link{poly_term}}. This is for baseline hazard.
+#'
+#' @details
+#' The \code{time_fixef} should likely not include an intercept as this is
+#' often included in \code{formula}.
+#'
+#' @importFrom stats model.frame model.matrix model.response
+#'
 #' @export
 surv_term <- function(formula, id, data, time_fixef){
   # get the input data

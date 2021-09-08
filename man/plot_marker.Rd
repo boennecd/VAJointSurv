@@ -16,6 +16,23 @@ plot_marker(
   ...
 )
 }
+\arguments{
+\item{time_fixef}{the time-varying fixed effects. See .e.g.
+\code{\link{poly_term}}.}
+
+\item{time_rng}{the time-varying random effects. See .e.g.
+\code{\link{poly_term}}.}
+
+\item{fixef_vary}{fixed effect coefficients for \code{time_fixef}.}
+
+\item{x_range}{2D numeric vector with start and end points.}
+
+\item{vcov_vary}{the covariance matrix for \code{time_rng}.}
+
+\item{p}{coverage of the two quantiles.}
+
+\item{xlab, ylab, ...}{arguments passed to \code{\link{plot}}.}
+}
 \description{
 Plots a Markers Mean Curve with Pointwise Quantiles
 }

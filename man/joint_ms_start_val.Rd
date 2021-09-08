@@ -14,6 +14,17 @@ joint_ms_start_val(
   quad_rule = object$quad_rule
 )
 }
+\arguments{
+\item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
+
+\item{n_threads}{number of threads to use.}
+
+\item{rel_eps, c1, c2, max_it}{arguments to pass to the C++ version of
+\code{\link{psqn}}.}
+
+\item{quad_rule}{list with nodes and weights for a quadrature rule for the
+integral from zero to one.}
+}
 \description{
 Quick Heuristic for the Starting Values
 }

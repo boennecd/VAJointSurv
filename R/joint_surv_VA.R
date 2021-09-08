@@ -19,7 +19,16 @@ check_quad_rule <- function(quad_rule)
   })
 
 
-#' Creates a joint_ms to Estimate a Joint Survival and Marker Model
+#' Creates a joint_ms Object to Estimate a Joint Survival and Marker Model
+#'
+#' @param markers either an object from \code{\link{marker_term}} or a list
+#' of such objects.
+#' @param survival_terms either an object from \code{\link{surv_term}} or a list
+#' of such objects.
+#' @param max_threads maximum number of threads to use.
+#' @param quad_rule list with nodes and weights for a quadrature rule for the
+#' integral from zero to one.
+#'
 #' @export
 joint_ms_ptr <- function(markers = list(), survival_terms = list(),
                          max_threads = 1L, quad_rule = NULL){
@@ -87,6 +96,13 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 }
 
 #' Quick Heuristic for the Starting Values
+#'
+#' @inheritParams joint_ms_opt
+#' @param rel_eps,c1,c2,max_it arguments to pass to the C++ version of
+#' \code{\link{psqn}}.
+#'
+#' @importFrom psqn psqn
+#'
 #' @export
 joint_ms_start_val <- function(object, n_threads = object$max_threads,
                                rel_eps = 1e-8, c1 = 1e-4, c2 = .9,
@@ -102,7 +118,13 @@ joint_ms_start_val <- function(object, n_threads = object$max_threads,
            quad_rule = quad_rule)
 }
 
-#' Evaluates the Lower Bound
+#' Evaluates the Lower Bound or the Gradient of the Lower Bound
+#'
+#' @inheritParams joint_ms_ptr
+#' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
+#' @param par parameter vector the lower bound is evaluated at.
+#' @param n_threads number of threads to use.
+#'
 #' @export
 joint_ms_lb <- function(object, par, n_threads = object$max_threads,
                         quad_rule = object$quad_rule){
@@ -116,7 +138,7 @@ joint_ms_lb <- function(object, par, n_threads = object$max_threads,
                    quad_rule = quad_rule)
 }
 
-#' Evaluates the Gradient of the Lower Bound
+#' @rdname joint_ms_lb
 #' @export
 joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
                            quad_rule = object$quad_rule){
@@ -131,6 +153,11 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 }
 
 #' Optimizes the Lower Bound
+#'
+#' @inheritParams joint_ms_lb
+#' @param par starting value.
+#' @param rel_eps,max_it,c1,c2,use_bfgs,trace,cg_tol,strong_wolfe,max_cg,pre_method
+#' arguments to pass to the C++ version of \code{\link{psqn}}.
 #' @export
 joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          max_it = 100L, n_threads = object$max_threads,
@@ -150,6 +177,14 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
 }
 
 #' Formats the Parameter Vector
+#'
+#' @description
+#' Formats a parameter vector by putting the model parameters into a \code{list}
+#' with elements for each type of parameter.
+#'
+#' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
+#' @param par parameter vector to be formatted.
+#'
 #' @importFrom stats setNames
 #' @export
 joint_ms_format <- function(object, par = object$start_val){
@@ -160,7 +195,7 @@ joint_ms_format <- function(object, par = object$start_val){
   # handle the markers
   markers <- lapply(seq_along(indices$markers), function(i)
     list(fixef = par[indices$markers[[i]]$fixef],
-         fixef_vary <- par[indices$markers[[i]]$fixef_vary]))
+         fixef_vary = par[indices$markers[[i]]$fixef_vary]))
 
   # handle the survival outcomes
   survival <- lapply(seq_along(indices$survival), function(i)

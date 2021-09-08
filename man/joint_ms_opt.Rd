@@ -21,6 +21,18 @@ joint_ms_opt(
   quad_rule = object$quad_rule
 )
 }
+\arguments{
+\item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
+
+\item{par}{starting value.}
+
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{n_threads}{number of threads to use.}
+
+\item{quad_rule}{list with nodes and weights for a quadrature rule for the
+integral from zero to one.}
+}
 \description{
 Optimizes the Lower Bound
 }
