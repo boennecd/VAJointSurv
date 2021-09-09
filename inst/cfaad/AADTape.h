@@ -82,7 +82,7 @@ public:
 #endif
 
       	//	Store the derivatives and child adjoint pointers unless leaf
-      	if constexpr(N)
+      	if constexpr(N > 0)
       	{
       		node->pDerivatives = myDers.emplace_back_multi<N>();
       		node->pAdjPtrs = myArgPtrs.emplace_back_multi<N>();
