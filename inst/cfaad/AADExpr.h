@@ -24,6 +24,7 @@ As long as this comment is preserved at the top of the file
 #include <algorithm>
 #include "AADTape.h"
 #include "AADVector.h"
+#include <cmath>
 
 namespace cfaad {
 
@@ -956,12 +957,7 @@ public:
     }
 
     //  Static access to tape, same as traditional
-#ifdef _OPENMP
-    static Tape* tape;
-    #pragma omp threadprivate(tape)
-#else
     static thread_local Tape* tape;
-#endif
 
     //  Constructors
 

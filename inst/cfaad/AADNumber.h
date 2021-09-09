@@ -24,6 +24,7 @@ As long as this comment is preserved at the top of the file
 #include "AADTape.h"
 #include <type_traits>
 #include "AADVector.h"
+#include <cmath>
 
 namespace cfaad {
 
