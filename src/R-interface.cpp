@@ -1,6 +1,5 @@
 #define PSQN_USE_EIGEN
-#include "arma-wrap.h"
-#include <RcppEigen.h>
+#include "arma-eigen-wrap.h"
 #include "marker-term.h"
 #include "psqn.h"
 #include "psqn-reporter.h"
