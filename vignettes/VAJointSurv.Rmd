@@ -150,7 +150,7 @@ four threads with the methods in this package.
 # settings for the simulation
 library(splines)
 g_func <- function(x)
-  ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE)
+  ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2))
 m_func <- function(x)
   ns(x, knots = 1, Boundary.knots = c(0, 2), intercept = TRUE)
 
@@ -166,7 +166,7 @@ library(VAJointSurv)
 par(mar = c(5, 5, 1, 1))
 plot_marker(
   time_fixef = ns_term(
-    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   time_rng = ns_term(
     knots = 1, Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = Psi)
@@ -226,8 +226,7 @@ print(logLik(fit), digits = 8)
 system.time(comp_obj <- joint_ms_ptr(
   markers = marker_term(
     y ~ X1, id = id, dat, 
-    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2), 
-                         intercept = FALSE),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
     time_rng = ns_term(time, knots = 1, Boundary.knots = c(0, 2), 
                        intercept = TRUE)),
   max_threads = 4L))
@@ -299,7 +298,7 @@ it is only shown as an example and as a sanity check.
 library(splines)
 g_funcs <- list(
   function(x)
-    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   function(x)
     # a raw polynomial
     outer(x, 1:2, `^`))
@@ -322,7 +321,7 @@ library(VAJointSurv)
 par(mar = c(5, 5, 1, 1))
 plot_marker(
   time_fixef = ns_term(
-    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   time_rng = ns_term(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
@@ -385,8 +384,7 @@ subset(dat, id == 1)
 # optimization
 marker_1 <- marker_term(
     Y1 ~ X1_1, id = id, subset(dat, !is.na(Y1)), 
-    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2), 
-                         intercept = FALSE),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
     time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2), 
                        intercept = TRUE))
 marker_2 <- marker_term(
@@ -475,7 +473,7 @@ Xi <- matrix(.2^2, 1)
 
 library(splines)
 b_func <- function(x)
-  bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
+  bs(x, knots = 1, Boundary.knots = c(0, 2))
 
 # sample a few survival curves and plot them 
 library(SimSurvNMarker)
@@ -616,7 +614,64 @@ rbind(estimate = fmt_est$survival[[1]]$fixef_vary, truth = omega)
 c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(Xi))
 ```
 
-## Two Markers and a Recurrent Event
+#### Note on Quadrature Rule
+
+A quadrature is used to integrate the cumulative hazard. The user can pass any 
+quadrature rule with $n$ nodes and weights each denoted by $(n_i, w_i)$ such 
+that
+
+$$
+\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i)
+$$
+
+By default Gauss–Legendre quadrature is used. A very simple alternative is 
+to use a midpoint rule. This is illustrated below.
+
+```{r trap_rule}
+# computes a midpoint rule
+mid_rule <- function(n)
+  list(node = seq(0, 1, length.out = n), weight = rep(1 / n, n))
+
+# compare with a midpoint with different number of nodes
+for(n in 2^(3:12)){
+  res <- joint_ms_lb(comp_obj, opt_out$par, n_threads = 4L, 
+                     quad_rule = mid_rule(n))
+  cat(sprintf("# nodes, lower bound  %5d %12.4f\n", n, res))
+}
+
+# the maximum lower bound value we got with Gauss–Legendre quadrature
+print(-opt_out$value, digits = 8)
+```
+
+We can compare this with using Gauss–Legendre quadrature with different number 
+of nodes.
+
+```{r gl_quad_ex}
+# get the rules
+library(gaussquad)
+rules <- legendre.quadrature.rules(2^8, normalized = TRUE)
+
+# rescale the rule
+rules <- lapply(rules, function(x)
+  list(node = .5 * (x[, "x"] + 1), weight = .5 * x[, "w"]))
+
+# use different number of nodes
+for(n in 2^(2:8)){
+  res <- joint_ms_lb(comp_obj, opt_out$par, n_threads = 4L, 
+                     quad_rule = rules[[n]])
+  cat(sprintf("# nodes, lower bound  %5d %12.8f\n", n, res))
+}
+
+# the result we got
+print(-opt_out$value, digits = 14)
+length(comp_obj$quad_rule$node) # the number of nodes we used
+```
+
+Evaluating the cumulative hazard is by far the most computationally expensive 
+part of the likelihood. Therefore, it may be nice to use fewer nodes e.g. when 
+finding starting values.
+
+### Two Markers and a Recurrent Event
 
 ```{r clean_recurrent_and_marker, echo=FALSE}
 rm(list = ls())
@@ -630,7 +685,7 @@ event in this section.
 library(splines)
 g_funcs <- list(
   function(x)
-    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+    ns(x, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   function(x)
     # a raw polynomial
     outer(x, 1:2, `^`))
@@ -653,7 +708,7 @@ library(VAJointSurv)
 par(mar = c(5, 5, 1, 1))
 plot_marker(
   time_fixef = ns_term(
-    knots = c(.5, 1.5), Boundary.knots = c(0, 2), intercept = FALSE),
+    knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   time_rng = ns_term(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
@@ -670,7 +725,27 @@ omega <- c(.5, .1, -.2, .11)
 Xi <- matrix(.2^2, 1)
 
 b_func <- function(x)
-  bs(x, knots = 1, Boundary.knots = c(0, 2), intercept = FALSE)
+  bs(x, knots = 1, Boundary.knots = c(0, 2))
+
+# plot the hazard with pointwise quantiles
+plot_surv(
+  time_fixef = bs_term(knots = 1, Boundary.knots = c(0, 2)), 
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
+  x_range = c(0, 2), vcov_vary = Psi, frailty_var = Xi,
+  ps = c(.25, .5, .75), log_hazard_shift = delta[1], 
+  fixef_vary = omega, associations = alpha)
+
+# without the markers
+plot_surv(
+  time_fixef = bs_term(knots = 1, Boundary.knots = c(0, 2)), 
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
+  x_range = c(0, 2), vcov_vary = matrix(0, 4, 4), frailty_var = Xi,
+  ps = c(.25, .5, .75), log_hazard_shift = delta[1], 
+  fixef_vary = omega, associations = alpha)
 
 # compute a few survival curves and plot them 
 library(SimSurvNMarker)
@@ -817,8 +892,7 @@ proportions(table(table(dat$surv_data$id) - 1L))
 # optimization
 marker_1 <- marker_term(
     Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
-    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2),
-                         intercept = FALSE),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
     time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2),
                        intercept = TRUE))
 marker_2 <- marker_term(
@@ -897,6 +971,339 @@ Sig
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 Xi
+```
+
+### Two Markers, the Observation Time Process, and a Terminal Event
+
+We simulate and fit a model in this section 
+where we have two markers, a recurrent event 
+which is the observation times, and a terminal event. 
+
+```{r pre_obs_process_markers_and_recurrent, echo = FALSE}
+rm(list = ls())
+```
+
+```{r obs_process_markers_and_recurrent}
+# settings for the simulation
+library(splines)
+g_funcs <- list(
+  function(x)
+    ns(x, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
+  function(x)
+    # a raw polynomial
+    outer(x, 1:2, `^`))
+m_funcs <- list(
+  function(x)
+    ns(x, knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
+  function(x)
+    # a raw polynomial
+    outer(x, 0:1, `^`))
+
+fixef_vary_marker <- list(c(1.4, 1.2, -2.1), c(.5, -.02)) # beta
+fixef_marker <- list(c(-.5, 2), 1) # gamma
+
+vcov_vary <- structure(c(0.35, 0.08, -0.05, 0.01, 0.08, 1.92, -0.24, -0.04,
+                   -0.05, -0.24, 0.32, 0.09, 0.01, -0.04, 0.09, 0.12),
+                 .Dim = c(4L, 4L))
+vcov_marker <- matrix(c(.6^2, .1, .1, .4^2), 2)
+
+# plot the markers' mean curve
+library(VAJointSurv)
+par(mar = c(5, 5, 1, 1))
+plot_marker(
+  time_fixef = ns_term(
+    knots = c(3.33, 6.67), Boundary.knots = c(0, 10), intercept = FALSE),
+  time_rng = ns_term(
+    knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
+  fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 10),
+  vcov_vary = vcov_vary[1:2, 1:2], ylab = "Marker 1")
+plot_marker(
+  time_fixef = poly_term(degree = 2, raw = TRUE),
+  time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE),
+  fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 10),
+  vcov_vary = vcov_vary[3:4, 3:4], ylab = "Marker 2")
+# the survival parameters
+vcov_frailty <- matrix(c(.2^2, .15^2, .15^2, .25^2), 2)
+
+fixef_surv <- list(c(-1, .25), .2)
+associations <- list(c(.6, -.4), c(-.7, .2))
+fixef_vary_surv <- list(c(.5, .1, -.2, .11),
+                          c(-1, -.25))
+
+b_funcs <- list(
+  function(x) bs(x, knots = 5, Boundary.knots = c(0, 10)),
+  function(x) ns(x, knots = 5, Boundary.knots = c(0, 10)))
+
+# plot the log hazard with the 25%, 50% and 75% quantiles
+library(SimSurvNMarker)
+
+plot_surv(
+  time_fixef = bs_term(knots = 5, Boundary.knots = c(0, 10)),
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)),
+  x_range = c(0, 10), fixef_vary = fixef_vary_surv[[1]],
+  vcov_vary = vcov_vary, frailty_var = vcov_frailty[1, 1], ps = c(.25, .5, .75),
+  associations = associations[[1]], log_hazard_shift = fixef_surv[[1]][1],
+  ylab = "Terminal event")
+plot_surv(
+  time_fixef = ns_term(knots = 5, Boundary.knots = c(0, 10)),
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)),
+  x_range = c(0, 10), fixef_vary = fixef_vary_surv[[2]],
+  vcov_vary = vcov_vary, frailty_var = vcov_frailty[2, 2], ps = c(.25, .5, .75),
+  associations = associations[[2]], log_hazard_shift = fixef_surv[[2]][1],
+  ylab = "Observation process")
+```
+
+```{r sim_fit_obs_process_markers_and_recurrent}
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat <- function(n_ids){
+  # simulate the outcomes
+  gl_dat <- get_gl_rule(100L)
+  dat <- lapply(1:n_ids, function(id){
+    # sample the terminal event time and the censoring time
+    cens <- min(rexp(1, rate = 1/10), 10)
+    U <- drop(rmvnorm(1, sigma = vcov_vary))
+
+    frailties <- drop(rmvnorm(1, sigma = vcov_frailty))
+    Z1 <- c(1, runif(1, -1, 1))
+    log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
+
+    # assign the conditional hazard function
+    expansion <- function(x, b_func)
+      cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
+            m_funcs[[2]](x) %*% U[3:4])
+    surv_func <- function(ti, omega, alpha, b_func){
+      formals(expansion)$b_func <- b_func
+      eval_surv_base_fun(
+        ti = ti, omega = c(omega, alpha), b_func = expansion,
+        gl_dat = gl_dat, delta = log_haz_offset)
+    }
+
+    # sample the survival time
+    rng <- runif(1)
+    root_func <- function(x, rng)
+      rng - surv_func(x, omega = fixef_vary_surv[[1]],
+                      alpha = associations[[1]], b_func = b_funcs[[1]])
+
+
+    if(root_func(cens, rng) < 0){
+      # the observation is censored
+      y_terminal <- cens
+      event <- 0
+    } else {
+      # find the event time
+      root <- uniroot(root_func, c(0, cens), tol = 1e-6, rng = rng)
+      y_terminal <- root$root
+      event <- 1
+
+    }
+
+    terminal_outcome <- cbind(y = y_terminal, event = event, Z1 = Z1[2],
+                              id = id)
+
+    # clean up
+    rm(list = setdiff(ls(), c("y_terminal", "terminal_outcome", "expansion",
+                              "surv_func", "frailties", "U", "id")))
+
+    # simulate the observations times
+    Z2 <- 1
+    log_haz_offset <- sum(Z2 * fixef_surv[[2]]) + frailties[2]
+
+    root_func <- function(x, left_trunc_surv, rng)
+      rng - surv_func(x, omega = fixef_vary_surv[[2]],
+                      alpha = associations[[2]], b_func = b_funcs[[2]]) /
+      left_trunc_surv
+
+    max_sample <- 1000L
+    left_trunc_surv <- 1
+    Z2 <- matrix(rep(Z2, each = max_sample), max_sample)
+    event <- y <- lf_trunc <- rep(NA_real_, max_sample)
+    lf_trunc_i <- 0
+    for(i in 1:max_sample){
+      # sample a random uniform variable and invert the survival function
+      rng_i <- runif(1)
+      lf_trunc[i] <- lf_trunc_i
+
+      if(root_func(y_terminal, left_trunc_surv, rng_i) < 0){
+        # the observation is right-censored and we can exit
+        y[i] <- y_terminal
+        event[i] <- 0
+        break
+      }
+
+      # we need to invert the survival function to find the observation time
+      root <- uniroot(root_func, c(lf_trunc_i, y_terminal), tol = 1e-6,
+                      left_trunc_surv = left_trunc_surv, rng = rng_i)
+      lf_trunc_i <- y[i] <- root$root
+      event[i] <- 1
+      left_trunc_surv <- surv_func(
+        y[i], omega = fixef_vary_surv[[2]], alpha = associations[[2]],
+        b_func = b_funcs[[2]])
+    }
+
+    colnames(Z2) <- paste0("Z", 1:NCOL(Z2) - 1L)
+    obs_process <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i],
+                         event = event[1:i], Z2[1:i, -1, drop = FALSE],
+                         id = id)
+
+    # clean up
+    rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
+                              "obs_process")))
+
+    # sample the number of outcomes and the fixed effect covariates
+    obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
+    n_obs <- length(obs_time)
+    X1 <- cbind(1, rnorm(n_obs))
+    X2 <- matrix(1, n_obs)
+    colnames(X1) <- paste0("X1_", 1:NCOL(X1) - 1L)
+    colnames(X2) <- paste0("X2_", 1:NCOL(X2) - 1L)
+    X <- list(X1, X2)
+
+    # sample the outcomes
+    eta <- sapply(1:2, function(i)
+      X[[i]] %*% fixef_marker[[i]] +
+        drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] +
+        drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
+
+    ys <- eta + rmvnorm(n_obs, sigma = vcov_marker)
+    colnames(ys) <- paste0("Y", 1:2)
+
+    # mask some observations
+    do_mask <- sample.int(3L, n_obs, replace = TRUE)
+    ys[do_mask == 2, 1] <- NA
+    ys[do_mask == 3, 2] <- NA
+
+    X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
+    marker_data <- cbind(ys, X, time = obs_time, id = id)
+
+    return(list(marker_data = marker_data, obs_process = obs_process,
+                terminal_outcome = terminal_outcome))
+  })
+
+  # combine the data and return
+  marker_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "marker_data")))
+  marker_data$id <- as.integer(marker_data$id)
+  # the order does not matter
+  marker_data <- marker_data[sample.int(NROW(marker_data)), ]
+
+  obs_process <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "obs_process")))
+  obs_process$id <- as.integer(obs_process$id)
+  # the order does not matter
+  obs_process <- obs_process[sample.int(NROW(obs_process)), ]
+
+  terminal_outcome <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "terminal_outcome")))
+  terminal_outcome$id <- as.integer(terminal_outcome$id)
+  # the order does not matter
+  terminal_outcome <- terminal_outcome[sample.int(NROW(terminal_outcome)), ]
+
+  list(marker_data = marker_data, obs_process = obs_process,
+       terminal_outcome = terminal_outcome)
+}
+
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat(1000L)
+
+# we show a few properties of the data below
+mean(dat$terminal_outcome$event) # mean event rate
+sum(dat$obs_process$event) # number of observed marker less the individuals
+NROW(dat$marker_data) # number of observed marker
+
+# distribution of observed marker per individual
+proportions(table(table(dat$obs_process$id)))
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+marker_1 <- marker_term(
+  Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
+  time_fixef = ns_term(time, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
+  time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 10),
+                     intercept = TRUE))
+marker_2 <- marker_term(
+  Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
+  time_fixef = poly_term(time, degree = 2, raw = TRUE),
+  time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+library(survival)
+surv_terminal <- surv_term(
+  Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)))
+surv_obs <- surv_term(
+  Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
+  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)))
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
+                         survival_terms = list(surv_terminal, surv_obs),
+                         max_threads = 4L)
+rm(marker_1, marker_2, surv_terminal, surv_obs)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
+          head(joint_ms_lb_gr(comp_obj, start_val), 37 + 2 * 27), 
+          tolerance = 1e-6)
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
+                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]]
+
+fixef_marker[[1]] # true values
+fixef_vary_marker[[1]] # true values
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+fixef_marker[[2]] # true values
+fixef_vary_marker[[2]] # true values
+
+# the fixed effects for the survival outcome and the association parameters
+# for the terminal event
+fmt_ests$survival[[1]]
+fixef_surv[[1]]
+fixef_vary_surv[[1]]
+associations[[1]]
+
+# same for the observation process
+fmt_ests$survival[[2]]
+fixef_surv[[2]]
+fixef_vary_surv[[2]]
+associations[[2]]
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+vcov_vary # the true values
+
+# the parameters for the error term covariance matrix
+fmt_ests$vcov$vcov_marker
+vcov_marker
+
+# the parameters for the frailty covariance matrix
+fmt_ests$vcov$vcov_surv
+vcov_frailty
 ```
 
 ## Technical Details

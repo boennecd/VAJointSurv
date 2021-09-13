@@ -35,3 +35,45 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 
   invisible(list(lbs = lbs, ubs = ubs, mea = mea))
 }
+
+#' Plots Quantilies of the Conditional Hazards
+#' @export
+plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
+                      frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
+                      associations, xlab = "Time", ylab = "Hazard",...){
+  # checks
+  is_valid_expansion(time_fixef)
+  if(is.list(time_rng))
+    for(i in seq_along(time_rng))
+      is_valid_expansion(time_rng[[i]])
+  else {
+    is_valid_expansion(time_rng)
+    time_rng <- list(time_rng)
+  }
+  stopifnot(
+    is.numeric(ps), all(ps > 0), all(ps < 1), all(is.finite(ps)),
+    is.numeric(x_range), all(x_range >= 0), all(is.finite(x_range)),
+    length(x_range) == 2, length(frailty_var) == 1)
+  x_range <- sort(x_range)
+
+  # assign function to evaluate the hazard pointwise
+  time_rngs <- function(x){
+    bases <- lapply(time_rng, eval_expansion, x)
+    do.call(c, mapply(`*`, bases, associations, SIMPLIFY = FALSE))
+  }
+
+  tis <- seq(x_range[1], x_range[2], length.out = 100)
+  hazs <- t(sapply(tis, function(ti){
+    log_haz <- log_hazard_shift + fixef_vary %*% eval_expansion(time_fixef, ti)
+    ti_basis <- time_rngs(ti)
+    log_haz_var <- drop(frailty_var) + ti_basis %*% vcov_vary %*% ti_basis
+
+    exp(qnorm(p = ps, mean = log_haz, sd = sqrt(log_haz_var)))
+  }))
+  matplot(tis, hazs, lty = 1, type = "l", col = "black", bty = "l",
+          xlab = xlab, xaxs = "i", yaxs = "i", ylab = ylab,
+          ylim = range(hazs, 0))
+  grid()
+
+  invisible(list(time = tis, hazard = hazs))
+}
