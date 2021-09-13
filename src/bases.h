@@ -11,8 +11,8 @@
 
 namespace joint_bases {
 
-constexpr vajoint_uint default_order{4},
-                       default_ders{0};
+constexpr vajoint_uint default_order{4};
+constexpr int default_ders{0};
 constexpr bool default_intercept{false};
 
 using namespace arma;
@@ -31,13 +31,13 @@ public:
    * evaluated at x */
   void operator()
     (vec &out, double *wk_mem, double const x,
-     const vajoint_uint ders = default_ders) const {
+     const int ders = default_ders) const {
     (*this)(out.memptr(), wk_mem, x, ders);
   }
   /// returns an allocated vector
   vec operator()
     (double const x, double * wk_mem,
-     vajoint_uint const ders = default_ders) const {
+     int const ders = default_ders) const {
     vec out(n_basis());
     (*this)(out.begin(), wk_mem, x, ders);
     return out;
@@ -45,10 +45,10 @@ public:
   /// same as the other operator() calls but filling the out
   virtual void operator()
     (double *out, double *wk_mem, double const x,
-     vajoint_uint const ders = default_ders) const = 0;
+     int const ders = default_ders) const = 0;
 
   mat basis
-    (const vec &x, double *wk_mem, const vajoint_uint ders = default_ders,
+    (const vec &x, double *wk_mem, const int ders = default_ders,
      const double centre = std::numeric_limits<double>::quiet_NaN())
     const  {
     vajoint_uint const n_basis_v(n_basis()),
@@ -70,6 +70,14 @@ public:
   virtual ~basisMixin() = default;
 
   virtual std::unique_ptr<basisMixin> clone() const = 0;
+
+  /// sets the lower limit of ders < 0 (i.e. integration)
+  void set_lower_limit(double const x){
+    lower_limit = x;
+  }
+
+protected:
+  double lower_limit{};
 };
 
 class SplineBasis : public basisMixin {
@@ -96,7 +104,7 @@ public:
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
-     const vajoint_uint ders = default_ders)
+     const int ders = default_ders)
     const override {
     // setup the object we need
     double * const ldel{wk_mem},       /* differences from knots on the left */
@@ -234,7 +242,7 @@ public:
   using SplineBasis::operator();
   void operator()
       (double *out, double *wk_mem, double const x,
-       const vajoint_uint ders = default_ders) const {
+       const int ders = default_ders) const {
     double * const my_wk_mem{wk_mem};
     wk_mem += std::max(SplineBasis::n_basis(), bs::n_basis());
 
@@ -252,23 +260,32 @@ public:
       };
 
       std::fill(out, out + bs::n_basis(), 0);
-      if (ders == 0) {
+      switch(ders){
+      case 0:
         add_term(0);
         add_term(1, delta);
         add_term(2, delta * delta / 2);
         add_term(3, delta * delta * delta / 6);
+        break;
 
-      } else if (ders == 1) {
+      case 1:
         add_term(1);
         add_term(2, delta);
         add_term(3, delta * delta / 2.);
+        break;
 
-      } else if (ders == 2) {
+      case 2:
         add_term(2);
         add_term(3, delta);
+        break;
 
-      } else if (ders==3)
+      case 3:
         add_term(3);
+        break;
+
+      default:
+        throw std::invalid_argument("ders not implemented");
+      };
 
       return;
     }
@@ -320,7 +337,7 @@ public:
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
-     vajoint_uint const ders = default_ders) const {
+     int const ders = default_ders) const {
     if(x < bspline.boundary_knots[0]) {
       if (ders==0){
         for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
@@ -400,7 +417,7 @@ public:
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
-     vajoint_uint const ders = default_ders) const  {
+     int const ders = default_ders) const  {
     double * const b{wk_mem};
     vajoint_uint const n_b{bspline.n_basis()};
     wk_mem += n_b;
@@ -468,7 +485,7 @@ public:
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
-     vajoint_uint const ders = default_ders) const {
+     int const ders = default_ders) const {
     double * const wrk{wk_mem};
     wk_mem += bspline.n_basis();
 
@@ -495,6 +512,75 @@ class orth_poly final : public basisMixin {
        intercept;
   // the number of basis function plus the possible intercept
   vajoint_uint n_basis_v;
+  // the matrix to map from the raw polynomial to the orthogonal polynomial
+  // see https://stats.stackexchange.com/a/472289/81865
+  std::vector<double> orth_map;
+
+  // evaluates the polynomial with raw == TRUE
+  void eval_raw(double *out, double const x,
+                bool const inter, int const ders = default_ders) const {
+    if(ders == 0){
+      if(inter){
+        out[0] = 1.;
+        for(vajoint_uint c = 1; c < n_basis_v; c++)
+          out[c] = out[c - 1] * x;
+
+      } else {
+        double val{1};
+        for(vajoint_uint c = 0; c < n_basis_v; c++)
+          out[c] = val *= x;
+      }
+
+    } else if(ders < 0){
+      // compute the starting value
+      double val_upper{x},
+             val_lower{lower_limit};
+      vajoint_uint const uders = -ders;
+      for(vajoint_uint i = 2; i <= uders; ++i){
+        val_upper *= x           / static_cast<double>(i);
+        val_lower *= lower_limit / static_cast<double>(i);
+      }
+
+      if(!inter){
+        val_upper *= x / (uders + 1);
+        val_lower *= x / (uders + 1);
+      }
+
+      for(vajoint_uint c = 0; c < n_basis_v; c++){
+        out[c] = val_upper - val_lower;
+        val_upper *= x           / static_cast<double>(c + uders + 1 + inter);
+        val_lower *= lower_limit / static_cast<double>(c + uders + 1 + inter);
+        if(c + 1 - inter > uders){
+          val_upper *= c + 1. + inter;
+          val_lower *= c + 1. + inter;
+        }
+      }
+
+    } else { // ders > 0
+      if(inter){
+        std::fill(out, out + ders, 0);
+        double val{1};
+        for(vajoint_uint c = ders; c < n_basis_v; c++){
+          vajoint_uint mult{c};
+          for(vajoint_uint cc = c; --cc > c - ders;)
+            mult *= cc;
+          out[c] = mult * val;
+          val *= x;
+        }
+      } else {
+        std::fill(out, out + ders - 1, 0);
+        double val{1};
+        for(vajoint_uint c = 0; c < n_basis_v; c++){
+          vajoint_uint mult{c + 1};
+          for(vajoint_uint cc = c + 1; --cc > c - ders + 1;)
+            mult *= cc;
+          out[c] = mult * val;
+          val *= x;
+        }
+      }
+    }
+  }
+
 
 public:
   // constructor for raw == true
@@ -510,7 +596,7 @@ public:
   }
 
   size_t n_wmem() const {
-    return 0;
+    return intercept ? n_basis_v : n_basis_v + 1;
   }
 
   /**
@@ -518,41 +604,48 @@ public:
    * intercept */
   using basisMixin::operator();
   void operator()(double *out, double *wk_mem, double const x,
-                  vajoint_uint const ders = default_ders)
+                  int const ders = default_ders)
     const {
-    if(ders > 0)
-      throw std::runtime_error("ders > 0 is not implemented");
 
     if(raw){
-      if(intercept){
-        out[0] = 1.;
-        for(vajoint_uint c = 1; c < n_basis_v; c++)
-          out[c] = out[c - 1] * x;
+      eval_raw(out, x, intercept, ders);
+      return;
+    }
 
-      } else {
-        double val{1};
-        for(vajoint_uint c = 0; c < n_basis_v; c++)
-          out[c] = val *= x;
+    if(ders == 0){
+      out[0] = 1.;
+      double old{1};
+
+      if(alpha.n_elem > 0L){
+        out[0 + intercept] = x - alpha[0];
+        for(vajoint_uint c = 1; c < alpha.n_elem; c++){
+          out[c + intercept] =
+            (x - alpha[c]) * out[c - 1 + intercept] - norm2[c + 1L] /
+            norm2[c] * old;
+          old = out[c - 1 + intercept];
+        }
       }
+
+      for(vajoint_uint j = 1; j < alpha.n_elem + 1; ++j)
+        out[j - 1 + intercept] /= sqrt_norm2.at(j + 1);
 
       return;
     }
 
-    out[0] = 1.;
-    double old{1};
+    // compute the raw polynomial and multiply on the matrix
+    // TODO: can likely be done in more stable way?
+    eval_raw(wk_mem, x, true, ders);
 
-    if(alpha.n_elem > 0L){
-      out[0 + intercept] = x - alpha[0];
-      for(vajoint_uint c = 1; c < alpha.n_elem; c++){
-        out[c + intercept] =
-          (x - alpha[c]) * out[c - 1 + intercept] - norm2[c + 1L] /
-          norm2[c] * old;
-        old = out[c - 1 + intercept];
-      }
-    }
+    std::fill(out, out + n_basis_v, 0);
+    // handle the intercept term
+    auto g = orth_map.begin() + !intercept;
+    for(vajoint_uint i = 0; i < n_basis_v; ++i)
+      out[i] = wk_mem[0] * *g++;
 
-    for(vajoint_uint j = 1; j < alpha.n_elem + 1; ++j)
-      out[j - 1 + intercept] /= sqrt_norm2.at(j + 1);
+    // handle the other terms
+    for(vajoint_uint j = 0; j < alpha.size(); ++j)
+      for(vajoint_uint i = j; i < alpha.size(); ++i)
+        out[i + intercept] += wk_mem[j + 1] * *g++;
   }
 
   /**

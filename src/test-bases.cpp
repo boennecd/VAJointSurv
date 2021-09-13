@@ -470,6 +470,123 @@ context("bases unit tests") {
       expect_true(obj.n_basis() == i);
     }
 
+    test_that("orth_poly works with raw == true and ders > 0") {
+      constexpr double x{3.5};
+      constexpr double d1[] {0, 1, 2 * 3.5, 3 * 3.5 * 3.5, 4 * 3.5 * 3.5 * 3.5},
+                       d2[] {0, 0,   2 * 3,   3 * 2 * 3.5, 4 * 3 * 3.5 * 35   },
+                       d3[] {0, 0,       0,         3 * 2, 4 * 3 * 2 * 3.5    },
+                       d4[] {0, 0,       0,             0, 4 * 3 * 2          };
+
+
+      // with an intercept
+      {
+        joint_bases::orth_poly const obj{4, true};
+
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+        expect_true(res.size() == 5);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d1[i]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+        expect_true(res.size() == 5);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d2[i]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 3);
+        expect_true(res.size() == 5);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d3[i]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 4);
+        expect_true(res.size() == 5);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d4[i]));
+      }
+
+      // without an intercept
+      {
+        joint_bases::orth_poly const obj{4, false};
+
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+        expect_true(res.size() == 4);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d1[i + 1]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+        expect_true(res.size() == 4);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d2[i + 1]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 3);
+        expect_true(res.size() == 4);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d3[i + 1]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 4);
+        expect_true(res.size() == 4);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d4[i + 1]));
+      }
+
+    }
+
+    test_that("orth_poly works with raw == true and ders < 0") {
+      constexpr double x{.9},
+                   x_low{.1},
+                      i1[] {.9         , .9 * .9 / 2           , .9 * .9 * .9 / 3           , .9 * .9 * .9 * .9 / 4},
+                      i2[] {.9 * .9 / 2, .9 * .9 * .9 / (2 * 3), .9 * .9 * .9 * .9 / (3 * 4), .9 * .9 * .9 * .9 * .9 / (4 * 5) },
+                  i1_low[] {.1         , .1 * .1 / 2           , .1 * .1 * .1 / 3           , .1 * .1 * .1 * .1 / 4},
+                  i2_low[] {.1 * .1 / 2, .1 * .1 * .1 / (2 * 3), .1 * .1 * .1 * .1 / (3 * 4), .1 * .1 * .1 * .1 * .1 / (4 * 5)};
+
+        { // with an intercept
+          joint_bases::orth_poly obj{3, true};
+          arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+          expect_true(res.size() == 4);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i1[i]));
+
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+          expect_true(res.size() == 4);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i2[i]));
+
+          obj.set_lower_limit(x_low);
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+          expect_true(res.size() == 4);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i1[i] - i1_low[i]));
+
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+          expect_true(res.size() == 4);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i2[i] - i2_low[i]));
+
+        }
+        { // without an intercept
+          joint_bases::orth_poly obj{3, false};
+          arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+          expect_true(res.size() == 3);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i1[i + 1]));
+
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+          expect_true(res.size() == 3);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i2[i + 1]));
+
+          obj.set_lower_limit(x_low);
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+          expect_true(res.size() == 3);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i1[i + 1] - i1_low[i + 1]));
+
+          res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+          expect_true(res.size() == 3);
+          for(vajoint_uint i = 0; i < res.size(); ++i)
+            expect_true(res[i] == Approx(i2[i + 1] - i2_low[i + 1]));
+        }
+    }
+
     test_that("orth_poly works with raw == false") {
       /*
        dput(obj <- poly((-2):3, degree = 4))
@@ -501,6 +618,104 @@ context("bases unit tests") {
           expect_true(pass_rel_err(res[i], truth[i]));
 
         expect_true(obj.n_basis() == n_res);
+      }
+    }
+
+    test_that("orth_poly works with raw == false and ders > 0") {
+      const arma::vec alpha{-0.3448548522, 0.658759503793261, 0.499538901313647},
+                      norm2{1, 10, 6.76808675371663, 3.22319474219269, 1.18536899578627};
+      constexpr double x{.75};
+
+      constexpr double d1[]{0.384385539783045, 0.660657439345008, -0.694447299988832},
+                       d2[]{-6.90283286798098e-13, 1.11400392933787, 2.63891808433639};
+      { // without an intercept
+        /* brute force computation
+         alpha <- c(-0.3448548522, 0.658759503793261, 0.499538901313647)
+         norm2 <- c(1, 10, 6.76808675371663, 3.22319474219269, 1.18536899578627)
+         dput(numDeriv::jacobian(
+         function(x) poly(x, coefs = list(alpha = alpha, norm2 = norm2),
+         degree = 3),
+         .75))
+         dput(sapply(1:3, function(i)
+         numDeriv::hessian(
+         function(x) poly(x, coefs = list(alpha = alpha, norm2 = norm2),
+         degree = 3)[i], .75)))
+         */
+
+        joint_bases::orth_poly const obj(alpha, norm2, false);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+        expect_true(res.size() == 3);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d1[i]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+        expect_true(res.size() == 3);
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d2[i]));
+
+      }
+      { // with an intercept
+        /* brute force computation
+         alpha <- c(-0.3448548522, 0.658759503793261, 0.499538901313647)
+         norm2 <- c(1, 10, 6.76808675371663, 3.22319474219269, 1.18536899578627)
+         dput(numDeriv::jacobian(
+         function(x) poly(x, coefs = list(alpha = alpha, norm2 = norm2),
+         degree = 3),
+         .75))
+         dput(sapply(1:3, function(i)
+         numDeriv::hessian(
+         function(x) poly(x, coefs = list(alpha = alpha, norm2 = norm2),
+         degree = 3)[i], .75)))
+         */
+
+        joint_bases::orth_poly const obj(alpha, norm2, true);
+
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+        expect_true(res.size() == 4);
+        expect_true(res[0] == 0);
+        for(vajoint_uint i = 1; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d1[i]));
+
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+        expect_true(res.size() == 4);
+        expect_true(res[0] == 0);
+        for(vajoint_uint i = 1; i < res.size(); ++i)
+          expect_true(res[i] == Approx(d2[i]));
+
+      }
+    }
+
+    test_that("orth_poly works with raw == false and ders < 0") {
+      /* R code to reproduce the result
+       alpha <- c(-0.3448548522, 0.658759503793261, 0.499538901313647)
+       norm2 <- c(1, 10, 6.76808675371663, 3.22319474219269, 1.18536899578627)
+       f <- function(x, i)
+       poly(x, coefs = list(alpha = alpha, norm2 = norm2),
+       degree = 3)[, i]
+       dput(sapply(1:3, function(i) integrate(f, 0, 2, i = i)$value))
+      */
+      const arma::vec alpha{-0.3448548522, 0.658759503793261, 0.499538901313647},
+                      norm2{1, 10, 6.76808675371663, 3.22319474219269, 1.18536899578627};
+      constexpr double x{2};
+
+      constexpr double int_val[]{1.03388551658793, 0.128604618505322, -0.0379503122041634};
+
+      { // no intercept
+        joint_bases::orth_poly const obj(alpha, norm2, false);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        expect_true(res.size() == 3);
+
+        for(vajoint_uint i = 0; i < res.size(); ++i)
+          expect_true(res[i] == Approx(int_val[i]));
+      }
+      { // with intercept
+        joint_bases::orth_poly const obj(alpha, norm2, true);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        expect_true(res.size() == 4);
+
+        expect_true(res[0] == x);
+        for(vajoint_uint i = 1; i < res.size(); ++i)
+          expect_true(res[i] == Approx(int_val[i]));
       }
     }
   }

@@ -97,12 +97,48 @@ n_basis_v(degree + intercept) { }
 orth_poly::orth_poly(vec const &alpha, vec const &norm2,
                      bool const intercept):
 alpha(alpha), norm2(norm2), raw(false), intercept(intercept),
-n_basis_v(norm2.size() - 2 + intercept) {
+n_basis_v(norm2.size() - 2 + intercept),
+orth_map(((alpha.size() + 1) * (alpha.size() + 2)) / 2) {
   for(vajoint_uint i = 0; i < norm2.size(); ++i)
     if(norm2[i] <= 0.)
       throw std::invalid_argument("invalid norm2");
   if(alpha.n_elem + 2L != norm2.n_elem)
     throw std::invalid_argument("invalid alpha");
+
+  if(!raw){
+    vajoint_uint nc{alpha.size() + 1};
+    auto g = orth_map.begin();
+    *g++ = 1;
+
+    if(nc > 1){
+      *g++ = -alpha[0] * *(g - 1);
+      *g++ = 1;
+    }
+    if(nc > 2){
+      for(vajoint_uint i = 2; i < nc; ++i){
+        auto g_prev = g - i;
+        auto g_prev_m1 = g_prev;
+        auto g_old = g_prev - i + 1;
+        vajoint_uint j{};
+        double const sig_ratio{norm2[i] / norm2[i - 1]};
+        for(; j <= i - 2; ++j, ++g){
+          *g = -sig_ratio * *g_old++ - alpha[i - 1] * *g_prev++;
+          if(j > 0)
+            *g += *g_prev_m1++;
+        }
+
+        *g++ += *g_prev_m1++ - alpha[i - 1] * *g_prev;
+        *g++ += *g_prev_m1;
+      }
+    }
+
+    g = orth_map.begin() + 1;
+    for(vajoint_uint i = 1; i < nc; ++i){
+      double const denom{std::sqrt(norm2[i + 1])};
+      for(vajoint_uint j = 0; j <= i; ++j)
+        *g++ /= denom;
+    }
+  }
 }
 
 orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
