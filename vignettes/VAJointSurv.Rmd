@@ -131,7 +131,24 @@ The following is not supported
    
 ## Examples
 We show a few examples of using this package and illustrate its API in this 
-section.
+section. The examples includes: 
+
+ - Only one marker in the [Univariate Marker Example](#univariate-marker-example)
+   section where we can compare with lme4.
+ - Two markers in the [Two Markers](#two-markers) section.
+ - A recurrent event in the [Recurrent Event](#recurrent-event) section. It is
+   also shown how to change the quadrature rule that is used to approximate the 
+   expected cumulative hazard. 
+ - An example with two markers and a recurrent event is given in the 
+   [Two Markers and a Recurrent Event](#two-markers-and-a-recurrent-event)
+   section. 
+ - An example with two markers, the observation process, and a terminal event 
+   is given in the 
+   [Two Markers the Observation Time Process and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
+   section. The observation time process and the markers are not marginally 
+   independent in the true model. Thus, they need to be modeled together or the
+   dependence accounted for in some other way.
+
 
 ### Univariate Marker Example
 
@@ -139,7 +156,7 @@ We make a comparison below with one marker only with the lme4 package.
 We do this as we can check that 
  
  - We get almost the same (the lower bound can be equal to the log marginal 
-   likelihood). 
+   likelihood in this case). 
  - The lower bound is less than or equal to the log marginal likelihood. 
  
 lme4 should be used in this case as the linear model is tractable and this is used
@@ -157,9 +174,11 @@ m_func <- function(x)
 fixef_vary_marker <- c(1.4, -1.2, -2.1) # beta
 fixef_marker <- c(-.5, 1) # gamma
 
-Psi <- structure(c(0.18, 0.05, -0.05, 0.05, 0.34, -0.25, -0.05, -0.25, 0.24), 
-                 .Dim = c(3L, 3L))
-Sig <- matrix(.6^2, 1)
+# Psi 
+vcov_vary <- structure(
+  c(0.18, 0.05, -0.05, 0.05, 0.34, -0.25, -0.05, -0.25, 0.24), 
+  .Dim = c(3L, 3L))
+vcov_marker <- matrix(.6^2, 1) # Sigma
 
 # plot the true mean curve along with 95% confidence pointwise quantiles
 library(VAJointSurv)
@@ -169,7 +188,7 @@ plot_marker(
     knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
   time_rng = ns_term(
     knots = 1, Boundary.knots = c(0, 2), intercept = TRUE), 
-  fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = Psi)
+  fixef_vary = fixef_vary_marker, x_range = c(0, 2), vcov_vary = vcov_vary)
 ```
 
 ```{r sim_n_fit_univariate}
@@ -177,7 +196,7 @@ library(mvtnorm)
 # simulates from the model by sampling a given number of individuals
 sim_dat <- function(n_ids){
   # simulate the outcomes
-  sig_sqrt <- sqrt(Sig)
+  sig_sqrt <- sqrt(vcov_marker)
   dat <- lapply(1:n_ids, function(id){
     # sample the number of outcomes and the fixed effect covariates
     n_obs <- sample.int(8L, 1L)
@@ -186,7 +205,7 @@ sim_dat <- function(n_ids){
     colnames(X) <- paste0("X", 1:NCOL(X) - 1L)
     
     # sample the outcomes
-    U <- drop(rmvnorm(1, sigma = Psi))
+    U <- drop(rmvnorm(1, sigma = vcov_vary))
     eta <- X %*% fixef_marker + drop(g_func(obs_time)) %*% fixef_vary_marker + 
       drop(m_func(obs_time)) %*% U
     y <- drop(eta) + rnorm(n_obs, sd = sig_sqrt)
@@ -274,12 +293,12 @@ vcov_est <- VarCorr(fit)[["id"]]
 attributes(vcov_est)[c("stddev", "correlation")] <- NULL
 vcov_est # lme4
 fmt_ests$vcov$vcov_vary # this package
-Psi # the actual values
+vcov_vary # the actual values
 
 # the error term variance
 c(lme4 = attr(VarCorr(fit), "sc")^2, 
   `This package` = fmt_ests$vcov$vcov_marker, 
-  Actual = Sig)
+  Actual = vcov_marker)
 ```
 
 ### Two Markers
@@ -312,9 +331,11 @@ m_funcs <- list(
 fixef_vary_marker <- list(c(1.4, -1.2, -2.1), c(.5, .67)) # beta
 fixef_marker <- list(c(-.5, 1), .25) # gamma
 
-Psi <- structure(c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
-                 .Dim = c(4L, 4L))
-Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
+# Psi
+vcov_vary <- structure(
+  c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
+  .Dim = c(4L, 4L))
+vcov_marker <- matrix(c(.6^2, .1, .1, .4^2), 2) # Sigma
 
 # plot the markers' mean curve
 library(VAJointSurv)
@@ -325,12 +346,12 @@ plot_marker(
   time_rng = ns_term(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
-  vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
+  vcov_vary = vcov_vary[1:2, 1:2], ylab = "Marker 1")
 plot_marker(
   time_fixef = poly_term(degree = 2, raw = TRUE),
   time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
-  vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
+  vcov_vary = vcov_vary[3:4, 3:4], ylab = "Marker 2")
 ```
 
 ```{r sim_n_fit_two_markers}
@@ -349,13 +370,13 @@ sim_dat <- function(n_ids){
     X <- list(X1, X2)
     
     # sample the outcomes
-    U <- drop(rmvnorm(1, sigma = Psi))
+    U <- drop(rmvnorm(1, sigma = vcov_vary))
     eta <- sapply(1:2, function(i)
       X[[i]] %*% fixef_marker[[i]] + 
       drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] + 
       drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
     
-    ys <- eta + rmvnorm(n_obs, sigma = Sig)
+    ys <- eta + rmvnorm(n_obs, sigma = vcov_marker)
     colnames(ys) <- paste0("Y", 1:2)
     
     # mask some observations
@@ -447,15 +468,15 @@ fixef_vary_marker[[2]] # true values
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
 fmt_ests_lbfgs$vcov$vcov_vary # with lbfgs
-Psi # the true values
+vcov_vary # the true values
 
 # the parameters for the error term variance
 fmt_ests$vcov$vcov_marker
 fmt_ests_lbfgs$vcov$vcov_marker # with lbfgs
-Sig
+vcov_marker
 ```
 
-### A Recurrent Event
+### Recurrent Event
 
 ```{r clean_only_recurrent, echo=FALSE}
 rm(list = ls())
@@ -467,9 +488,9 @@ likelihood.
 
 ```{r only_recurrent}
 # the survival parameters
-delta <- c(-.5, .25)
-omega <- c(.5, .1, -.2, .11)
-Xi <- matrix(.2^2, 1)
+fixef_surv <- c(-.5, .25) # delta
+fixef_vary_surv <- c(.5, .1, -.2, .11) # omega
+vcov_surv <- matrix(.2^2, 1) # Xi
 
 library(splines)
 b_func <- function(x)
@@ -482,10 +503,10 @@ tis <- seq(0, 2, length.out = 50)
 set.seed(1)
 # compute the conditional survival functions disregarding the fixed effect
 surv_vals <- replicate(100, {
-  err <- rnorm(1, sd = sqrt(Xi))
+  err <- rnorm(1, sd = sqrt(vcov_surv))
   eval_surv_base_fun(
-    ti = tis, omega = omega, b_func = b_func, 
-    gl_dat = get_gl_rule(100), delta = delta[1] + err)
+    ti = tis, omega = fixef_vary_surv, b_func = b_func, 
+    gl_dat = get_gl_rule(100), delta = fixef_surv[1] + err)
 })
 
 par(mar = c(5, 5, 1, 1))
@@ -502,14 +523,14 @@ sim_dat <- function(n_ids){
   gl_dat <- get_gl_rule(100L)
   dat <- lapply(1:n_ids, function(id){
     # simulate the survival outcome
-    rng_surv <- rnorm(1, sd = sqrt(Xi))
+    rng_surv <- rnorm(1, sd = sqrt(vcov_surv))
     Z <- c(1, runif(1, -1, 1))
-    log_haz_offset <- sum(Z * delta) + rng_surv
+    log_haz_offset <- sum(Z * fixef_surv) + rng_surv
 
     # the conditional survival function
     surv_func <- function(ti)
       eval_surv_base_fun(
-        ti = ti, omega = omega, b_func = b_func, gl_dat = gl_dat,
+        ti = ti, omega = fixef_vary_surv, b_func = b_func, gl_dat = gl_dat,
         delta = log_haz_offset)
 
     # simulate the recurrent events one at a time
@@ -609,14 +630,15 @@ print(-opt_out$value, digits = 8) # maximum lower bound value
 # check the estimates
 fmt_est <- joint_ms_format(comp_obj, opt_out$par)
 
-rbind(estimate = fmt_est$survival[[1]]$fixef, truth = delta)
-rbind(estimate = fmt_est$survival[[1]]$fixef_vary, truth = omega)
-c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(Xi))
+rbind(estimate = fmt_est$survival[[1]]$fixef, truth = fixef_surv)
+rbind(estimate = fmt_est$survival[[1]]$fixef_vary, truth = fixef_vary_surv)
+c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(vcov_surv))
 ```
 
 #### Note on Quadrature Rule
 
-A quadrature is used to integrate the cumulative hazard. The user can pass any 
+A quadrature is used to integrate the expected cumulative hazard. The user can 
+pass any 
 quadrature rule with $n$ nodes and weights each denoted by $(n_i, w_i)$ such 
 that
 
@@ -699,9 +721,11 @@ m_funcs <- list(
 fixef_vary_marker <- list(c(1.4, -1.2, -2.1), c(.5, .67)) # beta
 fixef_marker <- list(c(-.5, 1), .25) # gamma
 
-Psi <- structure(c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
-                 .Dim = c(4L, 4L))
-Sig <- matrix(c(.6^2, .1, .1, .4^2), 2)
+# Psi
+vcov_vary <- structure(
+  c(0.35, 0.02, -0.05, 0.01, 0.02, 0.12, -0.06, -0.01, -0.05, -0.06, 0.32, 0.09, 0.01, -0.01, 0.09, 0.12),
+  .Dim = c(4L, 4L))
+vcov_marker <- matrix(c(.6^2, .1, .1, .4^2), 2) # Sigma
 
 # plot the markers' mean curve
 library(VAJointSurv)
@@ -712,17 +736,17 @@ plot_marker(
   time_rng = ns_term(
     knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 2), 
-  vcov_vary = Psi[1:2, 1:2], ylab = "Marker 1")
+  vcov_vary = vcov_vary[1:2, 1:2], ylab = "Marker 1")
 plot_marker(
   time_fixef = poly_term(degree = 2, raw = TRUE),
   time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 2), 
-  vcov_vary = Psi[3:4, 3:4], ylab = "Marker 2")
+  vcov_vary = vcov_vary[3:4, 3:4], ylab = "Marker 2")
 # the survival parameters
-delta <- c(-.5, .25)
-alpha <- c(-.8, .7)
-omega <- c(.5, .1, -.2, .11)
-Xi <- matrix(.2^2, 1)
+fixef_surv <- c(-.5, .25) # delta
+associations <- c(-.8, .7) # alpha
+fixef_vary_surv <- c(.5, .1, -.2, .11) # omega
+vcov_surv <- matrix(.2^2, 1) # Xi
 
 b_func <- function(x)
   bs(x, knots = 1, Boundary.knots = c(0, 2))
@@ -733,37 +757,35 @@ plot_surv(
   time_rng = list(
     ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
-  x_range = c(0, 2), vcov_vary = Psi, frailty_var = Xi,
-  ps = c(.25, .5, .75), log_hazard_shift = delta[1], 
-  fixef_vary = omega, associations = alpha)
-
+  x_range = c(0, 2), vcov_vary = vcov_vary, frailty_var = vcov_surv,
+  ps = c(.25, .5, .75), log_hazard_shift = fixef_surv[1], 
+  fixef_vary = fixef_vary_surv, associations = associations)
 # without the markers
 plot_surv(
   time_fixef = bs_term(knots = 1, Boundary.knots = c(0, 2)), 
   time_rng = list(
     ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
-  x_range = c(0, 2), vcov_vary = matrix(0, 4, 4), frailty_var = Xi,
-  ps = c(.25, .5, .75), log_hazard_shift = delta[1], 
-  fixef_vary = omega, associations = alpha)
-
+  x_range = c(0, 2), vcov_vary = matrix(0, 4, 4), frailty_var = vcov_surv,
+  ps = c(.25, .5, .75), log_hazard_shift = fixef_surv[1], 
+  fixef_vary = fixef_vary_surv, associations = associations)
 # compute a few survival curves and plot them 
 library(SimSurvNMarker)
  # time points where we evaluate the conditional survival functions
 tis <- seq(0, 2, length.out = 50)
 set.seed(1)
-Us <- mvtnorm::rmvnorm(250, sigma = Psi) # the random effects
+Us <- mvtnorm::rmvnorm(250, sigma = vcov_vary) # the random effects
 # compute the conditional survival functions disregarding the fixed effect
 surv_vals <- apply(Us, 1, function(U){
   expansion <- function(x)
     cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2], 
           m_funcs[[2]](x) %*% U[3:4])
   
-  err <- rnorm(1, sd = sqrt(Xi))
+  err <- rnorm(1, sd = sqrt(vcov_surv))
   
   eval_surv_base_fun(
-    ti = tis, omega = c(omega, alpha), b_func = expansion, 
-    gl_dat = get_gl_rule(100), delta = delta[1] + err)
+    ti = tis, omega = c(fixef_vary_surv, associations), b_func = expansion, 
+    gl_dat = get_gl_rule(100), delta = fixef_surv[1] + err)
 })
 
 matplot(tis, surv_vals, type = "l", col = gray(0, .1), bty = "l", lty = 1,
@@ -789,13 +811,13 @@ sim_dat <- function(n_ids){
     X <- list(X1, X2)
 
     # sample the outcomes
-    U <- drop(rmvnorm(1, sigma = Psi))
+    U <- drop(rmvnorm(1, sigma = vcov_vary))
     eta <- sapply(1:2, function(i)
       X[[i]] %*% fixef_marker[[i]] +
       drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] +
       drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
 
-    ys <- eta + rmvnorm(n_obs, sigma = Sig)
+    ys <- eta + rmvnorm(n_obs, sigma = vcov_marker)
     colnames(ys) <- paste0("Y", 1:2)
 
     # mask some observations
@@ -805,11 +827,14 @@ sim_dat <- function(n_ids){
 
     X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
     marker_data <- cbind(ys, X, time = obs_time, id = id)
+    
+    # clean up 
+    rm(list = setdiff(ls(), c("U", "marker_data", "id")))
 
     # simulate the survival outcome
-    rng_surv <- rnorm(1, sd = sqrt(Xi))
+    rng_surv <- rnorm(1, sd = sqrt(vcov_surv))
     Z <- c(1, runif(1, -1, 1))
-    log_haz_offset <- sum(Z * delta) + rng_surv
+    log_haz_offset <- sum(Z * fixef_surv) + rng_surv
 
     expansion <- function(x)
       cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
@@ -818,7 +843,7 @@ sim_dat <- function(n_ids){
     # the conditional survival function
     surv_func <- function(ti)
       eval_surv_base_fun(
-        ti = ti, omega = c(omega, alpha), b_func = expansion,
+        ti = ti, omega = c(fixef_vary_surv, associations), b_func = expansion,
         gl_dat = gl_dat, delta = log_haz_offset)
 
     # simulate the recurrent events one at a time
@@ -956,24 +981,24 @@ fixef_vary_marker[[2]] # true values
 
 # the fixed effects for the survival outcome and the association parameters
 fmt_ests$survival[[1]]
-delta
-omega
-alpha
+fixef_surv
+fixef_vary_surv
+associations
 
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
-Psi # the true values
+vcov_vary # the true values
 
 # the parameters for the error term covariance matrix
 fmt_ests$vcov$vcov_marker
-Sig
+vcov_marker
 
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
-Xi
+vcov_surv
 ```
 
-### Two Markers, the Observation Time Process, and a Terminal Event
+### Two Markers the Observation Time Process and a Terminal Event
 
 We simulate and fit a model in this section 
 where we have two markers, a recurrent event 
@@ -1002,6 +1027,7 @@ m_funcs <- list(
 fixef_vary_marker <- list(c(1.4, 1.2, -2.1), c(.5, -.02)) # beta
 fixef_marker <- list(c(-.5, 2), 1) # gamma
 
+# Psi
 vcov_vary <- structure(c(0.35, 0.08, -0.05, 0.01, 0.08, 1.92, -0.24, -0.04,
                    -0.05, -0.24, 0.32, 0.09, 0.01, -0.04, 0.09, 0.12),
                  .Dim = c(4L, 4L))
@@ -1023,7 +1049,7 @@ plot_marker(
   fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 10),
   vcov_vary = vcov_vary[3:4, 3:4], ylab = "Marker 2")
 # the survival parameters
-vcov_frailty <- matrix(c(.2^2, .15^2, .15^2, .25^2), 2)
+vcov_surv <- matrix(c(.2^2, .15^2, .15^2, .25^2), 2) # Xi 
 
 fixef_surv <- list(c(-1, .25), .2)
 associations <- list(c(.6, -.4), c(-.7, .2))
@@ -1043,7 +1069,7 @@ plot_surv(
     ns_term(knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)),
   x_range = c(0, 10), fixef_vary = fixef_vary_surv[[1]],
-  vcov_vary = vcov_vary, frailty_var = vcov_frailty[1, 1], ps = c(.25, .5, .75),
+  vcov_vary = vcov_vary, frailty_var = vcov_surv[1, 1], ps = c(.25, .5, .75),
   associations = associations[[1]], log_hazard_shift = fixef_surv[[1]][1],
   ylab = "Terminal event")
 plot_surv(
@@ -1052,7 +1078,7 @@ plot_surv(
     ns_term(knots = numeric(), Boundary.knots = c(0, 10), intercept = TRUE),
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)),
   x_range = c(0, 10), fixef_vary = fixef_vary_surv[[2]],
-  vcov_vary = vcov_vary, frailty_var = vcov_frailty[2, 2], ps = c(.25, .5, .75),
+  vcov_vary = vcov_vary, frailty_var = vcov_surv[2, 2], ps = c(.25, .5, .75),
   associations = associations[[2]], log_hazard_shift = fixef_surv[[2]][1],
   ylab = "Observation process")
 ```
@@ -1068,7 +1094,7 @@ sim_dat <- function(n_ids){
     cens <- min(rexp(1, rate = 1/10), 10)
     U <- drop(rmvnorm(1, sigma = vcov_vary))
 
-    frailties <- drop(rmvnorm(1, sigma = vcov_frailty))
+    frailties <- drop(rmvnorm(1, sigma = vcov_surv))
     Z1 <- c(1, runif(1, -1, 1))
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
@@ -1076,18 +1102,18 @@ sim_dat <- function(n_ids){
     expansion <- function(x, b_func)
       cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
             m_funcs[[2]](x) %*% U[3:4])
-    surv_func <- function(ti, omega, alpha, b_func){
+    surv_func <- function(ti, fixef_vary_surv, associations, b_func){
       formals(expansion)$b_func <- b_func
       eval_surv_base_fun(
-        ti = ti, omega = c(omega, alpha), b_func = expansion,
+        ti = ti, omega = c(fixef_vary_surv, associations), b_func = expansion,
         gl_dat = gl_dat, delta = log_haz_offset)
     }
 
     # sample the survival time
     rng <- runif(1)
     root_func <- function(x, rng)
-      rng - surv_func(x, omega = fixef_vary_surv[[1]],
-                      alpha = associations[[1]], b_func = b_funcs[[1]])
+      rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[1]],
+                      associations = associations[[1]], b_func = b_funcs[[1]])
 
 
     if(root_func(cens, rng) < 0){
@@ -1114,8 +1140,8 @@ sim_dat <- function(n_ids){
     log_haz_offset <- sum(Z2 * fixef_surv[[2]]) + frailties[2]
 
     root_func <- function(x, left_trunc_surv, rng)
-      rng - surv_func(x, omega = fixef_vary_surv[[2]],
-                      alpha = associations[[2]], b_func = b_funcs[[2]]) /
+      rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[2]],
+                      associations = associations[[2]], b_func = b_funcs[[2]]) /
       left_trunc_surv
 
     max_sample <- 1000L
@@ -1141,7 +1167,7 @@ sim_dat <- function(n_ids){
       lf_trunc_i <- y[i] <- root$root
       event[i] <- 1
       left_trunc_surv <- surv_func(
-        y[i], omega = fixef_vary_surv[[2]], alpha = associations[[2]],
+        y[i], fixef_vary_surv = fixef_vary_surv[[2]], associations = associations[[2]],
         b_func = b_funcs[[2]])
     }
 
@@ -1218,6 +1244,11 @@ NROW(dat$marker_data) # number of observed marker
 
 # distribution of observed marker per individual
 proportions(table(table(dat$obs_process$id)))
+
+# show data for one individual
+subset(dat$marker_data, id == 1)
+subset(dat$obs_process, id == 1)
+subset(dat$terminal_outcome, id == 1)
 
 # estimate the model with this package. Get the object we need for the
 # optimization
@@ -1303,7 +1334,7 @@ vcov_marker
 
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
-vcov_frailty
+vcov_surv
 ```
 
 ## Technical Details
