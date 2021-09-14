@@ -27,16 +27,11 @@ inline void throw_invalid_out(
 
 namespace joint_bases {
 
-SplineBasis::SplineBasis(const vajoint_uint order): order(order), knots() {
-  if (order<1)
-    throw std::invalid_argument("order<1");
-}
-
-
-SplineBasis::SplineBasis(const vec knots, const vajoint_uint order):
+SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order):
   order(order), knots(knots) {
   if (order<1)
     throw std::invalid_argument("order<1");
+  set_no_div_zero();
 }
 
 inline arma::vec SplineBasis_knots

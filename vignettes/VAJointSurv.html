@@ -314,7 +314,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>              <span class="co"># to compare with the lower bound from this package</span></span>
 <span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>              <span class="at">REML =</span> <span class="cn">FALSE</span>))</span>
 <span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.841   0.009   0.851</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.845   0.004   0.849</span></span>
 <span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="co"># the maximum log likelihood</span></span>
 <span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">logLik</span>(fit), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -330,12 +330,12 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>                       <span class="at">intercept =</span> <span class="cn">TRUE</span>)),</span>
 <span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_threads =</span> 4L))</span>
 <span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.112   0.000   0.112</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.109   0.000   0.109</span></span>
 <span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.126   0.004   0.036</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.114   0.004   0.034</span></span>
 <span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -355,7 +355,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
 <span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   7.481   0.003   1.873</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   7.311   0.007   1.830</span></span>
 <span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -370,7 +370,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 5000L)))</span>
 <span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 104.518   0.067  26.215</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  107.87    0.06   27.05</span></span>
 <span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -529,7 +529,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.127   0.000   0.032</span></span>
+<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.197   0.000   0.056</span></span>
 <span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -549,7 +549,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   2.138   0.000   0.538</span></span>
+<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   2.887   0.004   0.726</span></span>
 <span id="cb5-93"><a href="#cb5-93" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb5-94"><a href="#cb5-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb5-95"><a href="#cb5-95" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -562,7 +562,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-102"><a href="#cb5-102" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb5-103"><a href="#cb5-103" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 10000L)))</span>
 <span id="cb5-104"><a href="#cb5-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-105"><a href="#cb5-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  166.14    0.14   41.64</span></span>
+<span id="cb5-105"><a href="#cb5-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  178.10    0.12   44.64</span></span>
 <span id="cb5-106"><a href="#cb5-106" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb5-107"><a href="#cb5-107" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb5-108"><a href="#cb5-108" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>)  <span class="co"># maximum lower bound value</span></span>
@@ -781,7 +781,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.221   0.000   0.220</span></span>
+<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.229   0.000   0.229</span></span>
 <span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -803,7 +803,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb8-121"><a href="#cb8-121" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb8-122"><a href="#cb8-122" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb8-123"><a href="#cb8-123" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb8-124"><a href="#cb8-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.190   0.000   3.191</span></span>
+<span id="cb8-124"><a href="#cb8-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    3.22    0.00    3.22</span></span>
 <span id="cb8-125"><a href="#cb8-125" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb8-126"><a href="#cb8-126" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb8-127"><a href="#cb8-127" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -1146,7 +1146,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb17-157"><a href="#cb17-157" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   1.853   0.000   0.488</span></span>
+<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   1.802   0.000   0.471</span></span>
 <span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -1166,7 +1166,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  36.839   0.008   9.213</span></span>
+<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  34.992   0.004   8.750</span></span>
 <span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -1179,7 +1179,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 2000L)))</span>
 <span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 181.885   0.048  45.580</span></span>
+<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 181.612   0.016  45.409</span></span>
 <span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>)  <span class="co"># maximum lower bound value</span></span>
@@ -1506,179 +1506,177 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb22-161"><a href="#cb22-161" aria-hidden="true" tabindex="-1"></a><span class="co"># distribution of observed marker per individual</span></span>
 <span id="cb22-162"><a href="#cb22-162" aria-hidden="true" tabindex="-1"></a><span class="fu">proportions</span>(<span class="fu">table</span>(<span class="fu">table</span>(dat<span class="sc">$</span>obs_process<span class="sc">$</span>id)))</span>
 <span id="cb22-163"><a href="#cb22-163" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-164"><a href="#cb22-164" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23    24 </span></span>
-<span id="cb22-165"><a href="#cb22-165" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.353 0.194 0.135 0.076 0.069 0.045 0.030 0.024 0.023 0.010 0.005 0.006 0.008 0.003 0.001 0.004 0.001 0.003 0.001 0.001 0.001 0.003 0.001 0.001 </span></span>
-<span id="cb22-166"><a href="#cb22-166" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    25    26 </span></span>
-<span id="cb22-167"><a href="#cb22-167" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.001 0.001</span></span>
-<span id="cb22-168"><a href="#cb22-168" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-169"><a href="#cb22-169" aria-hidden="true" tabindex="-1"></a><span class="co"># show data for one individual</span></span>
-<span id="cb22-170"><a href="#cb22-170" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, id <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb22-171"><a href="#cb22-171" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          Y1    Y2     X1_1   time id</span></span>
-<span id="cb22-172"><a href="#cb22-172" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.3      NA 4.041 -0.02815 2.4032  1</span></span>
-<span id="cb22-173"><a href="#cb22-173" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.2      NA 2.164 -1.03429 0.2988  1</span></span>
-<span id="cb22-174"><a href="#cb22-174" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.1 -0.3812 2.646 -0.28571 0.2603  1</span></span>
-<span id="cb22-175"><a href="#cb22-175" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X   -2.6308 1.584 -1.43968 0.0000  1</span></span>
-<span id="cb22-176"><a href="#cb22-176" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>obs_process, id <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb22-177"><a href="#cb22-177" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   lf_trunc      y event id</span></span>
-<span id="cb22-178"><a href="#cb22-178" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2   0.2603 0.2988     1  1</span></span>
-<span id="cb22-179"><a href="#cb22-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1   0.0000 0.2603     1  1</span></span>
-<span id="cb22-180"><a href="#cb22-180" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4   2.4032 2.8900     0  1</span></span>
-<span id="cb22-181"><a href="#cb22-181" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3   0.2988 2.4032     1  1</span></span>
-<span id="cb22-182"><a href="#cb22-182" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>terminal_outcome, id <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb22-183"><a href="#cb22-183" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      y event      Z1 id</span></span>
-<span id="cb22-184"><a href="#cb22-184" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 2.89     1 -0.6384  1</span></span>
-<span id="cb22-185"><a href="#cb22-185" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-186"><a href="#cb22-186" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate the model with this package. Get the object we need for the</span></span>
-<span id="cb22-187"><a href="#cb22-187" aria-hidden="true" tabindex="-1"></a><span class="co"># optimization</span></span>
-<span id="cb22-188"><a href="#cb22-188" aria-hidden="true" tabindex="-1"></a>marker_1 <span class="ot">&lt;-</span> <span class="fu">marker_term</span>(</span>
-<span id="cb22-189"><a href="#cb22-189" aria-hidden="true" tabindex="-1"></a>  Y1 <span class="sc">~</span> X1_1, <span class="at">id =</span> id, <span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, <span class="sc">!</span><span class="fu">is.na</span>(Y1)),</span>
-<span id="cb22-190"><a href="#cb22-190" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">ns_term</span>(time, <span class="at">knots =</span> <span class="fu">c</span>(<span class="fl">3.33</span>, <span class="fl">6.67</span>), <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)),</span>
-<span id="cb22-191"><a href="#cb22-191" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_rng =</span> <span class="fu">ns_term</span>(time, <span class="at">knots =</span> <span class="fu">numeric</span>(), <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb22-192"><a href="#cb22-192" aria-hidden="true" tabindex="-1"></a>                     <span class="at">intercept =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb22-193"><a href="#cb22-193" aria-hidden="true" tabindex="-1"></a>marker_2 <span class="ot">&lt;-</span> <span class="fu">marker_term</span>(</span>
-<span id="cb22-194"><a href="#cb22-194" aria-hidden="true" tabindex="-1"></a>  Y2 <span class="sc">~</span> <span class="dv">1</span>, <span class="at">id =</span> id, <span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, <span class="sc">!</span><span class="fu">is.na</span>(Y2)),</span>
-<span id="cb22-195"><a href="#cb22-195" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">poly_term</span>(time, <span class="at">degree =</span> <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-196"><a href="#cb22-196" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_rng =</span> <span class="fu">poly_term</span>(time, <span class="at">degree =</span> <span class="dv">1</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>, <span class="at">intercept =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb22-197"><a href="#cb22-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-198"><a href="#cb22-198" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survival)</span>
-<span id="cb22-199"><a href="#cb22-199" aria-hidden="true" tabindex="-1"></a>surv_terminal <span class="ot">&lt;-</span> <span class="fu">surv_term</span>(</span>
-<span id="cb22-200"><a href="#cb22-200" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Surv</span>(y, event) <span class="sc">~</span> Z1, <span class="at">id =</span> id, dat<span class="sc">$</span>terminal_outcome,</span>
-<span id="cb22-201"><a href="#cb22-201" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">bs_term</span>(y, <span class="at">knots =</span> <span class="dv">5</span>, <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)))</span>
-<span id="cb22-202"><a href="#cb22-202" aria-hidden="true" tabindex="-1"></a>surv_obs <span class="ot">&lt;-</span> <span class="fu">surv_term</span>(</span>
-<span id="cb22-203"><a href="#cb22-203" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Surv</span>(lf_trunc, y, event) <span class="sc">~</span> <span class="dv">1</span>, <span class="at">id =</span> id, dat<span class="sc">$</span>obs_process,</span>
-<span id="cb22-204"><a href="#cb22-204" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">ns_term</span>(y, <span class="at">knots =</span> <span class="dv">5</span>, <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)))</span>
-<span id="cb22-205"><a href="#cb22-205" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-206"><a href="#cb22-206" aria-hidden="true" tabindex="-1"></a>comp_obj <span class="ot">&lt;-</span> <span class="fu">joint_ms_ptr</span>(<span class="at">markers =</span> <span class="fu">list</span>(marker_1, marker_2),</span>
-<span id="cb22-207"><a href="#cb22-207" aria-hidden="true" tabindex="-1"></a>                         <span class="at">survival_terms =</span> <span class="fu">list</span>(surv_terminal, surv_obs),</span>
-<span id="cb22-208"><a href="#cb22-208" aria-hidden="true" tabindex="-1"></a>                         <span class="at">max_threads =</span> 4L)</span>
-<span id="cb22-209"><a href="#cb22-209" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(marker_1, marker_2, surv_terminal, surv_obs)</span>
-<span id="cb22-210"><a href="#cb22-210" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-211"><a href="#cb22-211" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
-<span id="cb22-212"><a href="#cb22-212" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
-<span id="cb22-213"><a href="#cb22-213" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.368   0.000   0.899</span></span>
-<span id="cb22-215"><a href="#cb22-215" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-216"><a href="#cb22-216" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
-<span id="cb22-217"><a href="#cb22-217" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
-<span id="cb22-218"><a href="#cb22-218" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9210.4926</span></span>
-<span id="cb22-219"><a href="#cb22-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-220"><a href="#cb22-220" aria-hidden="true" tabindex="-1"></a><span class="co"># check that the gradient is correct</span></span>
-<span id="cb22-221"><a href="#cb22-221" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> <span class="cf">function</span>(x){</span>
-<span id="cb22-222"><a href="#cb22-222" aria-hidden="true" tabindex="-1"></a>  start_val[<span class="fu">seq_along</span>(x)] <span class="ot">&lt;-</span> x</span>
-<span id="cb22-223"><a href="#cb22-223" aria-hidden="true" tabindex="-1"></a>  <span class="fu">joint_ms_lb</span>(comp_obj, start_val)</span>
-<span id="cb22-224"><a href="#cb22-224" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb22-225"><a href="#cb22-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-226"><a href="#cb22-226" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(numDeriv<span class="sc">::</span><span class="fu">grad</span>(f, <span class="fu">head</span>(start_val, <span class="dv">37</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="dv">27</span>)),</span>
-<span id="cb22-227"><a href="#cb22-227" aria-hidden="true" tabindex="-1"></a>          <span class="fu">head</span>(<span class="fu">joint_ms_lb_gr</span>(comp_obj, start_val), <span class="dv">37</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="dv">27</span>), </span>
-<span id="cb22-228"><a href="#cb22-228" aria-hidden="true" tabindex="-1"></a>          <span class="at">tolerance =</span> <span class="fl">1e-6</span>)</span>
-<span id="cb22-229"><a href="#cb22-229" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
-<span id="cb22-230"><a href="#cb22-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-231"><a href="#cb22-231" aria-hidden="true" tabindex="-1"></a><span class="co"># find the maximum lower bound estimate</span></span>
-<span id="cb22-232"><a href="#cb22-232" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
-<span id="cb22-233"><a href="#cb22-233" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
-<span id="cb22-234"><a href="#cb22-234" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb22-235"><a href="#cb22-235" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 331.166   0.526  83.255</span></span>
-<span id="cb22-236"><a href="#cb22-236" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
-<span id="cb22-237"><a href="#cb22-237" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
-<span id="cb22-238"><a href="#cb22-238" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
-<span id="cb22-239"><a href="#cb22-239" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -7600.1887</span></span>
-<span id="cb22-240"><a href="#cb22-240" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-241"><a href="#cb22-241" aria-hidden="true" tabindex="-1"></a><span class="co"># compare the estimates with the actual values. Start with the fixed effects</span></span>
-<span id="cb22-242"><a href="#cb22-242" aria-hidden="true" tabindex="-1"></a>fmt_ests <span class="ot">&lt;-</span> <span class="fu">joint_ms_format</span>(comp_obj, opt_out<span class="sc">$</span>par)</span>
-<span id="cb22-243"><a href="#cb22-243" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-244"><a href="#cb22-244" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the first marker</span></span>
-<span id="cb22-245"><a href="#cb22-245" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>markers[[<span class="dv">1</span>]]</span>
-<span id="cb22-246"><a href="#cb22-246" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb22-247"><a href="#cb22-247" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.5134  1.9734</span></span>
-<span id="cb22-248"><a href="#cb22-248" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-249"><a href="#cb22-249" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
-<span id="cb22-250"><a href="#cb22-250" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.402  1.561 -1.605</span></span>
-<span id="cb22-251"><a href="#cb22-251" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-252"><a href="#cb22-252" aria-hidden="true" tabindex="-1"></a>fixef_marker[[<span class="dv">1</span>]] <span class="co"># true values</span></span>
-<span id="cb22-253"><a href="#cb22-253" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.5  2.0</span></span>
-<span id="cb22-254"><a href="#cb22-254" aria-hidden="true" tabindex="-1"></a>fixef_vary_marker[[<span class="dv">1</span>]] <span class="co"># true values</span></span>
-<span id="cb22-255"><a href="#cb22-255" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.4  1.2 -2.1</span></span>
-<span id="cb22-256"><a href="#cb22-256" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-257"><a href="#cb22-257" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the second marker</span></span>
-<span id="cb22-258"><a href="#cb22-258" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>markers[[<span class="dv">2</span>]]</span>
-<span id="cb22-259"><a href="#cb22-259" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb22-260"><a href="#cb22-260" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1.036</span></span>
-<span id="cb22-261"><a href="#cb22-261" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-262"><a href="#cb22-262" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
-<span id="cb22-263"><a href="#cb22-263" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.48423 -0.02005</span></span>
-<span id="cb22-264"><a href="#cb22-264" aria-hidden="true" tabindex="-1"></a>fixef_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
-<span id="cb22-265"><a href="#cb22-265" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
-<span id="cb22-266"><a href="#cb22-266" aria-hidden="true" tabindex="-1"></a>fixef_vary_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
-<span id="cb22-267"><a href="#cb22-267" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.50 -0.02</span></span>
-<span id="cb22-268"><a href="#cb22-268" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-269"><a href="#cb22-269" aria-hidden="true" tabindex="-1"></a><span class="co"># the fixed effects for the survival outcome and the association parameters</span></span>
-<span id="cb22-270"><a href="#cb22-270" aria-hidden="true" tabindex="-1"></a><span class="co"># for the terminal event</span></span>
-<span id="cb22-271"><a href="#cb22-271" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>survival[[<span class="dv">1</span>]]</span>
-<span id="cb22-272"><a href="#cb22-272" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb22-273"><a href="#cb22-273" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.8597  0.2575</span></span>
-<span id="cb22-274"><a href="#cb22-274" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-275"><a href="#cb22-275" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
-<span id="cb22-276"><a href="#cb22-276" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.06612  1.15762 -1.26837  0.22345</span></span>
-<span id="cb22-277"><a href="#cb22-277" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-278"><a href="#cb22-278" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $associations</span></span>
-<span id="cb22-279"><a href="#cb22-279" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.5685 -0.3622</span></span>
-<span id="cb22-280"><a href="#cb22-280" aria-hidden="true" tabindex="-1"></a>fixef_surv[[<span class="dv">1</span>]]</span>
-<span id="cb22-281"><a href="#cb22-281" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.00  0.25</span></span>
-<span id="cb22-282"><a href="#cb22-282" aria-hidden="true" tabindex="-1"></a>fixef_vary_surv[[<span class="dv">1</span>]]</span>
-<span id="cb22-283"><a href="#cb22-283" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.50  0.10 -0.20  0.11</span></span>
-<span id="cb22-284"><a href="#cb22-284" aria-hidden="true" tabindex="-1"></a>associations[[<span class="dv">1</span>]]</span>
-<span id="cb22-285"><a href="#cb22-285" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.6 -0.4</span></span>
-<span id="cb22-286"><a href="#cb22-286" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-287"><a href="#cb22-287" aria-hidden="true" tabindex="-1"></a><span class="co"># same for the observation process</span></span>
-<span id="cb22-288"><a href="#cb22-288" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>survival[[<span class="dv">2</span>]]</span>
-<span id="cb22-289"><a href="#cb22-289" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
-<span id="cb22-290"><a href="#cb22-290" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2472</span></span>
-<span id="cb22-291"><a href="#cb22-291" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-292"><a href="#cb22-292" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
-<span id="cb22-293"><a href="#cb22-293" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.3510 -0.3495</span></span>
-<span id="cb22-294"><a href="#cb22-294" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-295"><a href="#cb22-295" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $associations</span></span>
-<span id="cb22-296"><a href="#cb22-296" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.7367  0.2076</span></span>
-<span id="cb22-297"><a href="#cb22-297" aria-hidden="true" tabindex="-1"></a>fixef_surv[[<span class="dv">2</span>]]</span>
-<span id="cb22-298"><a href="#cb22-298" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2</span></span>
-<span id="cb22-299"><a href="#cb22-299" aria-hidden="true" tabindex="-1"></a>fixef_vary_surv[[<span class="dv">2</span>]]</span>
-<span id="cb22-300"><a href="#cb22-300" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.00 -0.25</span></span>
-<span id="cb22-301"><a href="#cb22-301" aria-hidden="true" tabindex="-1"></a>associations[[<span class="dv">2</span>]]</span>
-<span id="cb22-302"><a href="#cb22-302" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.7  0.2</span></span>
-<span id="cb22-303"><a href="#cb22-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-304"><a href="#cb22-304" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for covariance matrix of the random effects</span></span>
-<span id="cb22-305"><a href="#cb22-305" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_vary</span>
-<span id="cb22-306"><a href="#cb22-306" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;            [,1]      [,2]     [,3]      [,4]</span></span>
-<span id="cb22-307"><a href="#cb22-307" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.2943429 -0.142810  0.05164 0.0006875</span></span>
-<span id="cb22-308"><a href="#cb22-308" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] -0.1428097  1.486758 -0.12555 0.0073747</span></span>
-<span id="cb22-309"><a href="#cb22-309" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,]  0.0516401 -0.125555  0.27873 0.0918414</span></span>
-<span id="cb22-310"><a href="#cb22-310" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.0006875  0.007375  0.09184 0.1167240</span></span>
-<span id="cb22-311"><a href="#cb22-311" aria-hidden="true" tabindex="-1"></a>vcov_vary <span class="co"># the true values</span></span>
-<span id="cb22-312"><a href="#cb22-312" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       [,1]  [,2]  [,3]  [,4]</span></span>
-<span id="cb22-313"><a href="#cb22-313" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.35  0.08 -0.05  0.01</span></span>
-<span id="cb22-314"><a href="#cb22-314" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.08  1.92 -0.24 -0.04</span></span>
-<span id="cb22-315"><a href="#cb22-315" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.05 -0.24  0.32  0.09</span></span>
-<span id="cb22-316"><a href="#cb22-316" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.01 -0.04  0.09  0.12</span></span>
-<span id="cb22-317"><a href="#cb22-317" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-318"><a href="#cb22-318" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the error term covariance matrix</span></span>
-<span id="cb22-319"><a href="#cb22-319" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_marker</span>
-<span id="cb22-320"><a href="#cb22-320" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        [,1]   [,2]</span></span>
-<span id="cb22-321"><a href="#cb22-321" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.3890 0.1104</span></span>
-<span id="cb22-322"><a href="#cb22-322" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.1104 0.1688</span></span>
-<span id="cb22-323"><a href="#cb22-323" aria-hidden="true" tabindex="-1"></a>vcov_marker</span>
-<span id="cb22-324"><a href="#cb22-324" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2]</span></span>
-<span id="cb22-325"><a href="#cb22-325" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.36 0.10</span></span>
-<span id="cb22-326"><a href="#cb22-326" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.10 0.16</span></span>
-<span id="cb22-327"><a href="#cb22-327" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-328"><a href="#cb22-328" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the frailty covariance matrix</span></span>
-<span id="cb22-329"><a href="#cb22-329" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_surv</span>
-<span id="cb22-330"><a href="#cb22-330" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;           [,1]     [,2]</span></span>
-<span id="cb22-331"><a href="#cb22-331" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.009439 -0.01258</span></span>
-<span id="cb22-332"><a href="#cb22-332" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] -0.012578  0.02800</span></span>
-<span id="cb22-333"><a href="#cb22-333" aria-hidden="true" tabindex="-1"></a>vcov_surv</span>
-<span id="cb22-334"><a href="#cb22-334" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        [,1]   [,2]</span></span>
-<span id="cb22-335"><a href="#cb22-335" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.0400 0.0225</span></span>
-<span id="cb22-336"><a href="#cb22-336" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.0225 0.0625</span></span></code></pre></div>
+<span id="cb22-164"><a href="#cb22-164" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26 </span></span>
+<span id="cb22-165"><a href="#cb22-165" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.353 0.194 0.135 0.076 0.069 0.045 0.030 0.024 0.023 0.010 0.005 0.006 0.008 0.003 0.001 0.004 0.001 0.003 0.001 0.001 0.001 0.003 0.001 0.001 0.001 0.001</span></span>
+<span id="cb22-166"><a href="#cb22-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-167"><a href="#cb22-167" aria-hidden="true" tabindex="-1"></a><span class="co"># show data for one individual</span></span>
+<span id="cb22-168"><a href="#cb22-168" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, id <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb22-169"><a href="#cb22-169" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          Y1    Y2     X1_1   time id</span></span>
+<span id="cb22-170"><a href="#cb22-170" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.3      NA 4.041 -0.02815 2.4032  1</span></span>
+<span id="cb22-171"><a href="#cb22-171" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.2      NA 2.164 -1.03429 0.2988  1</span></span>
+<span id="cb22-172"><a href="#cb22-172" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X.1 -0.3812 2.646 -0.28571 0.2603  1</span></span>
+<span id="cb22-173"><a href="#cb22-173" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; X   -2.6308 1.584 -1.43968 0.0000  1</span></span>
+<span id="cb22-174"><a href="#cb22-174" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>obs_process, id <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb22-175"><a href="#cb22-175" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   lf_trunc      y event id</span></span>
+<span id="cb22-176"><a href="#cb22-176" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2   0.2603 0.2988     1  1</span></span>
+<span id="cb22-177"><a href="#cb22-177" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1   0.0000 0.2603     1  1</span></span>
+<span id="cb22-178"><a href="#cb22-178" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4   2.4032 2.8900     0  1</span></span>
+<span id="cb22-179"><a href="#cb22-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3   0.2988 2.4032     1  1</span></span>
+<span id="cb22-180"><a href="#cb22-180" aria-hidden="true" tabindex="-1"></a><span class="fu">subset</span>(dat<span class="sc">$</span>terminal_outcome, id <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb22-181"><a href="#cb22-181" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      y event      Z1 id</span></span>
+<span id="cb22-182"><a href="#cb22-182" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 2.89     1 -0.6384  1</span></span>
+<span id="cb22-183"><a href="#cb22-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-184"><a href="#cb22-184" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate the model with this package. Get the object we need for the</span></span>
+<span id="cb22-185"><a href="#cb22-185" aria-hidden="true" tabindex="-1"></a><span class="co"># optimization</span></span>
+<span id="cb22-186"><a href="#cb22-186" aria-hidden="true" tabindex="-1"></a>marker_1 <span class="ot">&lt;-</span> <span class="fu">marker_term</span>(</span>
+<span id="cb22-187"><a href="#cb22-187" aria-hidden="true" tabindex="-1"></a>  Y1 <span class="sc">~</span> X1_1, <span class="at">id =</span> id, <span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, <span class="sc">!</span><span class="fu">is.na</span>(Y1)),</span>
+<span id="cb22-188"><a href="#cb22-188" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">ns_term</span>(time, <span class="at">knots =</span> <span class="fu">c</span>(<span class="fl">3.33</span>, <span class="fl">6.67</span>), <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)),</span>
+<span id="cb22-189"><a href="#cb22-189" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_rng =</span> <span class="fu">ns_term</span>(time, <span class="at">knots =</span> <span class="fu">numeric</span>(), <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
+<span id="cb22-190"><a href="#cb22-190" aria-hidden="true" tabindex="-1"></a>                     <span class="at">intercept =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb22-191"><a href="#cb22-191" aria-hidden="true" tabindex="-1"></a>marker_2 <span class="ot">&lt;-</span> <span class="fu">marker_term</span>(</span>
+<span id="cb22-192"><a href="#cb22-192" aria-hidden="true" tabindex="-1"></a>  Y2 <span class="sc">~</span> <span class="dv">1</span>, <span class="at">id =</span> id, <span class="fu">subset</span>(dat<span class="sc">$</span>marker_data, <span class="sc">!</span><span class="fu">is.na</span>(Y2)),</span>
+<span id="cb22-193"><a href="#cb22-193" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">poly_term</span>(time, <span class="at">degree =</span> <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-194"><a href="#cb22-194" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_rng =</span> <span class="fu">poly_term</span>(time, <span class="at">degree =</span> <span class="dv">1</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>, <span class="at">intercept =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb22-195"><a href="#cb22-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-196"><a href="#cb22-196" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survival)</span>
+<span id="cb22-197"><a href="#cb22-197" aria-hidden="true" tabindex="-1"></a>surv_terminal <span class="ot">&lt;-</span> <span class="fu">surv_term</span>(</span>
+<span id="cb22-198"><a href="#cb22-198" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Surv</span>(y, event) <span class="sc">~</span> Z1, <span class="at">id =</span> id, dat<span class="sc">$</span>terminal_outcome,</span>
+<span id="cb22-199"><a href="#cb22-199" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">bs_term</span>(y, <span class="at">knots =</span> <span class="dv">5</span>, <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)))</span>
+<span id="cb22-200"><a href="#cb22-200" aria-hidden="true" tabindex="-1"></a>surv_obs <span class="ot">&lt;-</span> <span class="fu">surv_term</span>(</span>
+<span id="cb22-201"><a href="#cb22-201" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Surv</span>(lf_trunc, y, event) <span class="sc">~</span> <span class="dv">1</span>, <span class="at">id =</span> id, dat<span class="sc">$</span>obs_process,</span>
+<span id="cb22-202"><a href="#cb22-202" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_fixef =</span> <span class="fu">ns_term</span>(y, <span class="at">knots =</span> <span class="dv">5</span>, <span class="at">Boundary.knots =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)))</span>
+<span id="cb22-203"><a href="#cb22-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-204"><a href="#cb22-204" aria-hidden="true" tabindex="-1"></a>comp_obj <span class="ot">&lt;-</span> <span class="fu">joint_ms_ptr</span>(<span class="at">markers =</span> <span class="fu">list</span>(marker_1, marker_2),</span>
+<span id="cb22-205"><a href="#cb22-205" aria-hidden="true" tabindex="-1"></a>                         <span class="at">survival_terms =</span> <span class="fu">list</span>(surv_terminal, surv_obs),</span>
+<span id="cb22-206"><a href="#cb22-206" aria-hidden="true" tabindex="-1"></a>                         <span class="at">max_threads =</span> 4L)</span>
+<span id="cb22-207"><a href="#cb22-207" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(marker_1, marker_2, surv_terminal, surv_obs)</span>
+<span id="cb22-208"><a href="#cb22-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-209"><a href="#cb22-209" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
+<span id="cb22-210"><a href="#cb22-210" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
+<span id="cb22-211"><a href="#cb22-211" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
+<span id="cb22-212"><a href="#cb22-212" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.249   0.000   0.877</span></span>
+<span id="cb22-213"><a href="#cb22-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
+<span id="cb22-215"><a href="#cb22-215" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
+<span id="cb22-216"><a href="#cb22-216" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -9210.4926</span></span>
+<span id="cb22-217"><a href="#cb22-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-218"><a href="#cb22-218" aria-hidden="true" tabindex="-1"></a><span class="co"># check that the gradient is correct</span></span>
+<span id="cb22-219"><a href="#cb22-219" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> <span class="cf">function</span>(x){</span>
+<span id="cb22-220"><a href="#cb22-220" aria-hidden="true" tabindex="-1"></a>  start_val[<span class="fu">seq_along</span>(x)] <span class="ot">&lt;-</span> x</span>
+<span id="cb22-221"><a href="#cb22-221" aria-hidden="true" tabindex="-1"></a>  <span class="fu">joint_ms_lb</span>(comp_obj, start_val)</span>
+<span id="cb22-222"><a href="#cb22-222" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-223"><a href="#cb22-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-224"><a href="#cb22-224" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(numDeriv<span class="sc">::</span><span class="fu">grad</span>(f, <span class="fu">head</span>(start_val, <span class="dv">37</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="dv">27</span>)),</span>
+<span id="cb22-225"><a href="#cb22-225" aria-hidden="true" tabindex="-1"></a>          <span class="fu">head</span>(<span class="fu">joint_ms_lb_gr</span>(comp_obj, start_val), <span class="dv">37</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="dv">27</span>), </span>
+<span id="cb22-226"><a href="#cb22-226" aria-hidden="true" tabindex="-1"></a>          <span class="at">tolerance =</span> <span class="fl">1e-6</span>)</span>
+<span id="cb22-227"><a href="#cb22-227" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb22-228"><a href="#cb22-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-229"><a href="#cb22-229" aria-hidden="true" tabindex="-1"></a><span class="co"># find the maximum lower bound estimate</span></span>
+<span id="cb22-230"><a href="#cb22-230" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
+<span id="cb22-231"><a href="#cb22-231" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
+<span id="cb22-232"><a href="#cb22-232" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
+<span id="cb22-233"><a href="#cb22-233" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 337.835   0.527  86.660</span></span>
+<span id="cb22-234"><a href="#cb22-234" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
+<span id="cb22-235"><a href="#cb22-235" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb22-236"><a href="#cb22-236" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
+<span id="cb22-237"><a href="#cb22-237" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -7600.1887</span></span>
+<span id="cb22-238"><a href="#cb22-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-239"><a href="#cb22-239" aria-hidden="true" tabindex="-1"></a><span class="co"># compare the estimates with the actual values. Start with the fixed effects</span></span>
+<span id="cb22-240"><a href="#cb22-240" aria-hidden="true" tabindex="-1"></a>fmt_ests <span class="ot">&lt;-</span> <span class="fu">joint_ms_format</span>(comp_obj, opt_out<span class="sc">$</span>par)</span>
+<span id="cb22-241"><a href="#cb22-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-242"><a href="#cb22-242" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the first marker</span></span>
+<span id="cb22-243"><a href="#cb22-243" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>markers[[<span class="dv">1</span>]]</span>
+<span id="cb22-244"><a href="#cb22-244" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
+<span id="cb22-245"><a href="#cb22-245" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.5134  1.9734</span></span>
+<span id="cb22-246"><a href="#cb22-246" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-247"><a href="#cb22-247" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
+<span id="cb22-248"><a href="#cb22-248" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.402  1.561 -1.605</span></span>
+<span id="cb22-249"><a href="#cb22-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-250"><a href="#cb22-250" aria-hidden="true" tabindex="-1"></a>fixef_marker[[<span class="dv">1</span>]] <span class="co"># true values</span></span>
+<span id="cb22-251"><a href="#cb22-251" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.5  2.0</span></span>
+<span id="cb22-252"><a href="#cb22-252" aria-hidden="true" tabindex="-1"></a>fixef_vary_marker[[<span class="dv">1</span>]] <span class="co"># true values</span></span>
+<span id="cb22-253"><a href="#cb22-253" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  1.4  1.2 -2.1</span></span>
+<span id="cb22-254"><a href="#cb22-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-255"><a href="#cb22-255" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the second marker</span></span>
+<span id="cb22-256"><a href="#cb22-256" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>markers[[<span class="dv">2</span>]]</span>
+<span id="cb22-257"><a href="#cb22-257" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
+<span id="cb22-258"><a href="#cb22-258" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1.036</span></span>
+<span id="cb22-259"><a href="#cb22-259" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-260"><a href="#cb22-260" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
+<span id="cb22-261"><a href="#cb22-261" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.48423 -0.02005</span></span>
+<span id="cb22-262"><a href="#cb22-262" aria-hidden="true" tabindex="-1"></a>fixef_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
+<span id="cb22-263"><a href="#cb22-263" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
+<span id="cb22-264"><a href="#cb22-264" aria-hidden="true" tabindex="-1"></a>fixef_vary_marker[[<span class="dv">2</span>]] <span class="co"># true values</span></span>
+<span id="cb22-265"><a href="#cb22-265" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.50 -0.02</span></span>
+<span id="cb22-266"><a href="#cb22-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-267"><a href="#cb22-267" aria-hidden="true" tabindex="-1"></a><span class="co"># the fixed effects for the survival outcome and the association parameters</span></span>
+<span id="cb22-268"><a href="#cb22-268" aria-hidden="true" tabindex="-1"></a><span class="co"># for the terminal event</span></span>
+<span id="cb22-269"><a href="#cb22-269" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>survival[[<span class="dv">1</span>]]</span>
+<span id="cb22-270"><a href="#cb22-270" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
+<span id="cb22-271"><a href="#cb22-271" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.8597  0.2575</span></span>
+<span id="cb22-272"><a href="#cb22-272" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-273"><a href="#cb22-273" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
+<span id="cb22-274"><a href="#cb22-274" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.06612  1.15762 -1.26837  0.22345</span></span>
+<span id="cb22-275"><a href="#cb22-275" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-276"><a href="#cb22-276" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $associations</span></span>
+<span id="cb22-277"><a href="#cb22-277" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.5685 -0.3622</span></span>
+<span id="cb22-278"><a href="#cb22-278" aria-hidden="true" tabindex="-1"></a>fixef_surv[[<span class="dv">1</span>]]</span>
+<span id="cb22-279"><a href="#cb22-279" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.00  0.25</span></span>
+<span id="cb22-280"><a href="#cb22-280" aria-hidden="true" tabindex="-1"></a>fixef_vary_surv[[<span class="dv">1</span>]]</span>
+<span id="cb22-281"><a href="#cb22-281" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.50  0.10 -0.20  0.11</span></span>
+<span id="cb22-282"><a href="#cb22-282" aria-hidden="true" tabindex="-1"></a>associations[[<span class="dv">1</span>]]</span>
+<span id="cb22-283"><a href="#cb22-283" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1]  0.6 -0.4</span></span>
+<span id="cb22-284"><a href="#cb22-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-285"><a href="#cb22-285" aria-hidden="true" tabindex="-1"></a><span class="co"># same for the observation process</span></span>
+<span id="cb22-286"><a href="#cb22-286" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>survival[[<span class="dv">2</span>]]</span>
+<span id="cb22-287"><a href="#cb22-287" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef</span></span>
+<span id="cb22-288"><a href="#cb22-288" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2472</span></span>
+<span id="cb22-289"><a href="#cb22-289" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-290"><a href="#cb22-290" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $fixef_vary</span></span>
+<span id="cb22-291"><a href="#cb22-291" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.3510 -0.3495</span></span>
+<span id="cb22-292"><a href="#cb22-292" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-293"><a href="#cb22-293" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; $associations</span></span>
+<span id="cb22-294"><a href="#cb22-294" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.7367  0.2076</span></span>
+<span id="cb22-295"><a href="#cb22-295" aria-hidden="true" tabindex="-1"></a>fixef_surv[[<span class="dv">2</span>]]</span>
+<span id="cb22-296"><a href="#cb22-296" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0.2</span></span>
+<span id="cb22-297"><a href="#cb22-297" aria-hidden="true" tabindex="-1"></a>fixef_vary_surv[[<span class="dv">2</span>]]</span>
+<span id="cb22-298"><a href="#cb22-298" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -1.00 -0.25</span></span>
+<span id="cb22-299"><a href="#cb22-299" aria-hidden="true" tabindex="-1"></a>associations[[<span class="dv">2</span>]]</span>
+<span id="cb22-300"><a href="#cb22-300" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -0.7  0.2</span></span>
+<span id="cb22-301"><a href="#cb22-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-302"><a href="#cb22-302" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for covariance matrix of the random effects</span></span>
+<span id="cb22-303"><a href="#cb22-303" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_vary</span>
+<span id="cb22-304"><a href="#cb22-304" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;            [,1]      [,2]     [,3]      [,4]</span></span>
+<span id="cb22-305"><a href="#cb22-305" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.2943429 -0.142810  0.05164 0.0006875</span></span>
+<span id="cb22-306"><a href="#cb22-306" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] -0.1428097  1.486758 -0.12555 0.0073747</span></span>
+<span id="cb22-307"><a href="#cb22-307" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,]  0.0516401 -0.125555  0.27873 0.0918414</span></span>
+<span id="cb22-308"><a href="#cb22-308" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.0006875  0.007375  0.09184 0.1167240</span></span>
+<span id="cb22-309"><a href="#cb22-309" aria-hidden="true" tabindex="-1"></a>vcov_vary <span class="co"># the true values</span></span>
+<span id="cb22-310"><a href="#cb22-310" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       [,1]  [,2]  [,3]  [,4]</span></span>
+<span id="cb22-311"><a href="#cb22-311" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.35  0.08 -0.05  0.01</span></span>
+<span id="cb22-312"><a href="#cb22-312" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.08  1.92 -0.24 -0.04</span></span>
+<span id="cb22-313"><a href="#cb22-313" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3,] -0.05 -0.24  0.32  0.09</span></span>
+<span id="cb22-314"><a href="#cb22-314" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4,]  0.01 -0.04  0.09  0.12</span></span>
+<span id="cb22-315"><a href="#cb22-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-316"><a href="#cb22-316" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the error term covariance matrix</span></span>
+<span id="cb22-317"><a href="#cb22-317" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_marker</span>
+<span id="cb22-318"><a href="#cb22-318" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        [,1]   [,2]</span></span>
+<span id="cb22-319"><a href="#cb22-319" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.3890 0.1104</span></span>
+<span id="cb22-320"><a href="#cb22-320" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.1104 0.1688</span></span>
+<span id="cb22-321"><a href="#cb22-321" aria-hidden="true" tabindex="-1"></a>vcov_marker</span>
+<span id="cb22-322"><a href="#cb22-322" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2]</span></span>
+<span id="cb22-323"><a href="#cb22-323" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.36 0.10</span></span>
+<span id="cb22-324"><a href="#cb22-324" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.10 0.16</span></span>
+<span id="cb22-325"><a href="#cb22-325" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-326"><a href="#cb22-326" aria-hidden="true" tabindex="-1"></a><span class="co"># the parameters for the frailty covariance matrix</span></span>
+<span id="cb22-327"><a href="#cb22-327" aria-hidden="true" tabindex="-1"></a>fmt_ests<span class="sc">$</span>vcov<span class="sc">$</span>vcov_surv</span>
+<span id="cb22-328"><a href="#cb22-328" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;           [,1]     [,2]</span></span>
+<span id="cb22-329"><a href="#cb22-329" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,]  0.009439 -0.01258</span></span>
+<span id="cb22-330"><a href="#cb22-330" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] -0.012578  0.02800</span></span>
+<span id="cb22-331"><a href="#cb22-331" aria-hidden="true" tabindex="-1"></a>vcov_surv</span>
+<span id="cb22-332"><a href="#cb22-332" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        [,1]   [,2]</span></span>
+<span id="cb22-333"><a href="#cb22-333" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] 0.0400 0.0225</span></span>
+<span id="cb22-334"><a href="#cb22-334" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,] 0.0225 0.0625</span></span></code></pre></div>
 </div>
 </div>
 <div id="technical-details" class="section level2">

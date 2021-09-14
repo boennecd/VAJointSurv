@@ -90,8 +90,7 @@ public:
                       ncoef =               /* number of coefficients */
                          nknots > order ? nknots - order : 0L;
 
-  SplineBasis(const vajoint_uint order);
-  SplineBasis(const vec knots, const vajoint_uint order = default_order);
+  SplineBasis(const vec &knots, const vajoint_uint order = default_order);
 
   vajoint_uint n_basis() const override {
     return ncoef;
@@ -229,28 +228,32 @@ public:
 
 public:
   /// true if there is no division by zero in the main loop
-  bool const no_div_zero {
-    ([&](){
+  bool no_div_zero;
+
+  void set_no_div_zero(){
       // TODO: can be done smarter
       std::vector<double> ldel(ordm1), rdel(ordm1);
       auto diff_table = [&](const vajoint_uint curs){
         for (vajoint_uint i = 0; i < ordm1; i++) {
           rdel[i] = knots[curs + i];
-          ldel[i] = knots[curs - (i + 1)];
+          ldel[i] = -knots[curs - (i + 1)];
         }
       };
 
-      for(vajoint_uint curs = order; curs <= order + nknots; ++curs){
+      no_div_zero = true;
+      vajoint_uint const end_curs
+        {knots.n_elem > ordm1 ? knots.n_elem - ordm1 : order};
+      for(vajoint_uint curs = order; curs < end_curs; ++curs){
         diff_table(curs);
         for(vajoint_uint j = 1; j <= ordm1; ++j)
-          for(vajoint_uint r = 0; r < j; ++r)
-            if(rdel[r] + ldel[j - 1 - r] == 0)
-              return false;
+          for(vajoint_uint r = 0; r < j; ++r){
+            if(rdel[r] + ldel[j - 1 - r] == 0){
+              no_div_zero = false;
+              return;
+            }
+          }
       }
-
-      return true;
-    })()
-  };
+  }
 };
 
 class bs final : public SplineBasis {
@@ -619,7 +622,6 @@ class orth_poly final : public basisMixin {
       }
     }
   }
-
 
 public:
   // constructor for raw == true
