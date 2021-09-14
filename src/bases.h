@@ -162,25 +162,39 @@ public:
     };
 
     // fast evaluation of basis functions
+    // only entered if order <= curs <= order + nknots
     auto basis_funcs = [&](double *b, const double x){
       diff_table(x, ordm1);
       b[0] = 1;
-      for (vajoint_uint j = 1; j <= ordm1; j++) {
-        double saved(0);
-        for(vajoint_uint r = 0; r < j; r++) { // do not divide by zero
-          double const den = rdel[r] + ldel[j - 1 - r];
-          if(den != 0) {
+      if(no_div_zero){
+        for(vajoint_uint j = 1; j <= ordm1; ++j){
+          double saved(0);
+          for(vajoint_uint r = 0; r < j; ++r) {
+            double const den = rdel[r] + ldel[j - 1 - r];
             double const term = b[r]/den;
             b[r] = saved + rdel[r] * term;
             saved = ldel[j - 1 - r] * term;
-          } else {
-            if(r != 0 || rdel[r] != 0)
-              b[r] = saved;
-            saved = 0;
           }
+          b[j] = saved;
         }
-        b[j] = saved;
-      }
+
+      } else // may divide by zero
+        for(vajoint_uint j = 1; j <= ordm1; ++j){
+          double saved(0);
+          for(vajoint_uint r = 0; r < j; ++r) { // do not divide by zero
+            double const den = rdel[r] + ldel[j - 1 - r];
+            if(den != 0) {
+              double const term = b[r]/den;
+              b[r] = saved + rdel[r] * term;
+              saved = ldel[j - 1 - r] * term;
+            } else {
+              if(r != 0 || rdel[r] != 0)
+                b[r] = saved;
+              saved = 0;
+            }
+          }
+          b[j] = saved;
+        }
     };
 
     // evaluate the basis
@@ -212,6 +226,31 @@ public:
   std::unique_ptr<basisMixin> clone() const override {
     return std::make_unique<SplineBasis>(*this);
   }
+
+public:
+  /// true if there is no division by zero in the main loop
+  bool const no_div_zero {
+    ([&](){
+      // TODO: can be done smarter
+      std::vector<double> ldel(ordm1), rdel(ordm1);
+      auto diff_table = [&](const vajoint_uint curs){
+        for (vajoint_uint i = 0; i < ordm1; i++) {
+          rdel[i] = knots[curs + i];
+          ldel[i] = knots[curs - (i + 1)];
+        }
+      };
+
+      for(vajoint_uint curs = order; curs <= order + nknots; ++curs){
+        diff_table(curs);
+        for(vajoint_uint j = 1; j <= ordm1; ++j)
+          for(vajoint_uint r = 0; r < j; ++r)
+            if(rdel[r] + ldel[j - 1 - r] == 0)
+              return false;
+      }
+
+      return true;
+    })()
+  };
 };
 
 class bs final : public SplineBasis {
