@@ -314,7 +314,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>              <span class="co"># to compare with the lower bound from this package</span></span>
 <span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>              <span class="at">REML =</span> <span class="cn">FALSE</span>))</span>
 <span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.954   0.000   0.953</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.922   0.004   0.925</span></span>
 <span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="co"># the maximum log likelihood</span></span>
 <span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">logLik</span>(fit), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -330,12 +330,12 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>                       <span class="at">intercept =</span> <span class="cn">TRUE</span>)),</span>
 <span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_threads =</span> 4L))</span>
 <span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.106   0.003   0.110</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.107   0.000   0.107</span></span>
 <span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.130   0.000   0.036</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.121   0.000   0.034</span></span>
 <span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -355,7 +355,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
 <span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   7.807   0.012   1.955</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   7.416   0.004   1.859</span></span>
 <span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -370,7 +370,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 5000L)))</span>
 <span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 109.598   0.453  29.230</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  103.07    0.08   25.79</span></span>
 <span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -529,7 +529,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.128   0.000   0.033</span></span>
+<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.122   0.000   0.032</span></span>
 <span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -549,7 +549,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   2.173   0.000   0.545</span></span>
+<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   2.108   0.000   0.530</span></span>
 <span id="cb5-93"><a href="#cb5-93" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb5-94"><a href="#cb5-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb5-95"><a href="#cb5-95" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -562,7 +562,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb5-102"><a href="#cb5-102" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb5-103"><a href="#cb5-103" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 10000L)))</span>
 <span id="cb5-104"><a href="#cb5-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb5-105"><a href="#cb5-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 167.213   0.151  41.914</span></span>
+<span id="cb5-105"><a href="#cb5-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 161.817   0.096  40.544</span></span>
 <span id="cb5-106"><a href="#cb5-106" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb5-107"><a href="#cb5-107" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb5-108"><a href="#cb5-108" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>)  <span class="co"># maximum lower bound value</span></span>
@@ -781,7 +781,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.227   0.000   0.227</span></span>
+<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.215   0.000   0.215</span></span>
 <span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -803,7 +803,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb8-121"><a href="#cb8-121" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb8-122"><a href="#cb8-122" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb8-123"><a href="#cb8-123" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb8-124"><a href="#cb8-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.224   0.000   3.224</span></span>
+<span id="cb8-124"><a href="#cb8-124" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.138   0.004   3.141</span></span>
 <span id="cb8-125"><a href="#cb8-125" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb8-126"><a href="#cb8-126" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb8-127"><a href="#cb8-127" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -1146,7 +1146,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb17-157"><a href="#cb17-157" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   1.883   0.000   0.503</span></span>
+<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   1.769   0.004   0.466</span></span>
 <span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -1166,7 +1166,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L, </span>
 <span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  35.546   0.000   8.888</span></span>
+<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  33.796   0.004   8.450</span></span>
 <span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
@@ -1179,7 +1179,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(x) <span class="fu">joint_ms_lb_gr</span>(comp_obj, x), </span>
 <span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">factr =</span> <span class="fl">1e-8</span>, <span class="at">maxit =</span> 2000L)))</span>
 <span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 182.296   0.032  45.582</span></span>
+<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 177.903   0.032  44.483</span></span>
 <span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a>lbfgs_res<span class="sc">$</span>convergence <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
 <span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>lbfgs_res<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>)  <span class="co"># maximum lower bound value</span></span>
@@ -1556,7 +1556,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb22-211"><a href="#cb22-211" aria-hidden="true" tabindex="-1"></a><span class="co"># get the starting values</span></span>
 <span id="cb22-212"><a href="#cb22-212" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(start_val <span class="ot">&lt;-</span> <span class="fu">joint_ms_start_val</span>(comp_obj))</span>
 <span id="cb22-213"><a href="#cb22-213" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.384   0.000   0.921</span></span>
+<span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   3.211   0.000   0.876</span></span>
 <span id="cb22-215"><a href="#cb22-215" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-216"><a href="#cb22-216" aria-hidden="true" tabindex="-1"></a><span class="co"># lower bound at the starting values</span></span>
 <span id="cb22-217"><a href="#cb22-217" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span><span class="fu">attr</span>(start_val, <span class="st">&quot;value&quot;</span>), <span class="at">digits =</span> <span class="dv">8</span>)</span>
@@ -1577,7 +1577,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <span id="cb22-232"><a href="#cb22-232" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(opt_out <span class="ot">&lt;-</span> <span class="fu">joint_ms_opt</span>(comp_obj, <span class="at">par =</span> start_val, <span class="at">max_it =</span> 1000L,</span>
 <span id="cb22-233"><a href="#cb22-233" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">pre_method =</span> 1L, <span class="at">cg_tol =</span> .<span class="dv">2</span>, <span class="at">c2 =</span> .<span class="dv">1</span>))</span>
 <span id="cb22-234"><a href="#cb22-234" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
-<span id="cb22-235"><a href="#cb22-235" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 314.724   0.088  78.704</span></span>
+<span id="cb22-235"><a href="#cb22-235" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 307.846   0.048  76.974</span></span>
 <span id="cb22-236"><a href="#cb22-236" aria-hidden="true" tabindex="-1"></a>opt_out<span class="sc">$</span>info <span class="co"># convergence code (0 == &#39;OK&#39;)</span></span>
 <span id="cb22-237"><a href="#cb22-237" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
 <span id="cb22-238"><a href="#cb22-238" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="sc">-</span>opt_out<span class="sc">$</span>value, <span class="at">digits =</span> <span class="dv">8</span>) <span class="co"># maximum lower bound value</span></span>
