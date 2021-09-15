@@ -138,7 +138,7 @@ orth_map(((alpha.size() + 1) * (alpha.size() + 2)) / 2) {
 
 orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
   vajoint_uint const n = x.n_elem,
-                    nc = degree + 1L;
+                    nc = degree + 1;
   double const x_bar = mean(x);
   x -= x_bar;
   mat XX(n, nc);
@@ -159,8 +159,8 @@ orth_poly orth_poly::poly_basis(vec x, uword const degree, mat &X){
   for(vajoint_uint c = 0; c < nc; ++c)
     X.col(c) *= R.at(c, c);
 
-  vec norm2(nc + 1L),
-  alpha(nc - 1L);
+  vec norm2(nc + 1),
+  alpha(nc - 1);
   norm2[0] = 1;
   for(vajoint_uint c = 0; c < nc; ++c){
     double z_sq(0),

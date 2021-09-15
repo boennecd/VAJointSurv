@@ -21,5 +21,8 @@ inline int get_thread_num() noexcept {
 constexpr vajoint_uint dim_tri(vajoint_uint const x){
   return (x * (x + 1)) / 2;
 }
+constexpr size_t dim_tri(size_t const x){
+  return (x * (x + 1)) / 2;
+}
 
 #endif

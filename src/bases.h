@@ -207,11 +207,12 @@ public:
        out(j+io) = double(0); // R_NaN;
        }*/
     } else if (ders > 0) { /* slow method for derivatives */
+      vajoint_uint const uders{static_cast<vajoint_uint>(ders)};
       for(vajoint_uint i = 0; i < (size_t)order; i++) {
         for(vajoint_uint j = 0; j < (size_t)order; j++)
           a[j] = 0;
         a[i] = 1;
-        out[i + io] = slow_evaluate(x, ders);
+        out[i + io] = slow_evaluate(x, uders);
       }
     } else { /* fast method for value */
       basis_funcs(wrk, x);
@@ -295,39 +296,29 @@ public:
           : 0.75 * boundary_knots[1] + 0.25 * knots[knots.n_elem - order - 2],
                      delta = x - k_pivot;
 
-      auto add_term = [&](vajoint_uint const d, double const f = 1){
+      auto add_term = [&](int const d, double const f = 1){
         bs::operator()(my_wk_mem, wk_mem, k_pivot, d);
         for(vajoint_uint i = 0; i < bs::n_basis(); ++i)
           out[i] += f * my_wk_mem[i];
       };
 
       std::fill(out, out + bs::n_basis(), 0);
-      switch(ders){
-      case 0:
+      if(ders == 0){
         add_term(0);
         add_term(1, delta);
         add_term(2, delta * delta / 2);
         add_term(3, delta * delta * delta / 6);
-        break;
 
-      case 1:
+      } else if(ders == 1){
         add_term(1);
         add_term(2, delta);
         add_term(3, delta * delta / 2.);
-        break;
 
-      case 2:
+      } else if(ders == 2){
         add_term(2);
         add_term(3, delta);
-        break;
-
-      case 3:
+      } else if(ders == 3)
         add_term(3);
-        break;
-
-      default:
-        throw std::invalid_argument("ders not implemented");
-      };
 
       return;
     }
@@ -577,7 +568,7 @@ class orth_poly final : public basisMixin {
       // compute the starting value
       double val_upper{x},
              val_lower{lower_limit};
-      vajoint_uint const uders = -ders;
+      vajoint_uint const uders{static_cast<vajoint_uint>(-ders)};
       for(vajoint_uint i = 2; i <= uders; ++i){
         val_upper *= x           / static_cast<double>(i);
         val_lower *= lower_limit / static_cast<double>(i);
@@ -599,22 +590,24 @@ class orth_poly final : public basisMixin {
       }
 
     } else { // ders > 0
+      vajoint_uint const uders{static_cast<vajoint_uint>(ders)};
+
       if(inter){
-        std::fill(out, out + ders, 0);
+        std::fill(out, out + uders, 0);
         double val{1};
-        for(vajoint_uint c = ders; c < n_basis_v; c++){
+        for(vajoint_uint c = uders; c < n_basis_v; c++){
           vajoint_uint mult{c};
-          for(vajoint_uint cc = c; --cc > c - ders;)
+          for(vajoint_uint cc = c; --cc > c - uders;)
             mult *= cc;
           out[c] = mult * val;
           val *= x;
         }
       } else {
-        std::fill(out, out + ders - 1, 0);
+        std::fill(out, out + uders - 1, 0);
         double val{1};
         for(vajoint_uint c = 0; c < n_basis_v; c++){
           vajoint_uint mult{c + 1};
-          for(vajoint_uint cc = c + 1; --cc > c - ders + 1;)
+          for(vajoint_uint cc = c + 1; --cc > c - uders + 1;)
             mult *= cc;
           out[c] = mult * val;
           val *= x;
@@ -661,7 +654,7 @@ public:
         out[0 + intercept] = x - alpha[0];
         for(vajoint_uint c = 1; c < alpha.n_elem; c++){
           out[c + intercept] =
-            (x - alpha[c]) * out[c - 1 + intercept] - norm2[c + 1L] /
+            (x - alpha[c]) * out[c - 1 + intercept] - norm2[c + 1] /
             norm2[c] * old;
           old = out[c - 1 + intercept];
         }
