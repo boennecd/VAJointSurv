@@ -722,17 +722,20 @@ List joint_ms_parameter_indices(SEXP ptr){
   }
 
   // handle the covariance matrices
-  vajoint_uint const n_vcov_marker{dim_tri(params.marker_info().size())};
+  vajoint_uint const n_vcov_marker
+    {static_cast<vajoint_uint>(dim_tri(params.marker_info().size()))};
   Rcpp::IntegerVector vcov_marker(n_vcov_marker);
   std::iota
     (vcov_marker.begin(), vcov_marker.end(), params.vcov_marker<true>() + 1);
 
-  vajoint_uint const n_vcov_surv{dim_tri(params.surv_info().size())};
+  vajoint_uint const n_vcov_surv
+    {static_cast<vajoint_uint>(dim_tri(params.surv_info().size()))};
   Rcpp::IntegerVector vcov_surv(n_vcov_surv);
   std::iota
     (vcov_surv.begin(), vcov_surv.end(), params.vcov_surv<true>() + 1);
 
-  vajoint_uint const n_vcov_vary{dim_tri(params.n_shared())};
+  vajoint_uint const n_vcov_vary
+    {static_cast<vajoint_uint>(dim_tri(params.n_shared()))};
   Rcpp::IntegerVector vcov_vary(n_vcov_vary);
   std::iota
     (vcov_vary.begin(), vcov_vary.end(), params.vcov_vary<true>() + 1);

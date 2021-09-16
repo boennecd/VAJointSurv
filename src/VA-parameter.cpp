@@ -42,12 +42,14 @@ std::vector<std::string> subset_params::param_names
 
   // handle the covariance matrices
   {
-    vajoint_uint const dim_vcov_marker{dim_tri(marker_info_v.size())};
+    vajoint_uint const dim_vcov_marker{
+      static_cast<vajoint_uint>(dim_tri(marker_info_v.size()))};
     for(vajoint_uint i = 0; i < dim_vcov_marker; ++i)
       out[i + vcov_marker<true>()] = "vcov_marker" + std::to_string(i + 1);
   }
   {
-    vajoint_uint const dim_vcov_surv{dim_tri(surv_info_v.size())};
+    vajoint_uint const dim_vcov_surv{
+      static_cast<vajoint_uint>(dim_tri(surv_info_v.size()))};
     for(vajoint_uint i = 0; i < dim_vcov_surv; ++i)
       out[i + vcov_surv<true>()] = "vcov_surv" + std::to_string(i + 1);
   }
