@@ -8,6 +8,7 @@
 #include <memory.h>
 #include "wmem.h"
 #include "lp-joint.h"
+#include <algorithm>
 
 namespace joint_bases {
 
@@ -25,6 +26,9 @@ public:
 
   /// the number of basis functions
   virtual vajoint_uint n_basis() const = 0;
+
+  /// lower limit of integrals
+  double lower_limit{};
 
   /**
    * fills a vector with the (possibly derivatives) of the basis expansions
@@ -70,14 +74,6 @@ public:
   virtual ~basisMixin() = default;
 
   virtual std::unique_ptr<basisMixin> clone() const = 0;
-
-  /// sets the lower limit of ders < 0 (i.e. integration)
-  void set_lower_limit(double const x){
-    lower_limit = x;
-  }
-
-protected:
-  double lower_limit{};
 };
 
 class SplineBasis : public basisMixin {
@@ -90,14 +86,19 @@ public:
                       ncoef =               /* number of coefficients */
                          nknots > order ? nknots - order : 0L;
 
-  SplineBasis(const vec &knots, const vajoint_uint order = default_order);
+  SplineBasis(const vec &knots, const vajoint_uint order = default_order,
+              bool const with_intercept = true);
+
+  SplineBasis(SplineBasis const &other):
+    SplineBasis(other.knots, other.order,
+                static_cast<bool>(other.integral_basis)) { }
 
   vajoint_uint n_basis() const override {
     return ncoef;
   }
 
   size_t n_wmem() const override {
-    return 2 * ordm1 + 2 * order;
+    return n_wmem_v;
   }
 
   using basisMixin::operator();
@@ -105,6 +106,67 @@ public:
     (double *out, double *wk_mem, double const x,
      const int ders = default_ders)
     const override {
+    if(ders < 0){
+      if(ders < -1)
+        throw std::runtime_error("not implemented for ders < -1");
+      // use formulas from Monotone Regression Splines in Action
+      //    https://doi.org/10.1214/ss/1177012761
+      // TODO: can be implemented smarter...
+      double * const basis_mem = wk_mem;
+      wk_mem += integral_basis->n_basis();
+
+      double dorder{static_cast<double>(order)};
+
+      // computes the indefinte integral at the upper or lower limit. The
+      // function must first be called at the upper limit
+      auto add_int = [&](double const lim, bool const is_upper){
+        // evaluate the basis which is one order greater
+        (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
+
+        // find the index j such that knots[j] <= lim < knots[j + 1]
+        // use -1 if x < knots[0]
+        auto const idx_knot_start =
+          ([&]{
+            auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
+            return std::distance(knots.begin(), knot_j) - 1;
+          })();
+
+        // x is too small for these basis function to be active
+        vajoint_uint const idx_no_support
+            {static_cast<vajoint_uint>(idx_knot_start + 1)};
+        if(is_upper)
+          std::fill(out + idx_no_support, out + ncoef, 0);
+        // x is large enough that we have integrated over the full support of
+        // these basis functions
+        vajoint_uint i{};
+        vajoint_uint const is_capped =
+          idx_knot_start + 1 >= order ? idx_knot_start + 1 - order : 0;
+        for(; i < is_capped; ++i)
+          if(is_upper)
+            out[i]  = (knots[i + order] - knots[i]) / dorder;
+          else
+            out[i] -= (knots[i + order] - knots[i]) / dorder;
+
+        // the residual is somewhere in between
+        for(; i < idx_no_support; ++i){
+          double su{};
+          for(vajoint_uint j = i; j < idx_no_support; ++j)
+            // TODO: redundant computations
+            su += basis_mem[j];
+          if(is_upper)
+            out[i]  = su * (knots[i + order] - knots[i]) / dorder;
+          else
+            out[i] -= su * (knots[i + order] - knots[i]) / dorder;
+        }
+      };
+
+      add_int(x, true); // the upper limit
+      if(lower_limit > knots[0])
+        add_int(lower_limit, false); // the lower limit
+
+      return;
+    }
+
     // setup the object we need
     double * const ldel{wk_mem},       /* differences from knots on the left */
            * const rdel{ldel + ordm1}, /* differences from knots on the right */
@@ -114,20 +176,13 @@ public:
 
     // the function we need to perform the computation
     auto set_cursor = [&](const double x){
-      /* don't assume x's are sorted */
       curs = 0; /* Wall */
       boundary = 0;
-      for (vajoint_uint i = 0; i < nknots; i++) {
-        if (knots[i] >= x)
-          curs = i;
-        if (knots[i] > x)
-          break;
-      }
-      if (curs > ncoef) {
-        if (x == knots[ncoef]){
-          boundary = 1;
-          curs = ncoef;
-        }
+      while(curs < nknots && knots[curs] <= x)
+        ++curs;
+      if(curs > ncoef && x == knots[ncoef]){
+        boundary = 1;
+        curs = ncoef;
       }
       return curs;
     };
@@ -161,7 +216,7 @@ public:
     };
 
     // fast evaluation of basis functions
-    // only entered if order <= curs <= order + nknots
+    // only entered if ordm1 <= curs <= order + nknots
     auto basis_funcs = [&](double *b, const double x){
       diff_table(x, ordm1);
       b[0] = 1;
@@ -187,16 +242,22 @@ public:
     std::fill(out, out + SplineBasis::n_basis(), 0);
 
     set_cursor(x);
-    vajoint_uint io;
-    if (curs < order || (io = curs - order) > nknots) {
+    vajoint_uint const io{curs < order ? 0 : curs - order};
+    if(curs == ordm1 && io <= ncoef){
+      // special case where we have to shift the result
+      basis_funcs(wrk, x);
+      for (vajoint_uint i = 1; i < order; i++)
+        out[i + io - 1] = wrk[i];
+
+    } else if (curs < order || io > ncoef) {
       /* Do nothing. x is already zero by default
        for (size_t j = 0; j < (size_t)order; j++) {
        out(j+io) = double(0); // R_NaN;
        }*/
     } else if (ders > 0) { /* slow method for derivatives */
       vajoint_uint const uders{static_cast<vajoint_uint>(ders)};
-      for(vajoint_uint i = 0; i < (size_t)order; i++) {
-        for(vajoint_uint j = 0; j < (size_t)order; j++)
+      for(vajoint_uint i = 0; i < order; i++) {
+        for(vajoint_uint j = 0; j < order; j++)
           a[j] = 0;
         a[i] = 1;
         out[i + io] = slow_evaluate(x, uders);
@@ -213,6 +274,15 @@ public:
   std::unique_ptr<basisMixin> clone() const override {
     return std::make_unique<SplineBasis>(*this);
   }
+
+private:
+  std::unique_ptr<SplineBasis> integral_basis;
+  size_t const n_wmem_v
+    {
+    integral_basis
+      ? integral_basis->n_wmem() + integral_basis->n_basis()
+      : 2 * ordm1 + 2 * order
+    };
 };
 
 class bs final : public SplineBasis {
@@ -220,12 +290,13 @@ public:
   vec const boundary_knots, interior_knots;
   bool const intercept;
   vajoint_uint const df;
+  size_t n_wmem_v
+    {2 * std::max(SplineBasis::n_basis(), bs::n_basis()) +
+      SplineBasis::n_wmem()};
 
 public:
   size_t n_wmem() const {
-    return
-      2 * std::max(SplineBasis::n_basis(), bs::n_basis()) +
-        SplineBasis::n_wmem();
+    return n_wmem_v;
   }
 
   bs(const vec &bk, const vec &ik,
@@ -261,7 +332,9 @@ public:
       };
 
       std::fill(out, out + bs::n_basis(), 0);
-      if(ders == 0){
+      if(ders < 0 )
+        throw std::invalid_argument("integration outside of bounds is not implemented with bs");
+      else if(ders == 0){
         add_term(0);
         add_term(1, delta);
         add_term(2, delta * delta / 2);
@@ -330,7 +403,7 @@ public:
     (double *out, double *wk_mem, double const x,
      int const ders = default_ders) const {
     if(x < bspline.boundary_knots[0]) {
-      if (ders==0){
+      if(ders==0){
         for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
           out[i] = tl1[i];
           out[i] *= x - bspline.boundary_knots[0];
@@ -508,42 +581,39 @@ class orth_poly final : public basisMixin {
   std::vector<double> orth_map;
 
   // evaluates the polynomial with raw == TRUE
-  void eval_raw(double *out, double const x,
-                bool const inter, int const ders = default_ders) const {
-    if(ders == 0){
-      if(inter){
-        out[0] = 1.;
-        for(vajoint_uint c = 1; c < n_basis_v; c++)
-          out[c] = out[c - 1] * x;
+  static void eval_raw
+    (double *out, double const x, bool const inter, int const ders,
+     vajoint_uint const degree, double const lb) {
+    vajoint_uint const dim{degree + inter};
 
-      } else {
-        double val{1};
-        for(vajoint_uint c = 0; c < n_basis_v; c++)
-          out[c] = val *= x;
-      }
+    if(ders == 0){
+      double val{inter ? 1 : x};
+      for(vajoint_uint c = 0; c < dim; ++c, val *= x)
+        out[c] = val;
+      return;
 
     } else if(ders < 0){
       // compute the starting value
       double val_upper{x},
-             val_lower{lower_limit};
+             val_lower{lb};
       vajoint_uint const uders{static_cast<vajoint_uint>(-ders)};
       for(vajoint_uint i = 2; i <= uders; ++i){
-        val_upper *= x           / static_cast<double>(i);
-        val_lower *= lower_limit / static_cast<double>(i);
+        val_upper *= x  / static_cast<double>(i);
+        val_lower *= lb / static_cast<double>(i);
       }
 
       if(!inter){
-        val_upper *= x / (uders + 1);
-        val_lower *= x / (uders + 1);
+        val_upper *= x  / (uders + 1);
+        val_lower *= lb / (uders + 1);
       }
 
-      for(vajoint_uint c = 0; c < n_basis_v; c++){
+      for(vajoint_uint c = 0; c < dim; c++){
         out[c] = val_upper - val_lower;
-        val_upper *= x           / static_cast<double>(c + uders + 1 + inter);
-        val_lower *= lower_limit / static_cast<double>(c + uders + 1 + inter);
-        if(c + 1 - inter > uders){
-          val_upper *= c + 1. + inter;
-          val_lower *= c + 1. + inter;
+        val_upper *= x  / static_cast<double>(c + uders + 1 + !inter);
+        val_lower *= lb / static_cast<double>(c + uders + 1 + !inter);
+        if(c + 1 + !inter >= uders){
+          val_upper *= c + 1. + !inter;
+          val_lower *= c + 1. + !inter;
         }
       }
 
@@ -553,17 +623,18 @@ class orth_poly final : public basisMixin {
       if(inter){
         std::fill(out, out + uders, 0);
         double val{1};
-        for(vajoint_uint c = uders; c < n_basis_v; c++){
+        for(vajoint_uint c = uders; c < dim; c++){
           vajoint_uint mult{c};
           for(vajoint_uint cc = c; --cc > c - uders;)
             mult *= cc;
           out[c] = mult * val;
           val *= x;
         }
+
       } else {
         std::fill(out, out + uders - 1, 0);
         double val{1};
-        for(vajoint_uint c = 0; c < n_basis_v; c++){
+        for(vajoint_uint c = uders - 1; c < dim; c++){
           vajoint_uint mult{c + 1};
           for(vajoint_uint cc = c + 1; --cc > c - uders + 1;)
             mult *= cc;
@@ -600,7 +671,7 @@ public:
     const {
 
     if(raw){
-      eval_raw(out, x, intercept, ders);
+      eval_raw(out, x, intercept, ders, n_basis_v - intercept, lower_limit);
       return;
     }
 
@@ -626,18 +697,18 @@ public:
 
     // compute the raw polynomial and multiply on the matrix
     // TODO: can likely be done in more stable way?
-    eval_raw(wk_mem, x, true, ders);
+    eval_raw(wk_mem, x, true, ders, n_basis_v - intercept, lower_limit);
 
     std::fill(out, out + n_basis_v, 0);
     // handle the intercept term
     auto g = orth_map.begin() + !intercept;
-    for(vajoint_uint i = 0; i < n_basis_v; ++i)
-      out[i] = wk_mem[0] * *g++;
+    if(intercept)
+      out[0] = *g++ * wk_mem[0];
 
     // handle the other terms
-    for(vajoint_uint j = 0; j < alpha.size(); ++j)
-      for(vajoint_uint i = j; i < alpha.size(); ++i)
-        out[i + intercept] += wk_mem[j + 1] * *g++;
+    for(vajoint_uint j = 1; j < alpha.size() + 1; ++j)
+      for(vajoint_uint i = 0; i <= j; ++i)
+        out[j - !intercept] += wk_mem[i] * *g++;
   }
 
   /**

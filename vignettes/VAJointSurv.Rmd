@@ -134,7 +134,8 @@ We show a few examples of using this package and illustrate its API in this
 section. The examples includes: 
 
  - Only one marker in the [Univariate Marker Example](#univariate-marker-example)
-   section where we can compare with lme4.
+   section where we can compare with lme4. The section also includes some 
+   remarks about the implemented expansions.
  - Two markers in the [Two Markers](#two-markers) section.
  - A recurrent event in the [Recurrent Event](#recurrent-event) section. It is
    also shown how to change the quadrature rule that is used to approximate the 
@@ -300,6 +301,116 @@ c(lme4 = attr(VarCorr(fit), "sc")^2,
   `This package` = fmt_ests$vcov$vcov_marker, 
   Actual = vcov_marker)
 ```
+
+#### Note on Basis Expansions
+This is a technical section which you may skip. 
+Special basis expansions for e.g. `poly` and `ns` are implemented in R as 
+`poly_term` and `ns_term`. The reason is that the integration shown in the
+[Survival Outcomes](#survival-outcomes) has to be done many times. Thus, we have
+implemented all the expansions in C++ to be used in C++ to reduce the cost of 
+the evaluations. 
+
+The `_term` functions provide the R interface to the C++ functions. Each 
+return a list with elements like their R counterparts and a `eval` element. 
+The latter element can be used to evaluate the basis, the derivatives of the 
+basis if the `der` argument is less then zero, or the integral 
+
+$$\vec M(u) = \int_l^u \vec m(s) ds$$
+
+if the `der` argument is equal to minus one. The lower limits is passed with 
+the `lower_limit` argument to the `eval` function. We illustrate this below 
+first with a raw polynomial. We also show that the derivatives and integral are 
+correct.
+
+```{r show_poly}
+# raw polynomial with an without an intercept
+pl <- poly_term(degree = 3, raw = TRUE, intercept = TRUE)
+pl_no_inter <- poly_term(degree = 3, raw = TRUE, intercept = FALSE)
+t(pl         $eval(1:2))
+t(pl_no_inter$eval(1:2))
+outer(1:2, 0:3, `^`) # R version
+
+# derivatives
+library(numDeriv)
+t(pl$eval(2:3, der = 1))
+t(pl_no_inter$eval(2:3, der = 1))
+t(pl$eval(2:3, der = 2)) # second derivative
+t(pl_no_inter$eval(2:3, der = 2)) # second derivative
+# trivial to do compute by hand but we do it with numDeriv anyway
+t(sapply(2:3, function(x) jacobian(function(z) outer(z, 0:3, `^`), x)))
+
+# integral
+t(pl$eval(3:4, der = -1, lower_limit = 0))
+t(pl_no_inter$eval(3:4, der = -1, lower_limit = 0))
+# we could do this by hand but we write a function which we can reuse
+do_int <- function(xs, f, lower_limit){
+  n_terms <- length(f(xs[1]))
+  g <- function(x, i) f(x)[, i]
+  outer(xs, 1:n_terms, Vectorize(
+    function(x, i) integrate(g, lower_limit, x, i = i)$value))
+}
+do_int(3:4, function(x) outer(x, 0:3, `^`), 0)
+```
+
+The functionality also works for orthogonal polynomials.
+
+```{r show_orth_poly}
+# equally works with orthogonal polynomials
+xx <- seq(0, 4, length.out = 10)
+pl <- poly_term(xx, degree = 3, raw = FALSE, intercept = TRUE)
+t(pl$eval(2:3))
+predict(poly(xx, degree = 3), 2:3)
+
+# derivatives
+t(pl$eval(2:3, der = 1))
+t(sapply(2:3, function(x) 
+  jacobian(function(z) predict(poly(xx, degree = 3), z), x)))
+
+# integral 
+t(pl$eval(3:4, der = -1, lower_limit = 0))
+do_int(3:4, function(x) predict(poly(xx, degree = 3), x), 0)
+```
+
+The derivatives and integral are also available for B-splines and 
+natural cubic splines through the `ns_term` and `bs_term` functions.
+
+```{r ns_bs_term}
+# B-splines
+library(splines)
+xx <- 0:10
+b <- bs_term(xx, df = 4, Boundary.knots = range(xx))
+t(b$eval(4.33))
+c(predict(bs(xx, df = 4, Boundary.knots = range(xx)), 4.33))
+
+# derivatives
+t(b$eval(4.33, der = 1))
+f <- function(z) predict(bs(xx, df = 4, Boundary.knots = range(xx)), z)
+t(jacobian(f, 4.33))
+
+# integrals
+t(b$eval(4, der = -1, lower_limit = 0))
+do_int(4, f, 0)
+t(b$eval(4, der = -1, lower_limit = 1))
+do_int(4, f, 1)
+
+# natural cubic spline
+xx <- 0:10
+n <- ns_term(xx, df = 3, Boundary.knots = range(xx))
+t(n$eval(4.33))
+c(predict(ns(xx, df = 3, Boundary.knots = range(xx)), 4.33))
+
+# derivatives
+t(n$eval(4.33, der = 1))
+f <- function(z) predict(ns(xx, df = 3, Boundary.knots = range(xx)), z)
+t(jacobian(f, 4.33))
+
+# integrals
+t(n$eval(4.33, der = -1, lower_limit = 0))
+do_int(4.33, f, 0)
+```
+
+Caution: integration is not implemented for the B-splines or natural cubic 
+splines outside of the boundary knots!
 
 ### Two Markers
 

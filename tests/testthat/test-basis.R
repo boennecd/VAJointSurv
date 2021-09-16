@@ -9,7 +9,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth), ignore_attr = TRUE)
 
   # with an intercept
@@ -17,7 +17,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, rbind(1, t(truth)), ignore_attr = TRUE)
 
   # without an intercept and raw is TRUE
@@ -25,7 +25,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(outer(out_x, 1:3, `^`)))
 
   # with an intercept and raw is TRUE
@@ -33,7 +33,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(outer(out_x, 0:3, `^`)))
 
   # without an intercept and degree == 0
@@ -41,7 +41,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, matrix(0, 0, length(out_x)))
 
   # with an intercept and degree == 0
@@ -49,7 +49,7 @@ test_that("The C++ version of poly gives the right result", {
   expect_s3_class(obj_cpp, "poly_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, matrix(1, 1, length(out_x)))
 })
 
@@ -64,7 +64,7 @@ test_that("The C++ version of bs gives the right result", {
   expect_s3_class(obj_cpp, "bs_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth),  ignore_attr = TRUE)
 
   # with an intercept
@@ -75,7 +75,7 @@ test_that("The C++ version of bs gives the right result", {
   expect_s3_class(obj_cpp, "bs_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth),  ignore_attr = TRUE)
 })
 
@@ -90,7 +90,7 @@ test_that("The C++ version of ns gives the right result", {
   expect_s3_class(obj_cpp, "ns_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth),  ignore_attr = TRUE)
 
   # with an intercept
@@ -101,6 +101,6 @@ test_that("The C++ version of ns gives the right result", {
   expect_s3_class(obj_cpp, "ns_term")
   expect_equal(obj_cpp$time, in_x)
 
-  expansion <- VAJointSurv:::eval_expansion(obj_cpp, out_x)
+  expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth),  ignore_attr = TRUE)
 })

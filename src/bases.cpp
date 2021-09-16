@@ -27,10 +27,33 @@ inline void throw_invalid_out(
 
 namespace joint_bases {
 
-SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order):
-  order(order), knots(knots) {
+SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order,
+                         bool const with_intercept):
+  order(order),
+  knots{
+    ([](vec ks){
+      // sort the knots
+      std::sort(ks.begin(), ks.end());
+      return ks;
+    })(knots)
+  },
+  integral_basis {
+    ([&](){
+      if(!with_intercept)
+        return std::unique_ptr<SplineBasis>();
+
+      // append an additional knot
+      arma::vec new_ks(knots.n_elem + 1);
+      std::copy(knots.begin(), knots.end(), new_ks.begin());
+      if(knots.size() > 0)
+        new_ks[new_ks.n_elem - 1] = knots[knots.n_elem - 1];
+
+      return std::make_unique<SplineBasis>(new_ks, order + 1, false);
+    })()
+  } {
   if (order<1)
     throw std::invalid_argument("order<1");
+  // TODO: should make a check on the number of knots?
 }
 
 inline arma::vec SplineBasis_knots

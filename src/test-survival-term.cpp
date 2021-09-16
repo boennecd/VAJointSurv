@@ -119,7 +119,7 @@ context("expected_cum_hazzard is correct") {
         {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
 
-      expect_true(res == Approx(true_val1).epsilon(1e-6));
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
     }
     {
       auto req_mem = comp_obj.n_wmem();
@@ -127,7 +127,7 @@ context("expected_cum_hazzard is correct") {
         {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
 
-      expect_true(res == Approx(true_val2).epsilon(1e-6));
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
     }
 
     // we get the correct gradient
@@ -145,20 +145,20 @@ context("expected_cum_hazzard is correct") {
         ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]));
 
-      expect_true(res.value() == Approx(true_val1).epsilon(1e-6));
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
       res.propagateToStart();
       double const *g{gr1};
 
       for(auto &x : ad_delta)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_omega)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_alpha)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_zeta)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_Psi)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
     }
     {
       Number::tape->rewind();
@@ -174,20 +174,20 @@ context("expected_cum_hazzard is correct") {
         ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]));
 
-      expect_true(res.value() == Approx(true_val2).epsilon(1e-6));
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
       res.propagateToStart();
       double const *g{gr2};
 
       for(auto &x : ad_delta)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_omega)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_alpha)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_zeta)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
       for(auto &x : ad_Psi)
-        expect_true(x.adjoint() == Approx(*g++).epsilon(1e-6));
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
     }
 
     // clean-up
@@ -406,7 +406,7 @@ context("survival_dat is correct") {
             (par.data(), wmem::get_double_mem(req_wmem[0]), j, i,
              wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
 
-      expect_true(res == Approx(true_val).epsilon(1e-6));
+      expect_true(pass_rel_err(res, true_val, 1e-6));
     }
 
     // we get the right gradient
@@ -421,14 +421,14 @@ context("survival_dat is correct") {
           (ad_par.data(), wmem::get_Number_mem(req_wmem[0]), j, i,
            wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
 
-    expect_true(res.value() == Approx(true_val).epsilon(1e-6));
+    expect_true(pass_rel_err(res.value(), true_val, 1e-6));
     expect_true(
       ad_par.size() == static_cast<size_t>(
         std::distance(begin(true_grad), end(true_grad))));
 
     res.propagateToStart();
     for(size_t i = 0; i < ad_par.size(); ++i)
-      expect_true(ad_par[i].adjoint() == Approx(true_grad[i]).epsilon(1e-6));
+      expect_true(pass_rel_err(ad_par[i].adjoint(), true_grad[i], 1e-6));
 
     // clean up
     wmem::clear_all();

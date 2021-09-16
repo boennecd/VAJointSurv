@@ -150,7 +150,7 @@ context("marker_term is correct") {
       double res = comp_obj(par.data(), wk_mem, 0)
         + comp_obj(par.data(), wk_mem, 1);
 
-      expect_true(res == Approx(true_val).epsilon(1e-7));
+      expect_true(pass_rel_err(res, true_val, 1e-7));
     }
 
     // test the gradient
@@ -163,13 +163,13 @@ context("marker_term is correct") {
       comp_obj(ad_par.data(), wk_mem, 1);
 
     res.propagateToStart();
-    expect_true(res.value() == Approx(true_val).epsilon(1e-6));
+    expect_true(pass_rel_err(res.value(), true_val, 1e-6));
 
     expect_true(ad_par.size() == static_cast<size_t>(
       std::distance(begin(true_derivs), end(true_derivs))));
 
     for(size_t i = 0; i < ad_par.size(); ++i)
-      expect_true(ad_par[i].adjoint() == Approx(true_derivs[i]).epsilon(1e-6));
+      expect_true(pass_rel_err(ad_par[i].adjoint(), true_derivs[i], 1e-6));
 
     // clean up
     wmem::clear_all();
@@ -401,7 +401,7 @@ context("marker_term is correct") {
       double res{};
       for(vajoint_uint i = 0; i < comp_obj.n_obs(); ++i)
         res += comp_obj(par.data(), wk_mem, i);
-      expect_true(res == Approx(true_val).epsilon(1e-7));
+      expect_true(pass_rel_err(res, true_val, 1e-7));
     }
 
     // test the gradient
@@ -417,13 +417,13 @@ context("marker_term is correct") {
       res += comp_obj(ad_par.data(), wk_mem, i);
 
     res.propagateToStart();
-    expect_true(res.value() == Approx(true_val).epsilon(1e-6));
+    expect_true(pass_rel_err(res.value(), true_val, 1e-6));
 
     expect_true(ad_par.size() == static_cast<size_t>(
       std::distance(begin(true_derivs), end(true_derivs))));
 
     for(size_t i = 0; i < ad_par.size(); ++i)
-      expect_true(ad_par[i].adjoint() == Approx(true_derivs[i]).epsilon(1e-6));
+      expect_true(pass_rel_err(ad_par[i].adjoint(), true_derivs[i], 1e-6));
 
     // clean up
     wmem::clear_all();

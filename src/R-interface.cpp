@@ -109,16 +109,26 @@ std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
   return std::make_unique<joint_bases::orth_poly>(2, false);
 }
 
-/// functions which is exported only to check that the bases work as in R
+/// returns a smart pointer to basisMixin object
 // [[Rcpp::export(rng = false)]]
-NumericMatrix eval_expansion(List dat, NumericVector const x){
-  auto basis = basis_from_list(dat);
+SEXP expansion_object(List dat){
+  auto res = basis_from_list(dat);
+  return Rcpp::XPtr<joint_bases::basisMixin>{res.release()};
+}
+
+/// evaluates an expansion at x with using an XPtr
+// [[Rcpp::export(rng = false)]]
+NumericMatrix eval_expansion
+  (SEXP ptr, NumericVector const x, int const ders,
+   double lower_limit){
+  Rcpp::XPtr<joint_bases::basisMixin> basis(ptr);
   NumericMatrix out(basis->n_basis(), x.size());
 
   wmem::clear_all();
+  basis->lower_limit = lower_limit;
   double *wmem = wmem::get_double_mem(basis->n_wmem());
   for(R_len_t i = 0; i < x.size(); ++i)
-    (*basis)(&out.column(i)[0], wmem, x[i]);
+    (*basis)(&out.column(i)[0], wmem, x[i], ders);
 
   return out;
 }

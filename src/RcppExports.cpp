@@ -13,14 +13,26 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// eval_expansion
-NumericMatrix eval_expansion(List dat, NumericVector const x);
-RcppExport SEXP _VAJointSurv_eval_expansion(SEXP datSEXP, SEXP xSEXP) {
+// expansion_object
+SEXP expansion_object(List dat);
+RcppExport SEXP _VAJointSurv_expansion_object(SEXP datSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type dat(datSEXP);
+    rcpp_result_gen = Rcpp::wrap(expansion_object(dat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// eval_expansion
+NumericMatrix eval_expansion(SEXP ptr, NumericVector const x, int const ders, double lower_limit);
+RcppExport SEXP _VAJointSurv_eval_expansion(SEXP ptrSEXP, SEXP xSEXP, SEXP dersSEXP, SEXP lower_limitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< SEXP >::type ptr(ptrSEXP);
     Rcpp::traits::input_parameter< NumericVector const >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(eval_expansion(dat, x));
+    Rcpp::traits::input_parameter< int const >::type ders(dersSEXP);
+    Rcpp::traits::input_parameter< double >::type lower_limit(lower_limitSEXP);
+    rcpp_result_gen = Rcpp::wrap(eval_expansion(ptr, x, ders, lower_limit));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -184,7 +196,8 @@ END_RCPP
 RcppExport SEXP run_testthat_tests(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_VAJointSurv_eval_expansion", (DL_FUNC) &_VAJointSurv_eval_expansion, 2},
+    {"_VAJointSurv_expansion_object", (DL_FUNC) &_VAJointSurv_expansion_object, 1},
+    {"_VAJointSurv_eval_expansion", (DL_FUNC) &_VAJointSurv_eval_expansion, 4},
     {"_VAJointSurv_joint_ms_ptr", (DL_FUNC) &_VAJointSurv_joint_ms_ptr, 3},
     {"_VAJointSurv_joint_ms_n_terms", (DL_FUNC) &_VAJointSurv_joint_ms_n_terms, 1},
     {"_VAJointSurv_joint_ms_eval_lb", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb, 4},

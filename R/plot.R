@@ -20,8 +20,8 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
             length(p) == 1, is.finite(p), p > 0, p < 1)
 
   xs <- seq(x_range[1], x_range[2], length.out = 200)
-  mea <- drop(fixef_vary %*% eval_expansion(time_fixef, xs))
-  M <- eval_expansion(time_rng, xs)
+  mea <- drop(fixef_vary %*% time_fixef$eval(xs))
+  M <- time_rng$eval(xs)
   sds <- sqrt(diag(crossprod(M, vcov_vary %*% M))) # very inefficient
 
   sds <- sds * qnorm((1 + p) / 2)
@@ -58,13 +58,13 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
 
   # assign function to evaluate the hazard pointwise
   time_rngs <- function(x){
-    bases <- lapply(time_rng, eval_expansion, x)
+    bases <- lapply(time_rng, function(expansion) expansion$eval(x))
     do.call(c, mapply(`*`, bases, associations, SIMPLIFY = FALSE))
   }
 
   tis <- seq(x_range[1], x_range[2], length.out = 100)
   hazs <- t(sapply(tis, function(ti){
-    log_haz <- log_hazard_shift + fixef_vary %*% eval_expansion(time_fixef, ti)
+    log_haz <- log_hazard_shift + fixef_vary %*% time_fixef$eval(ti)
     ti_basis <- time_rngs(ti)
     log_haz_var <- drop(frailty_var) + ti_basis %*% vcov_vary %*% ti_basis
 

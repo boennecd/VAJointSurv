@@ -1,3 +1,11 @@
+wrap_term <- function(term){
+  ptr <- expansion_object(term)
+  term$ptr <- ptr
+  term$eval <- function(x, der = 0, lower_limit = 0)
+    eval_expansion(ptr, x, der, lower_limit)
+  term
+}
+
 #' Term for Orthogonal Polynomials
 #'
 #' @param x,degree,coefs,raw same as \code{\link{poly}}.
@@ -15,7 +23,7 @@ poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
   else list(coefs = coefs)
 
   out[c("time", "intercept", "raw")] <- list(x, intercept, raw)
-  structure(out, class = "poly_term")
+  wrap_term(structure(out, class = "poly_term"))
 }
 
 #' Term for a Basis Matrix for Natural Cubic Splines
@@ -35,7 +43,7 @@ ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
 
   out[c("Boundary.knots", "time", "degree", "intercept")] <-
     list(Boundary.knots, x, 3L, intercept)
-  structure(out, class = "ns_term")
+  wrap_term(structure(out, class = "ns_term"))
 }
 
 #' Term for a B-Spline Basis for Polynomial Splines
@@ -55,7 +63,7 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 
   out[c("Boundary.knots", "time", "degree", "intercept")] <-
     list(Boundary.knots, x, degree, intercept)
-  structure(out, class = "bs_term")
+  wrap_term(structure(out, class = "bs_term"))
 }
 
 is_valid_expansion <- function(x)

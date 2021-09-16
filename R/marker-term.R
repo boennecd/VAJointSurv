@@ -69,7 +69,7 @@ marker_term_start_value <- function(object){
   stopifnot(inherits(object, "marker_term"))
 
   X <- t(object$X)
-  Z <- t(eval_expansion(object$time_fixef, object$time))
+  Z <- t(object$time_fixef$eval(object$time))
   n_X <- NCOL(X)
   XZ <- cbind(X, Z)
   rm(X, Z)
