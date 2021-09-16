@@ -18,12 +18,20 @@
 #' a random intercept.
 #'
 #' @importFrom stats model.frame model.matrix model.response
+#' @importFrom Matrix rankMatrix
 #'
 #' @export
 marker_term <- function(formula, id, data, time_fixef, time_rng){
   # get the input data
-  mf <- model.frame(formula, data)
+  mf <- match.call(expand.dots = FALSE)
+  m <- match(c("formula", "data"), names(mf), 0L)
+  mf <- mf[c(1L, m)]
+  mf[[1L]] <- quote(stats::model.frame)
+  mf <- eval(mf, parent.frame())
   mt <- attr(mf, "terms")
+
+  if(missing(data))
+    data <- parent.frame()
   id <- eval(substitute(id), data)
   X <- model.matrix(mt, mf)
   y <- model.response(mf, "numeric")
@@ -44,6 +52,12 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
             all(time_rng$time == time_fixef$time))
   is_valid_expansion(time_fixef)
   is_valid_expansion(time_rng)
+
+  # check for a rank deficient design matrix
+  XZ <- cbind(X, t(with(time_fixef, eval(time))))
+  rk <- rankMatrix(XZ)
+  if(rk < NCOL(XZ))
+    stop("Design matrix is singular. Perhaps remove an intercept or a time-varying term from 'formula'")
 
   # prepare the data to return
   time_var <-  time_fixef$time

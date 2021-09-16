@@ -2,21 +2,23 @@
 % Please edit documentation in R/plot.R
 \name{plot_surv}
 \alias{plot_surv}
-\title{Plots Quantilies of the Hazard}
+\title{Plots Quantilies of the Conditional Hazards}
 \usage{
 plot_surv(
   time_fixef,
   time_rng,
   x_range,
+  fixef_vary,
   vcov_vary,
-  Xi_var,
+  frailty_var,
   ps = c(0.025, 0.5, 0.975),
   log_hazard_shift = 0,
+  associations,
   xlab = "Time",
-  ylab = "Marker",
+  ylab = "Hazard",
   ...
 )
 }
 \description{
-Plots Quantilies of the Hazard
+Plots Quantilies of the Conditional Hazards
 }

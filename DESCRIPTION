@@ -21,7 +21,8 @@ Imports:
     utils, 
     stats,
     SimSurvNMarker,
-    psqn
+    psqn,
+    Matrix
 Suggests: 
     rmarkdown,
     knitr,

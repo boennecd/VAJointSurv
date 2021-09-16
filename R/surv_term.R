@@ -6,7 +6,11 @@
 #' side. The left-hand side needs to be a \code{\link{Surv}} object and can
 #' be either right-censored and left-truncated.
 #' @param time_fixef the time-varying fixed effects. See .e.g.
-#' \code{\link{poly_term}}. This is for baseline hazard.
+#' \code{\link{poly_term}}. This is for the baseline hazard. Note that many
+#' basis expansions has boundary knots. It is important that these are set
+#' to cover the full range of survival times including time zero for some
+#' expansions.
+#' @param data \code{\link{data.frame}} with at least the time variable.
 #'
 #' @details
 #' The \code{time_fixef} should likely not include an intercept as this is
@@ -17,8 +21,13 @@
 #' @export
 surv_term <- function(formula, id, data, time_fixef){
   # get the input data
-  mf <- model.frame(formula, data)
+  mf <- match.call(expand.dots = FALSE)
+  m <- match(c("formula", "data"), names(mf), 0L)
+  mf <- mf[c(1L, m)]
+  mf[[1L]] <- quote(stats::model.frame)
+  mf <- eval(mf, parent.frame())
   mt <- attr(mf, "terms")
+
   id <- eval(substitute(id), data)
   Z <- model.matrix(mt, mf)
   y <- model.response(mf)
@@ -40,6 +49,12 @@ surv_term <- function(formula, id, data, time_fixef){
             all(is.finite(y)),
             NROW(Z) == NROW(y))
   is_valid_expansion(time_fixef)
+
+  # check for a singular design matrix
+  XZ <- cbind(Z, t(time_fixef$eval(y[, 2])))
+  rk <- rankMatrix(XZ)
+  if(rk < NCOL(XZ))
+    stop("Design matrix is singular. Perhaps remove an intercept or a time-varying term from 'formula'")
 
   # reorder the data and return
   ord <- order(id, y[, 2])
