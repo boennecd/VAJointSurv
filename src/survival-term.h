@@ -43,6 +43,8 @@ class expected_cum_hazzard {
   bases_vector bases_rng;
   /// the number of fixed effects
   vajoint_uint n_fixef;
+  /// the derivative/integral argument to pass to bases_rng
+  std::vector<std::vector<int> > ders_v;
 
   /// the number of time-varying random effect basis function plus one
   vajoint_uint n_basis_rng_p1
@@ -83,9 +85,15 @@ class expected_cum_hazzard {
 public:
   expected_cum_hazzard
   (basisMixin const &b_in, bases_vector const &bases_rng,
-   vajoint_uint const n_fixef):
+   vajoint_uint const n_fixef, std::vector<std::vector<int> > const &ders):
   b(b_in.clone()), bases_rng(joint_bases::clone_bases(bases_rng)),
-  n_fixef(n_fixef) { }
+  n_fixef(n_fixef), ders_v(ders) {
+    if(ders.size() != bases_rng.size())
+      throw std::invalid_argument(
+          "ders size does not match the number of basis functions (" +
+            std::to_string(ders.size()) + ", " +
+            std::to_string(bases_rng.size()) + ")");
+  }
 
   /**
    * evaluates the approximate expected cumulative hazard between
@@ -112,11 +120,19 @@ public:
 
       // construct the (association^T, 1).hat(M)(s) vector
       {
-        vajoint_uint idx{};
+        vajoint_uint idx{}, idx_association{};
         for(vajoint_uint i = 0; i < bases_rng.size(); ++i){
-          (*bases_rng[i])(dwk_mem, dwk_mem_basis, node_val);
-          for(vajoint_uint j = 0; j < bases_rng[i]->n_basis(); ++j, ++idx)
-            association_M[idx] = association[i] * dwk_mem[j];
+          for(vajoint_uint j = 0; j < bases_rng[i]->n_basis(); ++j)
+            association_M[idx + j] = 0;
+
+          for(int der : ders()[i]){
+            (*bases_rng[i])(dwk_mem, dwk_mem_basis, node_val, der);
+            for(vajoint_uint j = 0; j < bases_rng[i]->n_basis(); ++j)
+              association_M[idx + j] +=
+                association[idx_association] * dwk_mem[j];
+            ++idx_association;
+          }
+          idx += bases_rng[i]->n_basis();
         }
         association_M[idx] = 1;
       }
@@ -144,6 +160,10 @@ public:
    */
   std::array<size_t, 2> const& n_wmem() const {
     return n_wmem_v;
+  }
+
+  std::vector<std::vector<int> > const & ders() const {
+    return ders_v;
   }
 };
 
@@ -200,7 +220,8 @@ public:
   survival_dat
     (bases_vector const &bases_fix_in, bases_vector const &bases_rng_in,
      std::vector<simple_mat<double> > &design_mats,
-     subset_params const &par_idx, std::vector<obs_input> const &input):
+     subset_params const &par_idx, std::vector<obs_input> const &input,
+     std::vector<std::vector<std::vector<int> > > &ders):
     bases_fix{joint_bases::clone_bases(bases_fix_in)},
     bases_rng{joint_bases::clone_bases(bases_rng_in)},
     design_mats{design_mats},
@@ -216,11 +237,17 @@ public:
       throw std::invalid_argument("input.size() != n_outcomes");
     if(bases_rng.size() != par_idx.marker_info().size())
       throw std::invalid_argument("bases_rng.size() != marker_info().size()");
+    if(ders.size() != n_outcomes_v)
+      throw std::invalid_argument(
+          "ders size does not match the number of survival types (" +
+            std::to_string(ders.size()) + ", " +
+            std::to_string(n_outcomes_v) + ")");
 
     // create the cum_hazs
     cum_hazs.reserve(n_outcomes_v);
     for(vajoint_uint i = 0; i < n_outcomes_v; ++i)
-      cum_hazs.emplace_back(*bases_fix[i], bases_rng, design_mats[i].n_rows());
+      cum_hazs.emplace_back
+        (*bases_fix[i], bases_rng, design_mats[i].n_rows(), ders[i]);
 
     // set the required working memory
     wmem_w = {0, 0};
@@ -284,18 +311,20 @@ public:
 
       double * const basis_wmem{dwk_mem + max_basis_dim};
 
-      // TODO: we can avoid re-computing these bases
+      // TODO: we can avoid re-computing these bases?
       (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
       out -= cfaad::dotProd(dwk_mem, dwk_mem + surv_info.n_variying,
                             param + surv_info.idx_varying);
 
-      vajoint_uint offset{};
+      vajoint_uint offset{}, idx_association{surv_info.idx_association};
       for(size_t i = 0; i < bases_rng.size(); ++i){
-        (*bases_rng[i])(dwk_mem, basis_wmem, info.ub);
-        auto M_VA_mean = cfaad::dotProd
-          (dwk_mem, dwk_mem + bases_rng[i]->n_basis(),
-           param + par_idx.va_mean() + offset);
-        out -= param[surv_info.idx_association + i] * M_VA_mean;
+        for(int der : haz.ders()[i]){
+          (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, der);
+          auto M_VA_mean = cfaad::dotProd
+            (dwk_mem, dwk_mem + bases_rng[i]->n_basis(),
+             param + par_idx.va_mean() + offset);
+          out -= param[idx_association++] * M_VA_mean;
+        }
 
         offset += bases_rng[i]->n_basis();
       }

@@ -112,7 +112,8 @@ context("expected_cum_hazzard is correct") {
     bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
 
     // we get the correct value
-    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3);
+    std::vector<std::vector<int> > ders{{0}, {0}, {0}};
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders);
     {
       auto req_mem = comp_obj.n_wmem();
       double const res = comp_obj(
@@ -173,6 +174,182 @@ context("expected_cum_hazzard is correct") {
         {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
         ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]));
+
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
+      res.propagateToStart();
+      double const *g{gr2};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+
+    // clean-up
+    wmem::clear_all();
+  }
+
+  test_that("expected_cum_hazzard gives the correct result with derivatives"){
+    /*
+     raw_poly <- function(x, degree, intercept){
+     if(intercept)
+     drop(outer(x, 0:degree, `^`))
+     else
+     drop(outer(x, 1:degree, `^`))
+     }
+
+     # parameters
+     Z <- c(1, -.5, .33)
+     delta <- c(.1, .2, -.3)
+     g <- function(x) raw_poly(x, 2, FALSE)
+     omega <- c(.2, -.33)
+     alpha <- c(.1, .4, -.2)
+     ms <- list(function(x) raw_poly(x, 1, TRUE),
+     # account for integral
+     function(x) raw_poly(x, 2, TRUE) * x / rep(1:3, each = length(x)),
+     # account for derivative
+     function(x) cbind(0, rep(1, length(x))))
+     zeta <- c(-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.7)
+     set.seed(1)
+     dput(Psi <- drop(round(rWishart(1, 16, diag(.025, 8)), 3)))
+     stopifnot(all(eigen(Psi)$value > 0))
+
+     f <- function(args, lb, ub){
+     get_next <- function(n){
+     out <- head(args, n)
+     args <<- tail(args, -n)
+     out
+     }
+     delta <- get_next(length(delta))
+     omega <- get_next(length(omega))
+     alpha <- get_next(length(alpha))
+     zeta <- get_next(length(zeta))
+     Psi <- matrix(args, NROW(Psi))
+
+     integrand <- function(x){
+     M <- matrix(0, length(zeta), length(ms) + 1)
+     offset <- 0L
+     for(i in seq_along(ms)){
+     z <- ms[[i]](x)
+     M[offset + seq_along(z), i] <- z
+     offset <- offset + length(z)
+     }
+     M[length(zeta), length(ms) + 1L] <- 1
+
+     M_alpha <- drop(M %*% c(alpha, 1))
+
+     exp(delta %*% Z + g(x) %*% omega + M_alpha %*% zeta +
+     M_alpha %*% Psi %*% M_alpha / 2)
+     }
+
+     integrate(Vectorize(integrand), lb, ub, rel.tol = 1e-10)$value
+     }
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), 0, 2))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = 0, ub = 2))
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), 1, 3))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = 1, ub = 3))
+     */
+
+    constexpr double z[] {1, -.5, .33},
+                 delta[] {.1, .2, -.3},
+                 alpha[] {.1, .4, -.2},
+                 omega[] {.2, -.33},
+                  zeta[] {-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.7 },
+                   Psi[] {0.294, 0.109, -0.132, 0.049, -0.053, 0.037, -0.005, -0.009, 0.109, 0.588, -0.158, -0.017, -0.279, -0.131, 0.057, 0.042, -0.132, -0.158, 0.461, 0.132, 0.185, -0.01, 0.096, -0.01, 0.049, -0.017, 0.132, 0.333, 0.047, 0.038, -0.02, -0.119, -0.053, -0.279, 0.185, 0.047, 0.487, 0.067, -0.111, -0.057, 0.037, -0.131, -0.01, 0.038, 0.067, 0.296, -0.029, -0.058, -0.005, 0.057, 0.096, -0.02, -0.111, -0.029, 0.408, 0.035, -0.009, 0.042, -0.01, -0.119, -0.057, -0.058, 0.035, 0.237},
+                   lb1   {0},
+                   ub1   {2},
+                   lb2   {1},
+                   ub2   {3},
+             true_val1   {3.51152119882823},
+             true_val2   {5.19502423960864},
+                   gr1[] {3.51152119909707, -1.75576059954854, 1.15880199563353, 3.16389312234803, 3.96791868818556, -1.23708360355054, 1.59084054922998, -0.569000165559629, 0.351152119531459, 0.316389312330735, 1.26555724779103, 0.793583737399411, 0.764070792425652, 0, -0.70230424011111, 3.51152119879396, 0.0175576059817869, 0.0158194661258817, 0.0632778623483541, 0.0396791872681199, 0.0382035388132134, 0, -0.0351152086365295, 0.17557606176869, 0.0158194661258817, 0.0198395934003802, 0.0793583740386074, 0.057305307746283, 0.0596371978730387, 0, -0.0316389305638529, 0.158194655904305, 0.0632778623483541, 0.0793583740386074, 0.317433495050123, 0.229221237812724, 0.23854879054946, 0, -0.126555724788653, 0.632778625916063, 0.0396791872681199, 0.057305307746283, 0.229221237812724, 0.178911592941831, 0.195493834813792, 0, -0.0793583781481621, 0.396791868328111, 0.0382035388132134, 0.0596371978730387, 0.238548790549455, 0.195493834813792, 0.220812925149533, 0, -0.07640707899187, 0.382035396523836, 0, 0, 0, 0, 0, 0, 0, 0, -0.0351152086365295, -0.0316389305638529, -0.126555724788653, -0.0793583783586933, -0.07640707899187, 0, 0.070230423887445, -0.351152120203304, 0.17557606176869, 0.158194657126436, 0.632778625916063, 0.396791868328111, 0.382035396523836, 0, -0.351152120323607, 1.75576059948604},
+                   gr2[] {5.19502423917055, -2.59751211958528, 1.71435799911393, 12.2574196067228, 30.9445805106753, -11.5997035639195, 61.0661870597654, -1.68972307127706, 0.519502424009714, 1.22574196069078, 4.90296784304663, 6.18891610312129, 10.8760203405542, 0, -1.03900484807608, 5.19502423967183, 0.0259751212209169, 0.0612870985202201, 0.245148392416322, 0.309445805387659, 0.543801017447262, 0, -0.0519502346771197, 0.259751207457675, 0.0612870985202201, 0.154722902446751, 0.618891610309277, 0.815701524161611, 1.47310479949976, 0, -0.122574196839885, 0.612870981647331, 0.245148392416322, 0.618891610309277, 2.47556644076306, 3.26280610234088, 5.89241919833558, 0, -0.490296784283489, 2.45148391305149, 0.309445804340118, 0.815701521142228, 3.26280610234087, 4.4193143987196, 8.12315697256269, 0, -0.618891612526633, 3.0944580509255, 0.543801018420738, 1.47310479971392, 5.89241919829006, 8.12315697291544, 15.110485269309, 0, -1.08760203444549, 5.43801017080392, 0, 0, 0, 0, 0, 0, 0, 0, -0.0519502432587716, -0.122574196844501, -0.490296783839269, -0.618891611697667, -1.08760203398308, 0, 0.103900484816461, -0.519502422103854, 0.259751207370128, 0.612870981841571, 2.45148391734247, 3.09445805048973, 5.43801017066539, 0, -0.519502423570412, 2.59751212020358};
+
+    Number ad_delta[3],
+           ad_alpha[3],
+           ad_omega[2],
+            ad_zeta[8],
+            ad_Psi[64];
+
+    joint_bases::orth_poly g{2, false};
+
+    joint_bases::bases_vector bases_rng;
+    // raw poly of degree x with an intercept
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(2, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+
+    // we get the correct value
+    std::vector<std::vector<int> > ders{{0}, {-1}, {1}};
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders);
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double const res = comp_obj(
+      {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
+      wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
+
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
+    }
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double const res = comp_obj(
+      {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
+      wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]));
+
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
+    }
+
+    // we get the correct gradient
+    {
+      Number::tape->rewind();
+      cfaad::convertCollection(begin(delta), end(delta), ad_delta);
+      cfaad::convertCollection(begin(omega), end(omega), ad_omega);
+      cfaad::convertCollection(begin(alpha), end(alpha), ad_alpha);
+      cfaad::convertCollection(begin(zeta), end(zeta), ad_zeta);
+      cfaad::convertCollection(begin(Psi), end(Psi), ad_Psi);
+
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj(
+      {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+      ad_Psi, wmem::get_Number_mem(req_mem[0]),
+      wmem::get_double_mem(req_mem[1]));
+
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
+      res.propagateToStart();
+      double const *g{gr1};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+    {
+      Number::tape->rewind();
+      cfaad::putOnTape(begin(ad_delta), end(ad_delta));
+      cfaad::putOnTape(begin(ad_omega), end(ad_omega));
+      cfaad::putOnTape(begin(ad_alpha), end(ad_alpha));
+      cfaad::putOnTape(begin(ad_zeta), end(ad_zeta));
+      cfaad::putOnTape(begin(ad_Psi), end(ad_Psi));
+
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj(
+      {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+      ad_Psi, wmem::get_Number_mem(req_mem[0]),
+      wmem::get_double_mem(req_mem[1]));
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
       res.propagateToStart();
@@ -372,8 +549,10 @@ context("survival_dat is correct") {
     design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);
     design_mats.emplace_back(Z2, n_fixef[1], n_obs[1]);
 
+    std::vector<std::vector<std::vector<int> > > ders
+      {{{0}, {0}, {0}}, {{0}, {0}, {0}}};
     survival::survival_dat comp_obj(bases_fix, bases_rng, design_mats,
-                                    par_idx, surv_input);
+                                    par_idx, surv_input, ders);
 
     // basic checks
     expect_true(comp_obj.n_terms(0) == n_obs[0]);

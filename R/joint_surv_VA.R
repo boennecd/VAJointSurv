@@ -32,6 +32,7 @@ check_quad_rule <- function(quad_rule)
 #' @export
 joint_ms_ptr <- function(markers = list(), survival_terms = list(),
                          max_threads = 1L, quad_rule = NULL){
+  # handle defaults
   if(inherits(markers, "marker_term"))
     markers <- list(markers)
   else
@@ -44,6 +45,13 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   if(is.null(quad_rule))
     quad_rule <- default_quad_rule()
   check_quad_rule(quad_rule)
+
+  # handle the default for ders
+  survival_terms <- lapply(survival_terms, function(x){
+    if(is.null(x$ders))
+      x$ders <- replicate(length(markers), 0L, simplify = FALSE)
+    x
+  })
 
   ptr <- .joint_ms_ptr(markers, survival_terms, max_threads = max_threads)
   param_names <- joint_ms_parameter_names(ptr)

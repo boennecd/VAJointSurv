@@ -470,6 +470,8 @@ public:
     s_fixef_design.reserve(survival_terms.size());
     s_id_vecs.reserve(survival_terms.size());
 
+
+    std::vector<std::vector<std::vector<int> > > ders;
     for(auto s : survival_terms){
       List surv = s;
       bases_fix_surv.emplace_back(basis_from_list(surv["time_fixef"]));
@@ -477,6 +479,18 @@ public:
       NumericMatrix Z{surv["Z"]};
       s_id_vecs.emplace_back(surv["id"]);
       NumericMatrix y{surv["y"]};
+
+      // handle the integral/derivative argument to the basis expansions of the
+      // markers
+      ders.emplace_back();
+      List s_ders = surv["ders"];
+      for(SEXP ele : s_ders){
+        Rcpp::IntegerVector ele_vec{ele};
+        ders.back().emplace_back();
+        ders.back().back().reserve(ele_vec.size());
+        for(int val : ele_vec)
+          ders.back().back().emplace_back(val);
+      }
 
       vajoint_uint const n_fixef = Z.nrow(),
                          n_obs   = Z.ncol();
@@ -493,7 +507,7 @@ public:
     kl_dat = kl_term(par_idx);
     m_dat = std::move(dat_n_idx.dat);
     s_dat = survival::survival_dat
-      (bases_fix_surv, bases_rng, s_fixef_design, par_idx, surv_input);
+      (bases_fix_surv, bases_rng, s_fixef_design, par_idx, surv_input, ders);
 
     // create the object to use for optimization
     std::vector<lower_bound_term> ele_funcs;
@@ -876,7 +890,8 @@ public:
   ph_model(joint_bases::basisMixin const * expansion_in,
            simple_mat<double> const &Z, simple_mat<double> const &surv):
   expansion{expansion_in->clone()}, Z{Z}, surv{surv},
-  cum_haz{*expansion, survival::bases_vector{}, Z.n_rows()},
+  cum_haz{*expansion, survival::bases_vector{}, Z.n_rows(),
+          std::vector<std::vector<int> >{}},
   n_wmem_v{cum_haz.n_wmem()[0],
            std::max(cum_haz.n_wmem()[1],
                     expansion->n_wmem() + expansion->n_basis())}

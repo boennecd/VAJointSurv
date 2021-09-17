@@ -11,6 +11,10 @@
 #' to cover the full range of survival times including time zero for some
 #' expansions.
 #' @param data \code{\link{data.frame}} with at least the time variable.
+#' @param ders a \code{\link{list}} with \code{\link{integer}} vectors for how
+#' the survival outcome is linked to the markers. 0 implies present values,
+#' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+#' value of the random effect for all markers.
 #'
 #' @details
 #' The \code{time_fixef} should likely not include an intercept as this is
@@ -19,7 +23,7 @@
 #' @importFrom stats model.frame model.matrix model.response
 #'
 #' @export
-surv_term <- function(formula, id, data, time_fixef){
+surv_term <- function(formula, id, data, time_fixef, ders = NULL){
   # get the input data
   mf <- match.call(expand.dots = FALSE)
   m <- match(c("formula", "data"), names(mf), 0L)
@@ -62,7 +66,8 @@ surv_term <- function(formula, id, data, time_fixef){
   Z <- Z[ord, , drop = FALSE]
   id <- id[ord]
 
-  structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt),
+  structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
+                 ders = ders),
             class = "surv_term")
 }
 
