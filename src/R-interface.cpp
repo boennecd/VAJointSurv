@@ -124,11 +124,10 @@ NumericMatrix eval_expansion
   Rcpp::XPtr<joint_bases::basisMixin> basis(ptr);
   NumericMatrix out(basis->n_basis(), x.size());
 
-  wmem::clear_all();
+  std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->lower_limit = lower_limit;
-  double *wmem = wmem::get_double_mem(basis->n_wmem());
   for(R_len_t i = 0; i < x.size(); ++i)
-    (*basis)(&out.column(i)[0], wmem, x[i], ders);
+    (*basis)(&out.column(i)[0], wmem.get(), x[i], ders);
 
   return out;
 }
