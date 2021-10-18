@@ -167,93 +167,30 @@ public:
       return;
     }
 
-    if(ders == 0){
-      comp_basis(x, out, order, wk_mem);
-      return;
-    }
-
-    // setup the object we need
-    double * const ldel{wk_mem},       /* differences from knots on the left */
-           * const rdel{ldel + ordm1}, /* differences from knots on the right */
-           * const a   {rdel + ordm1}; /* scratch array */
-    vajoint_uint curs{}, boundary{};
-
-    // the function we need to perform the computation
-    auto set_cursor = [&](const double x){
-      curs = 0; /* Wall */
-      boundary = 0;
-      while(curs < nknots && knots[curs] <= x)
-        ++curs;
-      if(curs > ncoef && x == knots[ncoef]){
-        boundary = 1;
-        curs = ncoef;
-      }
-      return curs;
-    };
-
-    auto diff_table = [&](const double x, const vajoint_uint ndiff){
-      for (vajoint_uint i = 0; i < ndiff; i++) {
-        rdel[i] = knots[curs + i] - x;
-        ldel[i] = x - knots[curs - (i + 1)];
-      }
-    };
-
-    auto slow_evaluate = [&](const double x, vajoint_uint nder){
-      vajoint_uint apt, lpt, rpt, inner;
-      vajoint_uint outer = ordm1;
-      if (boundary && nder == ordm1) /* value is arbitrary */
-        return 0.;
-      while(nder--) {  // FIXME: divides by zero
-        for(inner = outer, apt = 0, lpt = curs - outer; inner--; apt++, lpt++)
-          a[apt] = outer * (a[apt + 1] - a[apt]) /
-            (knots[lpt + outer] - knots[lpt]);
-        outer--;
-      }
-      diff_table(x, outer);
-      while(outer--)
-        for(apt = 0, lpt = outer, rpt = 0, inner = outer + 1;
-            inner--; lpt--, rpt++, apt++)
-          // FIXME: divides by zero
-          a[apt] = (a[apt + 1] * ldel[lpt] + a[apt] * rdel[rpt]) /
-            (rdel[rpt] + ldel[lpt]);
-      return a[0];
-    };
-
-    // evaluate the basis
-    // TODO: need to replace
-    std::fill(out, out + SplineBasis::n_basis(), 0);
-    set_cursor(x);
-    vajoint_uint const io{curs < order ? 0 : curs - order};
-
-    vajoint_uint const uders{static_cast<vajoint_uint>(ders)};
-    for(vajoint_uint i = 0; i < order; i++) {
-      for(vajoint_uint j = 0; j < order; j++)
-        a[j] = 0;
-      a[i] = 1;
-      out[i + io] = slow_evaluate(x, uders);
-    }
+    comp_basis(x, out, order, wk_mem, ders);
   }
 
   void comp_basis(double const x, double *out, unsigned const ord_p1,
-                  double * wk_mem) const {
+                  double * wk_mem, unsigned const ders) const {
     // De Boor's algorithm
     //    https://en.wikipedia.org/wiki/De_Boor%27s_algorithm
     unsigned const ord{ord_p1 - 1};
 
     // find the knot such that knot[i] <= x < knot[i + 1]
-    double const * const k_begin{knots.begin()},
-                 * const k_end{knots.end()},
+    double const * const k_begin {knots.begin()},
+                 * const k_end   {knots.end()},
                  *       it_inter{std::upper_bound(k_begin, k_end, x)};
     unsigned const n_knots{knots.size()},
                    dim_out{n_knots - ord_p1};
 
     // deal with the matching boundaries
-    while((it_inter == k_end and *std::prev(it_inter) == x) ||
-          (*it_inter == *std::prev(it_inter) and *it_inter == x))
+    bool const is_at_boundary{it_inter == k_end && *std::prev(it_inter) == x};
+    while((it_inter == k_end && *std::prev(it_inter) == x) ||
+          (*it_inter == *std::prev(it_inter) && *it_inter == x))
       --it_inter;
 
     std::fill(out, out + dim_out, 0);
-    if(it_inter == k_begin || it_inter == k_end)
+    if(it_inter == k_begin || it_inter == k_end || ord < ders)
       return;
 
     --it_inter;
@@ -262,9 +199,10 @@ public:
 
     // set the initial one
     std::fill(D, D + ord_p1, 0);
-    D[ord] = 1;
+    D[ord] = !is_at_boundary || ord > ders;
+
     unsigned const j_min{ord > shift ? ord - shift : 1};
-    for(unsigned r = 1; r <= ord; ++r){
+    for(unsigned r = 1; r <= ord - ders; ++r){
       unsigned const j_max{std::min(ord_p1, n_knots - shift + ord - r)};
       for(unsigned j = std::max(ord_p1 - r, j_min); j < j_max; ++j){
         unsigned const idx_base{shift + j - ord};
@@ -279,12 +217,29 @@ public:
       }
     }
 
+    // handle the derivatives
+    for(unsigned r = ord - ders + 1; r <= ord; ++r){
+      unsigned const j_max{std::min(ord_p1, n_knots - shift + ord - r)};
+      for(unsigned j = std::max(ord_p1 - r, j_min); j < j_max; ++j){
+        unsigned const idx_base{shift + j - ord};
+        double const k1{k_begin[idx_base]},
+                     k2{k_begin[idx_base + r]};
+
+        double const w_new{k1 == k2 ? 0 : r / (k2 - k1)};
+
+        // update the previous
+        D[j - 1] -= w_new * D[j];
+        // update this one
+        D[j] *= w_new;
+      }
+    }
+
     if(shift < ord){
       unsigned const shift_D{ord - shift};
       std::copy(D + shift_D, D + ord_p1, out);
     } else {
       unsigned const shift_out{shift - ord},
-      n_cp{std::min(dim_out - shift_out, ord_p1)};
+                          n_cp{std::min(dim_out - shift_out, ord_p1)};
       std::copy(D, D + n_cp, out + shift_out);
     }
   }
@@ -301,7 +256,7 @@ private:
     {
     integral_basis
       ? integral_basis->n_wmem() + integral_basis->n_basis()
-        : 2 * ordm1 + 2 * order // TODO: can be reduced
+      : ordm1
     };
 };
 
