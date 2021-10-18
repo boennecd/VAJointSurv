@@ -38,7 +38,7 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
     return;
 
   // test the integral
-  bas.lower_limit = xx_lower;
+  bas.set_lower_limit(xx_lower);
   arma::vec ix = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), -1);
   expect_true(ix.size() == ix_val.size());
   for(unsigned i = 0; i < ix.size(); ++i)
@@ -59,15 +59,17 @@ context("test bs") {
      dput(sapply(xs, function(zz) jacobian(f, zz)))
      f <- function(z, i)
      bs(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = FALSE)[, i]
+     dput(sapply(1:5, function(i) integrate(f, 0, xs[1], i = i, rel.tol = 1e-12)$value))
      dput(sapply(1:5, function(i) integrate(f, 0, xs[2], i = i, rel.tol = 1e-12)$value))
+     dput(sapply(1:5, function(i) integrate(f, 0, xs[3], i = i, rel.tol = 1e-12)$value))
      */
     bool const intercept(false);
     double xx_val(-1);
     std::array<double, 5> yy_val{-96.75, 38.25, -4.5, 0, 0},
                           dx_val{231.749999999124, -101.249999999758,
                                  13.4999999999143, 0, 0},
-                          ix_val;
-    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+                          ix_val{29.8125, -10.6875, 1.125, 0, 0};
+    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept, ix_val, true);
 
     xx_val = .5;
     yy_val = {0.03125, 0.46875, 0.46875, 0.03125, 0};
@@ -80,7 +82,8 @@ context("test bs") {
     yy_val = {0, -4.5, 38.25, -96.75, 64};
     dx_val = {0, -13.4999999999394, 101.24999999954, -231.749999999544,
               143.999999999226};
-    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+    ix_val = {0.166666666666667, -0.875, 10.9375, -29.6458333333333, 21.3333333333333};
+    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept, ix_val, true);
   }
 
   test_that("bs works (intercept)") {
@@ -96,7 +99,9 @@ context("test bs") {
      dput(sapply(xs, function(zz) jacobian(f, zz)))
      f <- function(z, i)
      bs(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = TRUE)[, i]
+     dput(sapply(1:6, function(i) integrate(f, 0, xs[1], i = i, rel.tol = 1e-12)$value))
      dput(sapply(1:6, function(i) integrate(f, 0, xs[2], i = i, rel.tol = 1e-12)$value))
+     dput(sapply(1:6, function(i) integrate(f, 0, xs[3], i = i, rel.tol = 1e-12)$value))
      */
 
     bool constexpr intercept(true);
@@ -107,7 +112,8 @@ context("test bs") {
     yy_val = { 64, -96.75, 38.25, -4.5, 0, 0 };
     dx_val = {-143.999999999379, 231.749999999124, -101.249999999758,
               13.4999999999143, 0, 0 };
-    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+    ix_val = { -21.25, 29.8125, -10.6875, 1.125, 0, 0 };
+    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept, ix_val, true);
 
     xx_val = .5;
     yy_val = { 0, 0.03125, 0.46875, 0.46875, 0.03125, 0};
@@ -121,10 +127,11 @@ context("test bs") {
     yy_val = { 0, 0, -4.5, 38.25, -96.75, 64 };
     dx_val = { 0, 0, -13.4999999999394,
                101.24999999954, -231.749999999544, 143.999999999226 };
-    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+    ix_val = { 0.0833333333333333, 0.166666666666667, -0.875, 10.9375, -29.6458333333333, 21.3333333333333 };
+    run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept, ix_val, true);
   }
 
-  test_that("bs works (intercept), ders == -1, one inner knot ") {
+  test_that("bs works (intercept), ders == -1, one inner knot") {
     // this has failed failed before
 
     /* R code to reproduce the result
@@ -159,13 +166,13 @@ context("test bs") {
     for(vajoint_uint i = 0; i < res.size(); ++i)
       expect_true(pass_rel_err(res[i], derivs[i]));
 
-    bas.lower_limit = bk[0];
+    bas.set_lower_limit(bk[0]);
     res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), -1);
     expect_true(res.size() == 5);
     for(vajoint_uint i = 0; i < res.size(); ++i)
       expect_true(pass_rel_err(res[i], int_1[i], 1e-7));
 
-    bas.lower_limit = .5;
+    bas.set_lower_limit(.5);
     res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), -1);
     expect_true(res.size() == 5);
     for(vajoint_uint i = 0; i < res.size(); ++i)
@@ -187,7 +194,9 @@ context("test ns") {
      dput(sapply(xs, function(zz) jacobian(f, zz)))
      f <- function(z, i)
      ns(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = FALSE)[, i]
+     dput(sapply(1:3, function(i) integrate(f, 0, xs[1], i = i, rel.tol = 1e-12)$value))
      dput(sapply(1:3, function(i) integrate(f, 0, xs[2], i = i, rel.tol = 1e-12)$value))
+     dput(sapply(1:3, function(i) integrate(f, 0, xs[3], i = i, rel.tol = 1e-12)$value))
      */
 
     bool constexpr intercept(false);
@@ -197,7 +206,8 @@ context("test ns") {
                           ix_val;
     yy_val = { 0.760638829255665, -2.28191648776699, 1.52127765851133 };
     dx_val = { -0.760638829254791, 2.28191648776756, -1.52127765850958 };
-    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+    ix_val = {-0.380319414627832, 1.1409582438835, -0.760638829255665};
+    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept, ix_val, true);
 
     xx_val = .5;
     yy_val = { 0.320473361597061, 0.476079915208815, -0.296553276805877 };
@@ -208,7 +218,8 @@ context("test ns") {
     xx_val = 2;
     yy_val = { -3.35714285714286, 1.07142857142857, 3.28571428571428 };
     dx_val = { -3.21428571427524, 0.642857142843741, 2.57142857136958 };
-    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+    ix_val = { -1.57152009239773, 1.13122694385987, 1.94029314853787 };
+    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept, ix_val, true);
   }
 
   test_that("ns works (intercept)") {
@@ -224,7 +235,9 @@ context("test ns") {
      dput(sapply(xs, function(zz) jacobian(f, zz)))
      f <- function(z, i)
      ns(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = TRUE)[, i]
+     dput(sapply(1:4, function(i) integrate(f, 0, xs[1], i = i, rel.tol = 1e-12)$value))
      dput(sapply(1:4, function(i) integrate(f, 0, xs[2], i = i, rel.tol = 1e-12)$value))
+     dput(sapply(1:4, function(i) integrate(f, 0, xs[3], i = i, rel.tol = 1e-12)$value))
      */
 
     bool constexpr intercept(true);
@@ -236,7 +249,8 @@ context("test ns") {
               -1.49035833598621};
     dx_val = {3.66214047089044, 0.530893453727897, -1.59268036116767,
               1.06178690745579};
-    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+    ix_val = { 2.09833147735479, 0.479732441139409, -1.43919732341823, 0.959464882278818 };
+    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept, ix_val, true);
 
     xx_val = .5;
     yy_val = {0.451294593143432, 0.419616910760803, 0.17864926771759,
@@ -250,7 +264,8 @@ context("test ns") {
     yy_val = {0, -3.35714285714286, 1.07142857142857,
               3.28571428571428};
     dx_val = {0, -3.21428571427524, 0.642857142843741, 2.57142857136958};
-    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+    ix_val = { 0.23936516774501, -1.54711799479435, 1.05802065104973, 1.98909734374463 };
+    run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept, ix_val, true);
   }
 }
 
@@ -609,7 +624,7 @@ context("test orth_poly") {
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i]));
 
-        obj.lower_limit = x_low;
+        obj.set_lower_limit(x_low);
         res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
         expect_true(res.size() == 4);
         for(vajoint_uint i = 0; i < res.size(); ++i)
@@ -633,7 +648,7 @@ context("test orth_poly") {
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i + 1]));
 
-        obj.lower_limit = x_low;
+        obj.set_lower_limit(x_low);
         res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
         expect_true(res.size() == 3);
         for(vajoint_uint i = 0; i < res.size(); ++i)

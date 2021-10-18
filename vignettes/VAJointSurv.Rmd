@@ -384,14 +384,16 @@ c(predict(bs(xx, df = 4, Boundary.knots = range(xx)), 4.33))
 
 # derivatives
 t(b$eval(4.33, der = 1))
-f <- function(z) predict(bs(xx, df = 4, Boundary.knots = range(xx)), z)
+f <- function(z) suppressWarnings(
+  predict(bs(xx, df = 4, Boundary.knots = range(xx)), z))
 t(jacobian(f, 4.33))
 
 # integrals
-t(b$eval(4, der = -1, lower_limit = 0))
-do_int(4, f, 0)
-t(b$eval(4, der = -1, lower_limit = 1))
-do_int(4, f, 1)
+all.equal( t(b$eval(12, der = -1, lower_limit = 11)), do_int(12, f, 11), 1e-6)
+all.equal( t(b$eval(11, der = -1, lower_limit =  0)), do_int(11, f,  0), 1e-6)
+all.equal(-t(b$eval( 0, der = -1, lower_limit = 11)), do_int(11, f,  0), 1e-6)
+all.equal( t(b$eval( 5, der = -1, lower_limit =  1)), do_int( 5, f,  1), 1e-6)
+all.equal( t(b$eval(-1, der = -1, lower_limit =  2)), do_int(-1, f,  2), 1e-6)
 
 # natural cubic spline
 xx <- 0:10
@@ -405,12 +407,14 @@ f <- function(z) predict(ns(xx, df = 3, Boundary.knots = range(xx)), z)
 t(jacobian(f, 4.33))
 
 # integrals
-t(n$eval(4.33, der = -1, lower_limit = 0))
-do_int(4.33, f, 0)
+all.equal( t(n$eval(12, der = -1, lower_limit = 11)), do_int(12, f, 11), 1e-6)
+all.equal( t(n$eval(11, der = -1, lower_limit =  0)), do_int(11, f,  0), 1e-6)
+all.equal(-t(n$eval( 0, der = -1, lower_limit = 11)), do_int(11, f,  0), 1e-6)
+all.equal( t(n$eval( 7, der = -1, lower_limit = -2)), do_int( 7, f, -2), 1e-6)
+all.equal( t(n$eval(-1, der = -1, lower_limit = -3)), do_int(-1, f, -3), 1e-6)
 ```
 
-Caution: integration is not implemented for the B-splines or natural cubic 
-splines outside of the boundary knots!
+Caution: the B-splines are only tested with `degree = 3`!
 
 ### Two Markers
 

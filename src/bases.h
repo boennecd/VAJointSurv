@@ -27,9 +27,6 @@ public:
   /// the number of basis functions
   virtual vajoint_uint n_basis() const = 0;
 
-  /// lower limit of integrals
-  double lower_limit{};
-
   /**
    * fills a vector with the (possibly derivatives) of the basis expansions
    * evaluated at x */
@@ -74,6 +71,14 @@ public:
   virtual ~basisMixin() = default;
 
   virtual std::unique_ptr<basisMixin> clone() const = 0;
+
+  virtual void set_lower_limit(double const x){
+    lower_limit = x;
+  }
+
+protected:
+  /// lower limit of integrals
+  double lower_limit{};
 };
 
 class SplineBasis : public basisMixin {
@@ -101,6 +106,7 @@ public:
     return n_wmem_v;
   }
 
+  using basisMixin::set_lower_limit;
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
@@ -119,7 +125,10 @@ public:
 
       // computes the indefinte integral at the upper or lower limit. The
       // function must first be called at the upper limit
-      auto add_int = [&](double const lim, bool const is_upper){
+      auto add_int = [&](double lim, bool const is_upper){
+        // we may integrate up to the limit but no further
+        lim = std::min(knots.back(), lim);
+
         // evaluate the basis which is one order greater
         (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
 
@@ -133,7 +142,7 @@ public:
 
         // x is too small for these basis function to be active
         vajoint_uint const idx_no_support
-            {static_cast<vajoint_uint>(idx_knot_start + 1)};
+          {std::min<vajoint_uint>(idx_knot_start + 1, ncoef)};
         if(is_upper)
           std::fill(out + idx_no_support, out + ncoef, 0);
         // x is large enough that we have integrated over the full support of
@@ -186,7 +195,8 @@ public:
     // deal with the matching boundaries
     bool const is_at_boundary{it_inter == k_end && *std::prev(it_inter) == x};
     while((it_inter == k_end && *std::prev(it_inter) == x) ||
-          (*it_inter == *std::prev(it_inter) && *it_inter == x))
+          (it_inter != k_end && *it_inter == x &&
+           *it_inter == *std::prev(it_inter)))
       --it_inter;
 
     std::fill(out, out + dim_out, 0);
@@ -262,7 +272,7 @@ private:
 
 class bs final : public SplineBasis {
 public:
-  vec const boundary_knots, interior_knots;
+  double const boundary_knots[2];
   bool const intercept;
   vajoint_uint const df;
   size_t n_wmem_v
@@ -286,12 +296,58 @@ public:
     return std::make_unique<bs>(*this);
   }
 
+  using SplineBasis::set_lower_limit;
   using SplineBasis::operator();
   void operator()
       (double *out, double *wk_mem, double const x,
        const int ders = default_ders) const {
     double * const my_wk_mem{wk_mem};
     wk_mem += std::max(SplineBasis::n_basis(), bs::n_basis());
+
+    if(ders < 0){
+      // handle integration. First we handle the interior part. Then we address
+      // the extrapolation if needed
+      if(intercept)
+        SplineBasis::operator()(out, wk_mem, x, ders);
+      else {
+        SplineBasis::operator()(my_wk_mem, wk_mem, x, ders);
+        for(vajoint_uint i = 1; i < SplineBasis::n_basis(); ++i)
+          out[i - 1L] = my_wk_mem[i];
+      }
+
+      auto handle_outside = [&](double const x, double const sign){
+        if(x >= boundary_knots[0] && x <= boundary_knots[1])
+          return;
+
+        double const k_pivot =
+          x < boundary_knots[0]
+            ? 0.75 * boundary_knots[0] + 0.25 * knots[order]
+            : 0.75 * boundary_knots[1] + 0.25 * knots[knots.n_elem - order - 2],
+                       delta = x - k_pivot,
+                 delta_bound =
+          x < boundary_knots[0]
+            ? boundary_knots[0] - k_pivot
+            : boundary_knots[1] - k_pivot;
+
+        auto add_term = [&](int const d, double const f = 1){
+          bs::operator()(my_wk_mem, wk_mem, k_pivot, d);
+          for(vajoint_uint i = 0; i < bs::n_basis(); ++i)
+            out[i] += sign * f * my_wk_mem[i];
+        };
+
+        double m1{1}, m2{1}, denom{1};
+        for(unsigned i = 1; i <= 4; ++i){
+          m1 *= delta;
+          m2 *= delta_bound;
+          denom *= i;
+          add_term(i - 1, (m1 - m2) / denom);
+        }
+      };
+
+      handle_outside(x          , 1);
+      handle_outside(lower_limit, -1);
+      return;
+    }
 
     if(x < boundary_knots[0] || x > boundary_knots[1]) {
       double const k_pivot =
@@ -307,24 +363,13 @@ public:
       };
 
       std::fill(out, out + bs::n_basis(), 0);
-      if(ders < 0 )
-        throw std::invalid_argument("integration outside of bounds is not implemented with bs");
-      else if(ders == 0){
-        add_term(0);
-        add_term(1, delta);
-        add_term(2, delta * delta / 2);
-        add_term(3, delta * delta * delta / 6);
 
-      } else if(ders == 1){
-        add_term(1);
-        add_term(2, delta);
-        add_term(3, delta * delta / 2.);
-
-      } else if(ders == 2){
-        add_term(2);
-        add_term(3, delta);
-      } else if(ders == 3)
-        add_term(3);
+      add_term(ders);
+      double m1{1};
+      for(unsigned i = ders + 1; i < order; ++i){
+        m1 *= delta / (i - ders);
+        add_term(i, m1);
+      }
 
       return;
     }
@@ -340,13 +385,15 @@ public:
 };
 
 class ns final : public basisMixin {
+  SplineBasis s_basis;
 public:
-  bs const bspline; // composition cf. inheritance
+  double const boundary_knots[2];
   bool const intercept;
   mat const q_matrix = ([&](){
     // calculate the Q matrix
-    mat const_basis = bspline.basis
-      (bspline.boundary_knots, wmem::get_double_mem(bspline.n_wmem()), 2);
+    arma::vec tmp{boundary_knots[0], boundary_knots[1]};
+    mat const_basis = s_basis.basis
+      (tmp, wmem::get_double_mem(s_basis.n_wmem()), 2);
     if (!intercept)
       const_basis = const_basis.cols(1, const_basis.n_cols - 1);
     mat qd, rd;
@@ -362,7 +409,8 @@ public:
      const vajoint_uint order = default_order);
 
   size_t n_wmem() const {
-    return bspline.n_wmem() + q_matrix.n_rows + bspline.n_basis();
+    return s_basis.n_wmem() + q_matrix.n_rows +
+      s_basis.n_basis() + n_basis();
   }
 
   vajoint_uint n_basis() const {
@@ -373,15 +421,73 @@ public:
     return std::make_unique<ns>(*this);
   }
 
+  void set_lower_limit(double const x){
+    lower_limit = x;
+    s_basis.set_lower_limit(x);
+  }
+
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
      int const ders = default_ders) const {
-    if(x < bspline.boundary_knots[0]) {
+    if(ders < 0){
+      if(ders < -1)
+        throw std::runtime_error("integration not implemented for order 2 or higher");
+
+      // let K0 be the smallest knot. Then the spline does the right thing as
+      // long as K0 <= lb <= KMax and and K0 <= ub <= KMax. Otherwise, we have
+      // to make adjustments
+
+      // handle the integration between K0 and KMax
+      {
+        double * const lhs = wk_mem;
+        wk_mem += q_matrix.n_rows;
+        double * const b = wk_mem;
+        wk_mem += s_basis.n_basis();
+        s_basis(b, wk_mem, x, ders);
+
+        std::fill(lhs, lhs + q_matrix.n_rows, 0);
+        lp_joint::mat_vec
+          (lhs, q_matrix.begin(), b + (!intercept), q_matrix.n_rows,
+           q_matrix.n_cols);
+
+        std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
+      }
+
+      // handle the areas outside of the knots
+      auto handle_outside = [&](double const x, double const sign){
+        if(x < boundary_knots[0]){
+          double const b{boundary_knots[0]};
+          for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
+            double const new_term{
+              tl1[i] * x * (x / 2 - b) + x * tl0[i]  -
+                tl1[i] * b * (b / 2 - b) - b * tl0[i]};
+            out[i] += sign * new_term;
+          }
+
+        } else if(x > boundary_knots[1]){
+          double const b{boundary_knots[1]};
+          for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
+            double const new_term
+              {tr1[i] * x * (x / 2 - b) + x * tr0[i] -
+                tr1[i] * b * (b / 2 - b) - b * tr0[i]};
+            out[i] += sign * new_term;
+          }
+
+        }
+      };
+
+      handle_outside(x          , 1);
+      handle_outside(lower_limit, -1);
+      return;
+    }
+
+    // ders >= 0
+    if(x < boundary_knots[0]){
       if(ders==0){
         for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
           out[i] = tl1[i];
-          out[i] *= x - bspline.boundary_knots[0];
+          out[i] *= x - boundary_knots[0];
           out[i] += tl0[i];
         }
 
@@ -392,11 +498,11 @@ public:
 
       return;
 
-    } else if (x > bspline.boundary_knots[1]) {
+    } else if (x > boundary_knots[1]) {
       if (ders==0){
         for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
           out[i] = tr1[i];
-          out[i] *= x - bspline.boundary_knots[1];
+          out[i] *= x - boundary_knots[1];
           out[i] += tr0[i];
         }
 
@@ -411,8 +517,8 @@ public:
     double * const lhs = wk_mem;
     wk_mem += q_matrix.n_rows;
     double * const b = wk_mem;
-    wk_mem += bspline.n_basis();
-    bspline(b, wk_mem, x, ders);
+    wk_mem += s_basis.n_basis();
+    s_basis(b, wk_mem, x, ders);
 
     std::fill(lhs, lhs + q_matrix.n_rows, 0);
     lp_joint::mat_vec
@@ -422,7 +528,6 @@ public:
     std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
   }
 
-private:
   vec trans(const vec &x) const {
     // TODO: very inefficient
     vec out = q_matrix * (intercept ? x : x(span(1, x.n_elem - 1)));
@@ -434,7 +539,7 @@ class iSpline final : public basisMixin {
 public:
   bool const intercept;
   vajoint_uint const order;
-  bs const bspline; // composition cf. inheritance
+  bs bspline; // TODO: can be a SplineBasis
 
 public:
   iSpline(const vec &boundary_knots, const vec &interior_knots,
@@ -453,6 +558,11 @@ public:
     return std::make_unique<iSpline>(*this);
   }
 
+  void set_lower_limit(double const x){
+    lower_limit = x;
+    bspline.set_lower_limit(x);
+  }
+
   using basisMixin::operator();
   void operator()
     (double *out, double *wk_mem, double const x,
@@ -468,7 +578,7 @@ public:
     }
     else if(x <= 1){
       bspline(b, wk_mem, x, ders);
-      vajoint_uint const js = bspline.interior_knots.size() > 0 ?
+      vajoint_uint const js = bspline.knots.size() - 2 > 0 ?
         static_cast<vajoint_uint>(std::lower_bound(
           bspline.knots.begin(),
           /* TODO: should this not be end and not -1? */
@@ -501,7 +611,7 @@ public:
 
 class mSpline final : public basisMixin {
 public:
-  bs const bspline;
+  bs bspline; // TODO: can be a SplineBasis
   bool const intercept;
 
 public:
@@ -519,6 +629,11 @@ public:
 
   std::unique_ptr<basisMixin> clone() const {
     return std::make_unique<mSpline>(*this);
+  }
+
+  void set_lower_limit(double const x){
+    lower_limit = x;
+    bspline.set_lower_limit(x);
   }
 
   using basisMixin::operator();
@@ -640,6 +755,7 @@ public:
   /**
    * behaves like predict(<poly object>, newdata) except there might be an
    * intercept */
+  using basisMixin::set_lower_limit;
   using basisMixin::operator();
   void operator()(double *out, double *wk_mem, double const x,
                   int const ders = default_ders)

@@ -125,7 +125,7 @@ NumericMatrix eval_expansion
   NumericMatrix out(basis->n_basis(), x.size());
 
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
-  basis->lower_limit = lower_limit;
+  basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
     (*basis)(&out.column(i)[0], wmem.get(), x[i], ders);
 

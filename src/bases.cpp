@@ -46,7 +46,7 @@ SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order,
       arma::vec new_ks(knots.n_elem + 1);
       std::copy(knots.begin(), knots.end(), new_ks.begin());
       if(knots.size() > 0)
-        new_ks[new_ks.n_elem - 1] = knots[knots.n_elem - 1];
+        new_ks[knots.n_elem] = knots[knots.n_elem - 1];
 
       return std::make_unique<SplineBasis>(new_ks, order + 1, false);
     })()
@@ -76,24 +76,25 @@ inline arma::vec SplineBasis_knots
 
 bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord):
   SplineBasis(SplineBasis_knots(bk, ik, ord), ord),
-  boundary_knots(bk), interior_knots(ik),
+  boundary_knots{bk[0], bk[1]},
   intercept(inter),
-  df((int)intercept + order - 1 + interior_knots.size()) {
-  check_splines(boundary_knots, interior_knots, order);
+  df((int)intercept + order - 1 + ik.size()) {
+  check_splines(bk, ik, order);
 }
 
-ns::ns(const vec &boundary_knots, const vec &interior_knots,
+ns::ns(const vec &bk, const vec &interior_knots,
        const bool intercept, const vajoint_uint order):
-  bspline(boundary_knots, interior_knots, true, order),
+  s_basis{SplineBasis_knots(bk, interior_knots, order), order},
+  boundary_knots{bk[0], bk[1]},
   intercept(intercept),
-  tl0(trans(bspline
-              (boundary_knots(0), wmem::get_double_mem(bspline.n_wmem()), 0.))),
-  tl1(trans(bspline
-              (boundary_knots(0), wmem::get_double_mem(bspline.n_wmem()), 1.))),
-  tr0(trans(bspline
-              (boundary_knots(1), wmem::get_double_mem(bspline.n_wmem()), 0.))),
-  tr1(trans(bspline
-              (boundary_knots(1), wmem::get_double_mem(bspline.n_wmem()), 1.)))
+  tl0(trans(s_basis
+              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()), 0.))),
+  tl1(trans(s_basis
+              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()), 1.))),
+  tr0(trans(s_basis
+              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()), 0.))),
+  tr1(trans(s_basis
+              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()), 1.)))
   { }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,
