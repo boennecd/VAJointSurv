@@ -241,56 +241,51 @@ public:
     unsigned const ord{ord_p1 - 1};
 
     // find the knot such that knot[i] <= x < knot[i + 1]
-    auto it_inter = std::upper_bound(knots.begin(), knots.end(), x);
+    double const * const k_begin{knots.begin()},
+                 * const k_end{knots.end()},
+                 *       it_inter{std::upper_bound(k_begin, k_end, x)};
     unsigned const n_knots{knots.size()},
-                n_knots_m1{n_knots - 1},
                    dim_out{n_knots - ord_p1};
 
     // deal with the matching boundaries
-    if(it_inter == knots.end())
-      while(it_inter != knots.begin() && *std::prev(it_inter) == x)
-        --it_inter;
+    while((it_inter == k_end and *std::prev(it_inter) == x) ||
+          (*it_inter == *std::prev(it_inter) and *it_inter == x))
+      --it_inter;
 
     std::fill(out, out + dim_out, 0);
-    if(it_inter == knots.begin() ||
-       (it_inter == knots.end() && *std::prev(it_inter) < x))
+    if(it_inter == k_begin || it_inter == k_end)
       return;
 
     --it_inter;
-    unsigned const idx_greater = std::distance(knots.begin(), it_inter);
+    unsigned const shift = std::distance(k_begin, it_inter);
     double * const D{wk_mem};
-    std::fill(D, D + ord_p1 * ord_p1, 0);
 
-    for(unsigned j = idx_greater + 1 >= ord ? 0 : ord - idx_greater - 1;
-        j < ord_p1; ++j)
-      D[j + j * ord_p1] = 1;
+    // set the initial one
+    std::fill(D, D + ord_p1, 0);
+    D[ord] = 1;
+    unsigned const j_min{ord > shift ? ord - shift : 1};
+    for(unsigned r = 1; r <= ord; ++r){
+      unsigned const j_max{std::min(ord_p1, n_knots - shift + ord - r)};
+      for(unsigned j = std::max(ord_p1 - r, j_min); j < j_max; ++j){
+        unsigned const idx_base{shift + j - ord};
+        double const k1{k_begin[idx_base]},
+                     k2{k_begin[idx_base + r]};
+        double const w_new{k1 == k2 ? 0 : (x - k1) / (k2 - k1)};
 
-    for(unsigned r = 0; r < ord; ++r){
-      for(unsigned j = std::min(ord, r + n_knots_m1 - idx_greater);
-          j-- > r && j + idx_greater + 1 >= ord; ){
-        double const k1{knots[j + 1 + idx_greater - r]},
-                     k2{knots[j     + idx_greater - ord + 1]};
-
-        double const alpha{k1 != k2 ? (x - k2) / (k1 - k2) : 0},
-          diff_alpha{1 - alpha};
-
-        unsigned const end_update{std::min(j + 2, ord_p1)};
-        unsigned i{end_update > r + 1 ? end_update - r - 2 : 0};
-
-        for(; i < end_update; ++i){
-          D[i + (j + 1) * ord_p1] *= alpha;
-          D[i + (j + 1) * ord_p1] += diff_alpha * D[i + j * ord_p1];
-        }
+        // update the previous
+        D[j - 1] += (1 - w_new) * D[j];
+        // update this one
+        D[j] *= w_new;
       }
     }
 
-    if(idx_greater < ord){
-      unsigned const shift_D{ord - idx_greater};
-      std::copy(D + shift_D + ord * ord_p1, D + ord_p1 + ord * ord_p1, out);
+    if(shift < ord){
+      unsigned const shift_D{ord - shift};
+      std::copy(D + shift_D, D + ord_p1, out);
     } else {
-      unsigned const shift_out{idx_greater - ord},
+      unsigned const shift_out{shift - ord},
       n_cp{std::min(dim_out - shift_out, ord_p1)};
-      std::copy(D + ord * ord_p1, D + n_cp + ord * ord_p1, out + shift_out);
+      std::copy(D, D + n_cp, out + shift_out);
     }
   }
 
@@ -306,7 +301,7 @@ private:
     {
     integral_basis
       ? integral_basis->n_wmem() + integral_basis->n_basis()
-        : std::max(2 * ordm1 + 2 * order, order * order)
+        : 2 * ordm1 + 2 * order // TODO: can be reduced
     };
 };
 
