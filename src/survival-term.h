@@ -268,6 +268,19 @@ public:
     // add the observations
     obs_info.resize(n_outcomes_v);
     for(vajoint_uint i = 0; i < n_outcomes_v; ++i){
+      // check the par_info matches
+      auto &surv_info_i = par_idx.surv_info()[i];
+      if(design_mats[i].n_rows() != surv_info_i.n_fix)
+        throw std::invalid_argument("esign_mats[i].n_rows() != surv_info_i.n_fix");
+      if(bases_fix[i]->n_basis() != surv_info_i.n_variying)
+        throw std::invalid_argument("bases_fix[i]->n_basis() != surv_info_i.n_variying");
+      if(ders[i].size() != par_idx.marker_info().size())
+        throw std::invalid_argument("ders[i].size() != par_idx.marker_info().size()");
+      for(unsigned j = 0; j < par_idx.marker_info().size(); ++j)
+        if(ders[i][j].size() != surv_info_i.n_associations[j])
+          throw std::invalid_argument("ders[i][j].size() != surv_info_i.n_associations[j]");
+
+      // add the outcomes
       obs_info[i].reserve(input[i].n_obs);
       if(input[i].n_obs != design_mats[i].n_cols())
         throw std::invalid_argument

@@ -382,7 +382,7 @@ context("survival_dat is correct") {
      drop(outer(x, 1:degree, `^`))
      }
 
-# parameters
+     # parameters
      Zs <- list(
      matrix(c(1, -.5, .33, .4), 2),
      matrix(c(1, -1, .33), 1))
@@ -543,7 +543,7 @@ context("survival_dat is correct") {
     par_idx.add_marker({2, 1, bases_rng[2]->n_basis()});
 
     for(unsigned i = 0; i < 2; ++i)
-      par_idx.add_surv({n_fixef[i], bases_fix[i]->n_basis()});
+      par_idx.add_surv({n_fixef[i], bases_fix[i]->n_basis(), {1, 1, 1}});
 
     std::vector<simple_mat<double> > design_mats;
     design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);

@@ -36,11 +36,13 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
   invisible(list(lbs = lbs, ubs = ubs, mea = mea))
 }
 
-#' Plots Quantilies of the Conditional Hazards
+#' Plots Quantiles of the Conditional Hazards
+#' @inheritParams surv_term
 #' @export
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
-                      associations, xlab = "Time", ylab = "Hazard",...){
+                      associations, xlab = "Time", ylab = "Hazard",
+                      ders = NULL, ...){
   # checks
   is_valid_expansion(time_fixef)
   if(is.list(time_rng))
@@ -56,10 +58,21 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
     length(x_range) == 2, length(frailty_var) == 1)
   x_range <- sort(x_range)
 
+  if(is.null(ders))
+    ders <- as.list(rep(0, length(time_rng)))
+
+  # split the association parameters by effect
+  association_var <- unlist(mapply(rep, seq_along(ders), lengths(ders)))
+  associations <- split(associations, association_var)
+
   # assign function to evaluate the hazard pointwise
   time_rngs <- function(x){
-    bases <- lapply(time_rng, function(expansion) expansion$eval(x))
-    do.call(c, mapply(`*`, bases, associations, SIMPLIFY = FALSE))
+    bases <- mapply(function(expansion, ders, assoc) {
+      basis_vecs <- sapply(ders, expansion$eval, x = x)
+      rowSums(basis_vecs * rep(assoc, each = NROW(basis_vecs)))
+    }, expansion = time_rng, ders = ders, assoc = associations,
+    SIMPLIFY = FALSE)
+    do.call(c, bases)
   }
 
   tis <- seq(x_range[1], x_range[2], length.out = 100)

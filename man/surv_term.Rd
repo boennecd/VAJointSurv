@@ -4,7 +4,7 @@
 \alias{surv_term}
 \title{Creates Data for One Type of Survival Outcome}
 \usage{
-surv_term(formula, id, data, time_fixef)
+surv_term(formula, id, data, time_fixef, ders = NULL)
 }
 \arguments{
 \item{formula}{a two-sided \code{\link{formula}} with the survival outcome
@@ -14,11 +14,18 @@ be either right-censored and left-truncated.}
 
 \item{id}{the variable for the id of each individual.}
 
-\item{data}{a \code{data.frame} or environment to look at up the
-variables in.}
+\item{data}{\code{\link{data.frame}} with at least the time variable.}
 
 \item{time_fixef}{the time-varying fixed effects. See .e.g.
-\code{\link{poly_term}}. This is for baseline hazard.}
+\code{\link{poly_term}}. This is for the baseline hazard. Note that many
+basis expansions has boundary knots. It is important that these are set
+to cover the full range of survival times including time zero for some
+expansions.}
+
+\item{ders}{a \code{\link{list}} with \code{\link{integer}} vectors for how
+the survival outcome is linked to the markers. 0 implies present values,
+-1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+value of the random effect for all markers.}
 }
 \description{
 Creates Data for One Type of Survival Outcome

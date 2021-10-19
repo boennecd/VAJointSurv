@@ -469,8 +469,8 @@ public:
     s_fixef_design.reserve(survival_terms.size());
     s_id_vecs.reserve(survival_terms.size());
 
-
     std::vector<std::vector<std::vector<int> > > ders;
+    std::vector<unsigned> n_associations(markers.size());
     for(auto s : survival_terms){
       List surv = s;
       bases_fix_surv.emplace_back(basis_from_list(surv["time_fixef"]));
@@ -490,6 +490,10 @@ public:
         for(int val : ele_vec)
           ders.back().back().emplace_back(val);
       }
+      if(ders.back().size() != static_cast<size_t>(markers.size()))
+        throw std::runtime_error("Number of association parameters do not match the number of markers");
+      for(unsigned i = 0; i < ders.back().size(); ++i)
+        n_associations[i] = ders.back()[i].size();
 
       vajoint_uint const n_fixef = Z.nrow(),
                          n_obs   = Z.ncol();
@@ -497,7 +501,8 @@ public:
       surv_input.emplace_back
         (survival::obs_input{n_obs, &y[0], &y[y.nrow()], &y[2 * y.nrow()]});
       s_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
-      par_idx.add_surv({n_fixef, bases_fix_surv.back()->n_basis()});
+      par_idx.add_surv
+        ({n_fixef, bases_fix_surv.back()->n_basis(), n_associations});
     }
 
     // construct the objects to compute the different terms of the lower bound
@@ -646,7 +651,7 @@ double joint_ms_eval_lb
 
   obj->set_n_threads(n_threads);
   double const out{obj->optim().eval(&val[0], nullptr, false)};
-  wmem::clear_all();
+  wmem::rewind_all();
 
   return out;
 }
@@ -666,7 +671,7 @@ NumericVector joint_ms_eval_lb_gr
   NumericVector grad(val.size());
   obj->set_n_threads(n_threads);
   grad.attr("value") = obj->optim().eval(&val[0], &grad[0], true);
-  wmem::clear_all();
+  wmem::rewind_all();
 
   return grad;
 }
@@ -718,10 +723,12 @@ List joint_ms_parameter_indices(SEXP ptr){
 
   for(size_t i = 0; i < params.surv_info().size(); ++i){
     auto &info = params.surv_info()[i];
+    unsigned const n_assoc{std::accumulate(info.n_associations.begin(),
+                                           info.n_associations.end(), 0U)};
 
     Rcpp::IntegerVector fixef(info.n_fix),
                    fixef_vary(info.n_variying),
-                 associations(params.marker_info().size());
+                 associations(n_assoc);
 
     std::iota(fixef.begin(), fixef.end(), info.idx_fix + 1);
     std::iota(fixef_vary.begin(), fixef_vary.end(), info.idx_varying + 1);
@@ -792,7 +799,7 @@ NumericVector opt_priv
   obj->set_n_threads(n_threads);
   double const res = obj->optim().optim_priv(&par[0], rel_eps, max_it, c1, c2);
   par.attr("value") = res;
-  wmem::clear_all();
+  wmem::rewind_all();
 
   return par;
 }
@@ -823,7 +830,7 @@ List joint_ms_opt_lb
     res.n_eval, res.n_grad,  res.n_cg);
   counts.names() =
     Rcpp::CharacterVector::create("function", "gradient", "n_cg");
-  wmem::clear_all();
+  wmem::rewind_all();
 
   int const info{static_cast<int>(res.info)};
   return List::create(
@@ -909,7 +916,7 @@ public:
     double * const w1{wmem::get_double_mem(n_wmem()[0])},
            * const w2{wmem::get_double_mem(n_wmem()[1])};
     double const out(eval(param, quad_rule, 0, Z.n_cols(), w1, w2, va_var));
-    wmem::clear_all();
+    wmem::rewind_all();
     return out;
   }
 
@@ -939,7 +946,7 @@ public:
     }
 
     Number::tape->clear();
-    wmem::clear_all();
+    wmem::rewind_all();
     return out;
   }
 };

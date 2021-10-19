@@ -92,9 +92,9 @@ context("testing kl-terms") {
     subset_params params;
     params.add_marker({ 2, 2, 1 });
     params.add_marker({ 1, 4, 1 });
-    params.add_surv({ 5, 2 });
-    params.add_surv({ 1, 4 });
-    params.add_surv({ 5, 2 });
+    params.add_surv({ 5, 2, {1, 1} });
+    params.add_surv({ 1, 4, {1, 1} });
+    params.add_surv({ 5, 2, {1, 1} });
 
     // create and fill parameter vector
     vajoint_uint const n_params_w_va = params.n_params_w_va();

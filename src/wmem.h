@@ -25,6 +25,9 @@ inline void rewind(){
   rewind(static_cast<size_t>(get_thread_num()));
 }
 
+/// rewinds the working memory fo all threads
+void rewind_all();
+
 /// clears the working memory fo all threads
 void clear_all();
 

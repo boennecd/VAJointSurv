@@ -35,8 +35,11 @@ std::vector<std::string> subset_params::param_names
       for(vajoint_uint i = 0; i < x.n_variying; ++i)
         out[i + x.idx_varying] = prefix + "_fixef_vary" + std::to_string(i + 1);
 
-      for(vajoint_uint i = 0; i < marker_info_v.size(); ++i)
-        out[i + x.idx_association] = prefix + "_assoc" + std::to_string(i + 1);
+      unsigned idx_assoc{x.idx_association};
+      for(vajoint_uint i = 0; i < x.n_associations.size(); ++i)
+        for(vajoint_uint j = 0; j < x.n_associations[i]; ++j)
+          out[idx_assoc++] = prefix + "_assoc" +
+            std::to_string(i + 1) + "_" + std::to_string(j + 1);
     }
   }
 

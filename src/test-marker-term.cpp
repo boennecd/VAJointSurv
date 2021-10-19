@@ -111,8 +111,8 @@ context("marker_term is correct") {
 
     subset_params par_idx;
     par_idx.add_marker({n_fixef, 1, 3});
-    par_idx.add_surv({2, 1});
-    par_idx.add_surv({3, 2});
+    par_idx.add_surv({2, 1, {1}});
+    par_idx.add_surv({3, 2, {1}});
 
     auto dat_n_idx = marker::get_comp_dat
       (input_dat, par_idx, bases_fix, bases_rng);
@@ -352,8 +352,8 @@ context("marker_term is correct") {
     for(size_t i = 0; i < 3; ++i)
       par_idx.add_marker({n_fixef[i], bases_fix[i]->n_basis(),
                          bases_rng[i]->n_basis()});
-    par_idx.add_surv({2, 1});
-    par_idx.add_surv({3, 2});
+    par_idx.add_surv({2, 1, {1, 1, 1}});
+    par_idx.add_surv({3, 2, {1, 1, 1}});
 
     auto dat_n_idx = marker::get_comp_dat
       (input_dat, par_idx, bases_fix, bases_rng);

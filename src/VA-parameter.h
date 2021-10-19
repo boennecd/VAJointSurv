@@ -3,6 +3,7 @@
 #include "VA-joint-config.h"
 #include <vector>
 #include <string>
+#include <stdexcept>
 
 /**
  * handles finding parameters vector elements. Zero-based indices are used for
@@ -13,6 +14,10 @@ class subset_params {
 
 public:
   struct marker {
+    /**
+     * number of fixed effects, varying fixed effects, and number of random
+     * effects
+     */
     vajoint_uint n_fix, n_variying, n_rng;
     vajoint_uint idx_fix = 0,
                  idx_varying = 0;
@@ -22,13 +27,17 @@ public:
       n_fix(n_fix), n_variying(n_variying), n_rng(n_rng) { }
   };
   struct surv {
+    /// number of fixed effects and varying fixed effects
     vajoint_uint n_fix, n_variying;
+    /// number of associations parameters for each marker
+    std::vector<unsigned> n_associations;
     vajoint_uint idx_fix = 0,
                  idx_varying = 0,
                  idx_association = 0;
 
-    surv(vajoint_uint const n_fix, vajoint_uint const n_variying):
-      n_fix(n_fix), n_variying(n_variying) { }
+    surv(vajoint_uint const n_fix, vajoint_uint const n_variying,
+         const std::vector<unsigned> &n_associations):
+      n_fix(n_fix), n_variying(n_variying), n_associations{n_associations} { }
   };
 
 private:
@@ -77,7 +86,8 @@ private:
       info.idx_varying = idx;
       idx += info.n_variying;
       info.idx_association = idx;
-      idx += static_cast<vajoint_uint>(marker_info_v.size()); // -Wconversion
+      for(unsigned n : info.n_associations)
+        idx += n;
     }
 
     /// fill in the indices for the covariance matrices
@@ -127,12 +137,20 @@ public:
 
   /// adds a marker to the model
   void add_marker(marker const &info){
+    if(surv_info_v.size() > 0)
+      throw std::runtime_error("marker added after survival terms");
     marker_info_v.push_back(info);
     re_compute_indices();
   }
 
-  /// adds a survival outcome to the model
+  /**
+   * adds a survival outcome to the model. This must be done after the all the
+   * markers has been added because of the number of association parameter.
+   */
   void add_surv(surv const &info){
+    if(info.n_associations.size() != marker_info().size())
+      throw std::invalid_argument
+        ("new surv objects nubmer of associations parameters do not match the number of markers");
     surv_info_v.push_back(info);
     re_compute_indices();
   }

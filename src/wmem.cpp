@@ -17,6 +17,11 @@ void rewind(const size_t idx){
   Number_mem[idx].rewind();
 }
 
+void rewind_all(){
+  for(auto &x : double_mem) x.rewind();
+  for(auto &x : Number_mem) x.rewind();
+}
+
 void clear_all(){
   for(auto &x : double_mem) x.clear();
   for(auto &x : Number_mem) x.clear();
