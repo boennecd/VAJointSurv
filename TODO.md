@@ -4,3 +4,4 @@
 * Add examples to the manual pages. 
 * Go through the manual pages. 
 * Add a README file.
+* Support weights.

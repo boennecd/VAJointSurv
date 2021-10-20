@@ -3,3 +3,4 @@
 ^vignettes/VAJointSurv\.Rmd
 ^LICENSE\.md$
 ^TODO\.md$
+^benchmark/*
