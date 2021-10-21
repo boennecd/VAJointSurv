@@ -112,144 +112,175 @@ public:
     (double *out, double *wk_mem, double const x,
      const int ders = default_ders)
     const override {
-    if(ders < 0){
-      if(ders < -1)
-        throw std::runtime_error("not implemented for ders < -1");
-      // use formulas from Monotone Regression Splines in Action
-      //    https://doi.org/10.1214/ss/1177012761
-      // TODO: can be implemented smarter...
-      double * const basis_mem = wk_mem;
-      wk_mem += integral_basis->n_basis();
-
-      double dorder{static_cast<double>(order)};
-
-      // computes the indefinte integral at the upper or lower limit. The
-      // function must first be called at the upper limit
-      auto add_int = [&](double lim, bool const is_upper){
-        // we may integrate up to the limit but no further
-        lim = std::min(knots.back(), lim);
-
-        // evaluate the basis which is one order greater
-        (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
-
-        // find the index j such that knots[j] <= lim < knots[j + 1]
-        // use -1 if x < knots[0]
-        auto const idx_knot_start =
-          ([&]{
-            auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
-            return std::distance(knots.begin(), knot_j) - 1;
-          })();
-
-        // x is too small for these basis function to be active
-        vajoint_uint const idx_no_support
-          {std::min<vajoint_uint>(idx_knot_start + 1, ncoef)};
-        if(is_upper)
-          std::fill(out + idx_no_support, out + ncoef, 0);
-        // x is large enough that we have integrated over the full support of
-        // these basis functions
-        vajoint_uint i{};
-        vajoint_uint const is_capped =
-          idx_knot_start + 1 >= order ? idx_knot_start + 1 - order : 0;
-        for(; i < is_capped; ++i)
-          if(is_upper)
-            out[i]  = (knots[i + order] - knots[i]) / dorder;
-          else
-            out[i] -= (knots[i + order] - knots[i]) / dorder;
-
-        // the residual is somewhere in between
-        for(; i < idx_no_support; ++i){
-          double su{};
-          for(vajoint_uint j = i; j < idx_no_support; ++j)
-            // TODO: redundant computations
-            su += basis_mem[j];
-          if(is_upper)
-            out[i]  = su * (knots[i + order] - knots[i]) / dorder;
-          else
-            out[i] -= su * (knots[i + order] - knots[i]) / dorder;
-        }
-      };
-
-      add_int(x, true); // the upper limit
-      if(lower_limit > knots[0])
-        add_int(lower_limit, false); // the lower limit
-
+    if(ders >= 0){
+      comp_basis(x, out, wk_mem, ders);
       return;
     }
 
-    comp_basis(x, out, order, wk_mem, ders);
+    if(ders < -1)
+      throw std::runtime_error("not implemented for ders < -1");
+    // use formulas from Monotone Regression Splines in Action
+    //    https://doi.org/10.1214/ss/1177012761
+    // TODO: can be implemented smarter...
+    double * const basis_mem = wk_mem;
+    wk_mem += integral_basis->n_basis();
+
+    double dorder{static_cast<double>(order)};
+
+    // computes the indefinte integral at the upper or lower limit. The
+    // function must first be called at the upper limit
+    auto add_int = [&](double lim, bool const is_upper){
+      // we may integrate up to the limit but no further
+      lim = std::min(knots.back(), lim);
+
+      // evaluate the basis which is one order greater
+      (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
+
+      // find the index j such that knots[j] <= lim < knots[j + 1]
+      // use -1 if x < knots[0]
+      auto const idx_knot_start =
+        ([&]{
+          auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
+          return std::distance(knots.begin(), knot_j) - 1;
+        })();
+
+      // x is too small for these basis function to be active
+      vajoint_uint const idx_no_support
+        {std::min<vajoint_uint>(idx_knot_start + 1, ncoef)};
+      if(is_upper)
+        std::fill(out + idx_no_support, out + ncoef, 0);
+      // x is large enough that we have integrated over the full support of
+      // these basis functions
+      vajoint_uint i{};
+      vajoint_uint const is_capped =
+        idx_knot_start + 1 >= order ? idx_knot_start + 1 - order : 0;
+      for(; i < is_capped; ++i)
+        if(is_upper)
+          out[i]  = (knots[i + order] - knots[i]) / dorder;
+        else
+          out[i] -= (knots[i + order] - knots[i]) / dorder;
+
+      // the residual is somewhere in between
+      for(; i < idx_no_support; ++i){
+        double su{};
+        for(vajoint_uint j = i; j < idx_no_support; ++j)
+          // TODO: redundant computations
+          su += basis_mem[j];
+        if(is_upper)
+          out[i]  = su * (knots[i + order] - knots[i]) / dorder;
+        else
+          out[i] -= su * (knots[i + order] - knots[i]) / dorder;
+      }
+    };
+
+    add_int(x, true); // the upper limit
+    if(lower_limit > knots[0])
+      add_int(lower_limit, false); // the lower limit
   }
 
-  void comp_basis(double const x, double *out, unsigned const ord_p1,
+  void comp_basis(double const x, double *out,
                   double * wk_mem, unsigned const ders) const {
     // De Boor's algorithm
     //    https://en.wikipedia.org/wiki/De_Boor%27s_algorithm
-    unsigned const ord{ord_p1 - 1};
 
     // find the knot such that knot[i] <= x < knot[i + 1]
-    double const * const k_begin {knots.begin()},
-                 * const k_end   {knots.end()},
-                 *       it_inter{std::upper_bound(k_begin, k_end, x)};
-    unsigned const n_knots{knots.size()},
-                   dim_out{n_knots - ord_p1};
+    double const * it_inter{std::upper_bound(knots.begin(), knots.end(), x)};
 
     // deal with the matching boundaries
-    bool const is_at_boundary{it_inter == k_end && *std::prev(it_inter) == x};
-    while((it_inter == k_end && *std::prev(it_inter) == x) ||
-          (it_inter != k_end && *it_inter == x &&
-           *it_inter == *std::prev(it_inter)))
+    bool const is_at_boundary{it_inter == knots.end() && *std::prev(it_inter) == x};
+    while((it_inter == knots.end() && *std::prev(it_inter) == x) ||
+          (it_inter != knots.end() && *it_inter == x &&
+           it_inter != knots.begin() && *it_inter == *std::prev(it_inter)))
       --it_inter;
 
-    std::fill(out, out + dim_out, 0);
-    if(it_inter == k_begin || it_inter == k_end || ord < ders)
+    std::fill(out, out + ncoef, 0);
+    if(it_inter == knots.begin() || it_inter == knots.end() || ordm1 < ders)
       return;
 
     --it_inter;
-    unsigned const shift = std::distance(k_begin, it_inter);
+    unsigned const shift = std::distance(knots.begin(), it_inter);
     double * const D{wk_mem};
 
     // set the initial one
-    std::fill(D, D + ord_p1, 0);
-    D[ord] = !is_at_boundary || ord > ders;
+    std::fill(D, D + order, 0);
+    D[ordm1] = !is_at_boundary || ordm1 > ders;
 
-    unsigned const j_min{ord > shift ? ord - shift : 1};
-    for(unsigned r = 1; r <= ord - ders; ++r){
-      unsigned const j_max{std::min(ord_p1, n_knots - shift + ord - r)};
-      for(unsigned j = std::max(ord_p1 - r, j_min); j < j_max; ++j){
-        unsigned const idx_base{shift + j - ord};
-        double const k1{k_begin[idx_base]},
-                     k2{k_begin[idx_base + r]};
-        double const w_new{k1 == k2 ? 0 : (x - k1) / (k2 - k1)};
+    bool const is_interior{ordm1 <= shift && shift + ordm1 < knots.size()};
+    if(is_interior){
+      for(unsigned r = 1; r <= ordm1 - ders; ++r){
+        unsigned const j_start{order - r};
+        double const *k1{knots.begin() + shift + j_start - ordm1},
+                     *k2{k1 + r};
 
-        // update the previous
-        D[j - 1] += (1 - w_new) * D[j];
-        // update this one
-        D[j] *= w_new;
+        for(unsigned j = j_start; j < order; ++j, ++k1, ++k2){
+          double const w_new{*k1 == *k2 ? 0 : (x - *k1) / (*k2 - *k1)};
+
+          // update the previous
+          D[j - 1] += (1 - w_new) * D[j];
+          // update this one
+          D[j] *= w_new;
+        }
       }
-    }
 
-    // handle the derivatives
-    for(unsigned r = ord - ders + 1; r <= ord; ++r){
-      unsigned const j_max{std::min(ord_p1, n_knots - shift + ord - r)};
-      for(unsigned j = std::max(ord_p1 - r, j_min); j < j_max; ++j){
-        unsigned const idx_base{shift + j - ord};
-        double const k1{k_begin[idx_base]},
-                     k2{k_begin[idx_base + r]};
+      // handle the derivatives
+      for(unsigned r = ordm1 - ders + 1; r <= ordm1; ++r){
+        unsigned const j_start{order - r};
+        double const *k1{knots.begin() + shift + j_start - ordm1},
+                     *k2{k1 + r};
 
-        double const w_new{k1 == k2 ? 0 : r / (k2 - k1)};
+        for(unsigned j = j_start; j < order; ++j, ++k1, ++k2){
+          double const w_new{*k1 == *k2 ? 0 : r / (*k2 - *k1)};
 
-        // update the previous
-        D[j - 1] -= w_new * D[j];
-        // update this one
-        D[j] *= w_new;
+          // update the previous
+          D[j - 1] -= w_new * D[j];
+          // update this one
+          D[j] *= w_new;
+        }
       }
-    }
 
-    if(shift < ord){
-      unsigned const shift_D{ord - shift};
-      std::copy(D + shift_D, D + ord_p1, out);
     } else {
-      unsigned const shift_out{shift - ord},
-                          n_cp{std::min(dim_out - shift_out, ord_p1)};
+      unsigned const j_min{ordm1 > shift ? ordm1 - shift : 1};
+
+      for(unsigned r = 1; r <= ordm1 - ders; ++r){
+        unsigned const j_start{std::max(order - r, j_min)},
+                       j_max  {std::min(order, knots.size() - shift + ordm1 - r)};
+        double const *k1{knots.begin() + shift + j_start - ordm1},
+                     *k2{k1 + r};
+
+        for(unsigned j = j_start; j < j_max; ++j, ++k1, ++k2){
+          double const w_new{*k1 == *k2 ? 0 : (x - *k1) / (*k2 - *k1)};
+
+          // update the previous
+          D[j - 1] += (1 - w_new) * D[j];
+          // update this one
+          D[j] *= w_new;
+        }
+      }
+
+      // handle the derivatives
+      for(unsigned r = ordm1 - ders + 1; r <= ordm1; ++r){
+        unsigned const j_start{std::max(order - r, j_min)},
+                       j_max  {std::min(order, knots.size() - shift + ordm1 - r)};
+        double const *k1{knots.begin() + shift + j_start - ordm1},
+                     *k2{k1 + r};
+
+        for(unsigned j = j_start; j < j_max; ++j, ++k1, ++k2){
+          double const w_new{*k1 == *k2 ? 0 : r / (*k2 - *k1)};
+
+          // update the previous
+          D[j - 1] -= w_new * D[j];
+          // update this one
+          D[j] *= w_new;
+        }
+      }
+    }
+
+    if(shift < ordm1){
+      unsigned const shift_D{ordm1 - shift};
+      std::copy(D + shift_D, D + order, out);
+    } else {
+      unsigned const shift_out{shift - ordm1},
+                          n_cp{std::min(ncoef - shift_out, order)};
       std::copy(D, D + n_cp, out + shift_out);
     }
   }
