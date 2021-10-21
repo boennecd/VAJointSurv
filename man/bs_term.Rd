@@ -10,11 +10,15 @@ bs_term(
   knots = NULL,
   degree = 3,
   intercept = FALSE,
-  Boundary.knots = range(x)
+  Boundary.knots = range(if (use_log) log(x) else x),
+  use_log = FALSE
 )
 }
 \arguments{
 \item{x, df, knots, degree, intercept, Boundary.knots}{same as \code{\link{bs}}.}
+
+\item{use_log}{\code{TRUE} if the polynomials should be in the log of the
+argument.}
 }
 \description{
 Term for a B-Spline Basis for Polynomial Splines

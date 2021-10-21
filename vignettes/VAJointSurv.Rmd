@@ -152,8 +152,6 @@ The following is not supported
  
  - Interval-censoring and left-censoring are not supported although this is not
    a complicated extension.
- - One may want to evaluate $\vec b_i$ at $\log t$ rather than $t$ in the log
-   hazard. This is not too complicated to implement but not yet implemented.
  - There cannot be multiple observed markers of the same type at each point
    $s_{ij}$ for each individual $i$.
  - There cannot be time-varying effects for a covariate. 
@@ -449,6 +447,55 @@ all.equal( t(n$eval(-1, der = -1, lower_limit = -3)), do_int(-1, f, -3), 1e-6)
 ```
 
 Caution: the B-splines are only tested with `degree = 3`!
+
+#### Log Transformations
+
+The expansions can also be used on the log scale. This is mainly implemented 
+to allow the log of the baseline hazard to be parameterized in terms of an 
+expansions in log time to have the Weibull model as a special case. 
+A few examples are given below.
+
+```{r log_show_poly}
+# raw log polynomial with an without an intercept
+pl <- poly_term(degree = 3, raw = TRUE, intercept = TRUE, use_log = TRUE)
+pl_no_inter <- poly_term(degree = 3, raw = TRUE, intercept = FALSE, 
+                         use_log = TRUE)
+t(pl         $eval(1:2))
+t(pl_no_inter$eval(1:2))
+outer(log(1:2), 0:3, `^`) # R version
+
+# derivatives
+library(numDeriv)
+t(pl$eval(2:3, der = 1))
+t(pl_no_inter$eval(2:3, der = 1))
+# trivial to do compute by hand but we do it with numDeriv anyway
+t(sapply(2:3, function(x) jacobian(function(z) outer(log(z), 0:3, `^`), x)))
+```
+
+```{r log_ns_bs_term}
+# B-splines
+library(splines)
+xx <- 1:10
+b <- bs_term(xx, df = 4, use_log = TRUE)
+t(b$eval(4.33))
+c(predict(bs(log(xx), df = 4), log(4.33)))
+
+# derivatives
+t(b$eval(4.33, der = 1))
+f <- function(z) suppressWarnings(predict(bs(log(xx), df = 4), log(z)))
+t(jacobian(f, 4.33))
+
+# natural cubic spline
+xx <- 1:10
+n <- ns_term(xx, df = 3, use_log = TRUE)
+t(n$eval(4.33))
+c(predict(ns(log(xx), df = 3), log(4.33)))
+
+# derivatives
+t(n$eval(4.33, der = 1))
+f <- function(z) predict(ns(log(xx), df = 3), log(z))
+t(jacobian(f, 4.33))
+```
 
 ### Two Markers
 
@@ -852,6 +899,10 @@ rm(list = ls())
 We simulate from a model with two different types of markers and a recurrent 
 event in this section.
 
+A Weibull model is selected for the baseline hazard by taking a polynomial 
+of degree one and using the log of time. As an illustration, we select a more 
+flexible expansion in the baseline hazard in the model we estimate.
+
 ```{r recurrent_and_marker}
 # settings for the simulation
 library(splines)
@@ -895,15 +946,16 @@ plot_marker(
 # the survival parameters
 fixef_surv <- c(-.5, .25) # delta
 associations <- c(-.8, .7) # alpha
-fixef_vary_surv <- c(.5, .1, -.2, .11) # omega
+fixef_vary_surv <- c(.5) # omega
 vcov_surv <- matrix(.2^2, 1) # Xi
 
+b_term <- poly_term(degree = 1L, use_log = TRUE, raw = TRUE)
 b_func <- function(x)
-  bs(x, knots = 1, Boundary.knots = c(0, 2))
+  t(b_term$eval(x))
 
 # plot the hazard with pointwise quantiles
 plot_surv(
-  time_fixef = bs_term(knots = 1, Boundary.knots = c(0, 2)), 
+  time_fixef = b_term, 
   time_rng = list(
     ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
@@ -912,7 +964,7 @@ plot_surv(
   fixef_vary = fixef_vary_surv, associations = associations)
 # without the markers
 plot_surv(
-  time_fixef = bs_term(knots = 1, Boundary.knots = c(0, 2)), 
+  time_fixef = b_term, 
   time_rng = list(
     ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
     poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
@@ -1078,7 +1130,8 @@ marker_2 <- marker_term(
 library(survival)
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
-  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
+  # we select a more flexible model for the baseline hazard
+  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE))
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = surv_obj, max_threads = 4L)
@@ -1096,8 +1149,8 @@ f <- function(x){
   joint_ms_lb(comp_obj, start_val)
 }
 
-all.equal(numDeriv::grad(f, head(start_val, 31 + 2 * 20)), 
-          head(joint_ms_lb_gr(comp_obj, start_val), 31 + 2 * 20))
+all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 29 + 2 * 20))
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 

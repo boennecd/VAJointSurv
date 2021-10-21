@@ -9,11 +9,15 @@ ns_term(
   df = NULL,
   knots = NULL,
   intercept = FALSE,
-  Boundary.knots = range(x)
+  Boundary.knots = range(if (use_log) log(x) else x),
+  use_log = FALSE
 )
 }
 \arguments{
 \item{x, df, knots, intercept, Boundary.knots}{same as \code{\link{ns}}.}
+
+\item{use_log}{\code{TRUE} if the polynomials should be in the log of the
+argument.}
 }
 \description{
 Term for a Basis Matrix for Natural Cubic Splines

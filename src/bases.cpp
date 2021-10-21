@@ -28,7 +28,8 @@ inline void throw_invalid_out(
 namespace joint_bases {
 
 SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order,
-                         bool const with_intercept):
+                         bool const use_log, bool const with_integral):
+  basisMixin(use_log),
   order(order),
   knots{
     ([](vec ks){
@@ -39,7 +40,7 @@ SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order,
   },
   integral_basis {
     ([&](){
-      if(!with_intercept)
+      if(!with_integral)
         return std::unique_ptr<SplineBasis>();
 
       // append an additional knot
@@ -48,7 +49,7 @@ SplineBasis::SplineBasis(const vec &knots, const vajoint_uint order,
       if(knots.size() > 0)
         new_ks[knots.n_elem] = knots[knots.n_elem - 1];
 
-      return std::make_unique<SplineBasis>(new_ks, order + 1, false);
+      return std::make_unique<SplineBasis>(new_ks, order + 1, use_log, false);
     })()
   } {
   if (order<1)
@@ -74,8 +75,9 @@ inline arma::vec SplineBasis_knots
   return knots;
 }
 
-bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord):
-  SplineBasis(SplineBasis_knots(bk, ik, ord), ord),
+bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord,
+       bool const use_log):
+  SplineBasis(SplineBasis_knots(bk, ik, ord), ord, use_log),
   boundary_knots{bk[0], bk[1]},
   intercept(inter),
   df((int)intercept + order - 1 + ik.size()) {
@@ -83,7 +85,9 @@ bs::bs(const vec &bk, const vec &ik, const bool inter, const vajoint_uint ord):
 }
 
 ns::ns(const vec &bk, const vec &interior_knots,
-       const bool intercept, const vajoint_uint order):
+       const bool intercept, const vajoint_uint order,
+       const bool use_log):
+  basisMixin(use_log),
   s_basis{SplineBasis_knots(bk, interior_knots, order), order},
   boundary_knots{bk[0], bk[1]},
   intercept(intercept),
@@ -108,12 +112,15 @@ mSpline::mSpline(const vec &boundary_knots, const vec &interior_knots,
   bspline(boundary_knots, interior_knots, true, order),
   intercept(intercept) { }
 
-orth_poly::orth_poly(vajoint_uint const degree, bool const intercept):
+orth_poly::orth_poly(vajoint_uint const degree, bool const intercept,
+                     bool const use_log):
+basisMixin(use_log),
 alpha(), norm2(), raw(true), intercept(intercept),
 n_basis_v(degree + intercept) { }
 
 orth_poly::orth_poly(vec const &alpha, vec const &norm2,
-                     bool const intercept):
+                     bool const intercept, bool const use_log):
+basisMixin(use_log),
 alpha(alpha), norm2(norm2), raw(false), intercept(intercept),
 n_basis_v(norm2.size() - 2 + intercept),
 orth_map(((alpha.size() + 1) * (alpha.size() + 2)) / 2) {

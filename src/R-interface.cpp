@@ -77,31 +77,34 @@ std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
     arma::vec alpha{Rcpp::as<arma::vec>(coefs["alpha"])},
               norm2{Rcpp::as<arma::vec>(coefs["norm2"])};
     bool const raw{Rcpp::as<bool>(dat["raw"])},
-         intercept{Rcpp::as<bool>(dat["intercept"])};
+         intercept{Rcpp::as<bool>(dat["intercept"])},
+           use_log{Rcpp::as<bool>(dat["use_log"])};
 
     return raw
-      ? std::make_unique<joint_bases::orth_poly>(alpha.size(), intercept)
-      : std::make_unique<joint_bases::orth_poly>(alpha, norm2, intercept);
+      ? std::make_unique<joint_bases::orth_poly>(alpha.size(), intercept, use_log)
+      : std::make_unique<joint_bases::orth_poly>(alpha, norm2, intercept, use_log);
 
   } else if(Rf_inherits(dat, "bs_term")){
     arma::vec i_knots{Rcpp::as<arma::vec>(dat["knots"])},
               b_knots{Rcpp::as<arma::vec>(dat["Boundary.knots"])};
 
-    bool const intercept{Rcpp::as<bool>(dat["intercept"])};
+    bool const intercept{Rcpp::as<bool>(dat["intercept"])},
+                 use_log{Rcpp::as<bool>(dat["use_log"])};
     vajoint_uint const degree{Rcpp::as<vajoint_uint>(dat["degree"])};
 
     return std::make_unique<joint_bases::bs>
-      (b_knots, i_knots, intercept, degree + 1);
+      (b_knots, i_knots, intercept, degree + 1, use_log);
 
   } else if(Rf_inherits(dat, "ns_term")){
     arma::vec i_knots{Rcpp::as<arma::vec>(dat["knots"])},
               b_knots{Rcpp::as<arma::vec>(dat["Boundary.knots"])};
 
-    bool const intercept{Rcpp::as<bool>(dat["intercept"])};
+    bool const intercept{Rcpp::as<bool>(dat["intercept"])},
+                 use_log{Rcpp::as<bool>(dat["use_log"])};
     vajoint_uint const degree{Rcpp::as<vajoint_uint>(dat["degree"])};
 
     return std::make_unique<joint_bases::ns>
-      (b_knots, i_knots, intercept, degree + 1);
+      (b_knots, i_knots, intercept, degree + 1, use_log);
 
   }
 

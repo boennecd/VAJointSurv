@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plot_surv}
 \alias{plot_surv}
-\title{Plots Quantilies of the Conditional Hazards}
+\title{Plots Quantiles of the Conditional Hazards}
 \usage{
 plot_surv(
   time_fixef,
@@ -16,9 +16,22 @@ plot_surv(
   associations,
   xlab = "Time",
   ylab = "Hazard",
+  ders = NULL,
   ...
 )
 }
+\arguments{
+\item{time_fixef}{the time-varying fixed effects. See .e.g.
+\code{\link{poly_term}}. This is for the baseline hazard. Note that many
+basis expansions has boundary knots. It is important that these are set
+to cover the full range of survival times including time zero for some
+expansions.}
+
+\item{ders}{a \code{\link{list}} with \code{\link{integer}} vectors for how
+the survival outcome is linked to the markers. 0 implies present values,
+-1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+value of the random effect for all markers.}
+}
 \description{
-Plots Quantilies of the Conditional Hazards
+Plots Quantiles of the Conditional Hazards
 }

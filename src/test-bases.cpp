@@ -45,6 +45,37 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
     expect_true(pass_rel_err(ix[i], ix_val[i], 1e-6));
 }
 
+template<class Basis, size_t N>
+void run_test_use_log(double const xx_val, std::array<double, N> const &yy_val,
+                      std::array<double, N> const &dx_val, bool const intercept){
+  arma::vec bk = { 1, 3 },
+            ik = { 1.5, 2.5 };
+  int const order(4);
+
+  auto bas = Basis(bk, ik, intercept, order, true);
+  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 0.);
+
+  expect_true(y.size() == yy_val.size());
+  for(unsigned i = 0; i < y.size(); ++i)
+    expect_true(pass_rel_err(y[i], yy_val[i]));
+
+  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 1);
+  expect_true(dx.size() == dx_val.size());
+  for(unsigned i = 0; i < y.size(); ++i)
+    expect_true(pass_rel_err(dx[i], dx_val[i]));
+
+  // work when a pointer is passed
+  y.zeros();
+  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 0);
+  for(unsigned i = 0; i < y.size(); ++i)
+    expect_true(pass_rel_err(y[i], yy_val[i]));
+
+  dx.zeros();
+  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 1);
+  for(unsigned i = 0; i < y.size(); ++i)
+    expect_true(pass_rel_err(dx[i], dx_val[i]));
+}
+
 context("test bs") {
   test_that("bs works (no intercept)") {
     /*
@@ -129,6 +160,45 @@ context("test bs") {
                101.24999999954, -231.749999999544, 143.999999999226 };
     ix_val = { 0.0833333333333333, 0.166666666666667, -0.875, 10.9375, -29.6458333333333, 21.3333333333333 };
     run_test<joint_bases::bs>(xx_val, yy_val, dx_val, intercept, ix_val, true);
+  }
+
+  test_that("bs works (intercept) use_log = true") {
+    /*
+     library(splines)
+     library(numDeriv)
+     xs <- exp(c(.5, 1.9, 3.2))
+     dput(interior_knots <- c(1.5, 2.5))
+     dput(boundary_knots <- c(1, 3))
+     f <- function(z)
+     bs(log(z), knots = interior_knots, Boundary.knots = boundary_knots, intercept = TRUE)
+     dput(t(f(xs)))
+     dput(sapply(xs, function(zz) jacobian(f, zz)))
+     */
+
+    bool constexpr intercept(true);
+    double xx_val(std::exp(.5));
+    std::array<double, 6> yy_val,
+                          dx_val,
+                          ix_val;
+    yy_val = { 8, -8.44444444444444, 1.52777777777778, -0.0833333333333333,
+               0, 0 };
+    dx_val = {-14.5567358332459, 18.6002735647145, -4.34680306132608,
+              0.303265329860015, 0, 0 };
+    run_test_use_log<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+
+    xx_val = std::exp(1.9);
+    yy_val = { 0, 0.096, 0.503333333333333, 0.372222222222222, 0.0284444444444444,
+               0 };
+    dx_val = { 0, -0.0717929372264858, -0.0747843096103767,
+               0.114669274737316, 0.0319079721007659, 0 };
+    run_test_use_log<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
+
+    xx_val = std::exp(3.2);
+    yy_val = { 0, 0, -0.00533333333333335, 0.193777777777778, -1.93244444444445,
+               2.744 };
+    dx_val = { 0, 0, -0.00326097631834105,
+               0.085872376383374, -0.561974918863904, 0.479363518798855 };
+    run_test_use_log<joint_bases::bs>(xx_val, yy_val, dx_val, intercept);
   }
 
   test_that("bs works (intercept), ders == -1, one inner knot") {
@@ -266,6 +336,45 @@ context("test ns") {
     dx_val = {0, -3.21428571427524, 0.642857142843741, 2.57142857136958};
     ix_val = { 0.23936516774501, -1.54711799479435, 1.05802065104973, 1.98909734374463 };
     run_test<joint_bases::ns>(xx_val, yy_val, dx_val, intercept, ix_val, true);
+  }
+
+  test_that("ns works (intercept) use_log = true") {
+    /*
+     library(splines)
+     library(numDeriv)
+     xs <- exp(c(.5, 1.9, 3.2))
+     dput(interior_knots <- c(1.5, 2.5))
+     dput(boundary_knots <- c(1, 3))
+     f <- function(z)
+     ns(log(z), knots = interior_knots, Boundary.knots = boundary_knots, intercept = TRUE)
+     dput(t(f(xs)))
+     dput(sapply(xs, function(zz) jacobian(f, zz)))
+     */
+
+    bool constexpr intercept(true);
+    double xx_val(std::exp(.5));
+    std::array<double, 4> yy_val,
+                          dx_val,
+                          ix_val;
+    yy_val = { -1.0750421367307, -0.254984030450728, 1.01993612180291,
+               -0.764952091352183 };
+    dx_val = { 1.06619113518837, 0.122686446044928, -0.490745784179713,
+               0.368059338136731 };
+    run_test_use_log<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+
+    xx_val = std::exp(1.9);
+    yy_val = { 0.500443700571341, 0.341188087871783, 0.1525809818462,
+               -0.0931024030513163 };
+    dx_val = { -0.0799272289080084, 0.125213152356344, -0.0102675383769478,
+               0.0316316328581655 };
+    run_test_use_log<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
+
+    xx_val = std::exp(3.2);
+    yy_val = { 0, -0.438461538461539, 0.553846153846154,
+               0.884615384615385 };
+    dx_val = { 0, -0.0658466371974155, 0.0188133249128504,
+               0.0470333122847401 };
+    run_test_use_log<joint_bases::ns>(xx_val, yy_val, dx_val, intercept);
   }
 }
 
@@ -515,46 +624,61 @@ context("test orth_poly") {
   test_that("orth_poly works with raw == true") {
     // with the intercept
     for(unsigned i = 1; i < 4; ++i){
-      joint_bases::orth_poly const obj{i, true};
+      joint_bases::orth_poly const obj    {i, true},
+                                   obj_log{i, true, true};
 
       constexpr double x{2};
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
-      double true_val{1};
+      const double log_x{std::log(x)};
+      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem())),
+            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()));
+      double true_val{1}, true_val_log{1};
       for(unsigned j = 0; j <= i; ++j){
-        expect_true(pass_rel_err(res[j], true_val));
+        expect_true(pass_rel_err(res    [j], true_val    ));
+        expect_true(pass_rel_err(res_log[j], true_val_log));
         true_val *= x;
+        true_val_log *= log_x;
       }
 
-      expect_true(obj.n_basis() == i + 1);
+      expect_true(obj    .n_basis() == i + 1);
+      expect_true(obj_log.n_basis() == i + 1);
     }
 
     // without the intercept
     for(unsigned i = 1; i < 4; ++i){
-      joint_bases::orth_poly const obj{i, false};
+      joint_bases::orth_poly const obj    {i, false},
+                                   obj_log{i, false, true};
 
       constexpr double x{3};
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
-      double true_val{x};
+      const double log_x{std::log(x)};
+      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem())),
+            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()));
+      double true_val{x}, true_val_log{log_x};
       for(unsigned j = 0; j < i; ++j){
-        expect_true(pass_rel_err(res[j], true_val));
+        expect_true(pass_rel_err(res    [j], true_val));
+        expect_true(pass_rel_err(res_log[j], true_val_log));
         true_val *= x;
+        true_val_log *= log_x;
       }
 
-      expect_true(obj.n_basis() == i);
+      expect_true(obj    .n_basis() == i);
+      expect_true(obj_log.n_basis() == i);
     }
   }
 
   test_that("orth_poly works with raw == true and ders > 0") {
-    constexpr double x{3.5};
+    constexpr double x{3.5},
+                 log_x{1.25276296849537};
     constexpr double d1[] {0, 1, 2 * 3.5, 3 * 3.5 * 3.5, 4 * 3.5 * 3.5 * 3.5},
                      d2[] {0, 0,       2,   3 * 2 * 3.5, 4 * 3 * 3.5 * 3.5  },
                      d3[] {0, 0,       0,         3 * 2, 4 * 3 * 2 * 3.5    },
-                     d4[] {0, 0,       0,             0, 4 * 3 * 2          };
+                     d4[] {0, 0,       0,             0, 4 * 3 * 2          },
+                  d_log[] {0, 1/x, 2 * log_x / x, 3 * log_x * log_x / x, 4 * log_x * log_x * log_x / x};
 
 
     // with an intercept
     {
-      joint_bases::orth_poly const obj{4, true};
+      joint_bases::orth_poly const obj{4, true},
+                               obj_log{4, true, true};
 
       arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
       expect_true(res.size() == 5);
@@ -575,11 +699,17 @@ context("test orth_poly") {
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d4[i]));
+
+      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), 1);
+      expect_true(res.size() == 5);
+      for(vajoint_uint i = 0; i < res.size(); ++i)
+        expect_true(pass_rel_err(res[i], d_log[i]));
     }
 
     // without an intercept
     {
-      joint_bases::orth_poly const obj{4, false};
+      joint_bases::orth_poly const obj{4, false},
+                               obj_log{4, false, true};
 
       arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
       expect_true(res.size() == 4);
@@ -600,6 +730,11 @@ context("test orth_poly") {
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d4[i + 1]));
+
+      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), 1);
+      expect_true(res.size() == 4);
+      for(vajoint_uint i = 0; i < res.size(); ++i)
+        expect_true(pass_rel_err(res[i], d_log[i + 1]));
     }
 
   }

@@ -9,13 +9,17 @@ poly_term(
   degree = 1,
   coefs = NULL,
   raw = FALSE,
-  intercept = FALSE
+  intercept = FALSE,
+  use_log = FALSE
 )
 }
 \arguments{
 \item{x, degree, coefs, raw}{same as \code{\link{poly}}.}
 
 \item{intercept}{\code{TRUE} if there should be an intercept.}
+
+\item{use_log}{\code{TRUE} if the polynomials should be in the log of the
+argument.}
 }
 \description{
 Term for Orthogonal Polynomials

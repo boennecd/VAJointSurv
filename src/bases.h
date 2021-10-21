@@ -14,7 +14,8 @@ namespace joint_bases {
 
 constexpr vajoint_uint default_order{4};
 constexpr int default_ders{0};
-constexpr bool default_intercept{false};
+constexpr bool default_intercept{false},
+                 default_use_log{false};
 
 using namespace arma;
 
@@ -73,114 +74,28 @@ public:
   virtual std::unique_ptr<basisMixin> clone() const = 0;
 
   virtual void set_lower_limit(double const x){
-    lower_limit = x;
+    if(use_log)
+      lower_limit = log(x);
+    else
+      lower_limit = x;
   }
 
+  basisMixin(bool const use_log = default_use_log):
+    use_log{use_log} {
+      set_lower_limit(use_log ? std::numeric_limits<double>::epsilon() : 0);
+    }
+
 protected:
-  /// lower limit of integrals
-  double lower_limit{};
+  /// should the log of the input be used
+  bool use_log;
+  /// lower limit of integrals. This is log transformed if use_log is true
+  double lower_limit;
 };
 
 class SplineBasis : public basisMixin {
-public:
-  vajoint_uint const order = default_order, /* order of the spline */
-                     ordm1 = order - 1;     /* order - 1 (3 for cubic splines) */
-  vec const knots;	               /* knot vector */
-  vajoint_uint const nknots = knots.n_elem, /* number of knots
-                                           except for the boundary case */
-                      ncoef =               /* number of coefficients */
-                         nknots > order ? nknots - order : 0L;
-
-  SplineBasis(const vec &knots, const vajoint_uint order = default_order,
-              bool const with_intercept = true);
-
-  SplineBasis(SplineBasis const &other):
-    SplineBasis(other.knots, other.order,
-                static_cast<bool>(other.integral_basis)) { }
-
-  vajoint_uint n_basis() const override {
-    return ncoef;
-  }
-
-  size_t n_wmem() const override {
-    return n_wmem_v;
-  }
-
-  using basisMixin::set_lower_limit;
-  using basisMixin::operator();
-  void operator()
-    (double *out, double *wk_mem, double const x,
-     const int ders = default_ders)
-    const override {
-    if(ders >= 0){
-      comp_basis(x, out, wk_mem, ders);
-      return;
-    }
-
-    if(ders < -1)
-      throw std::runtime_error("not implemented for ders < -1");
-    // use formulas from Monotone Regression Splines in Action
-    //    https://doi.org/10.1214/ss/1177012761
-    // TODO: can be implemented smarter...
-    double * const basis_mem = wk_mem;
-    wk_mem += integral_basis->n_basis();
-
-    double dorder{static_cast<double>(order)};
-
-    // computes the indefinte integral at the upper or lower limit. The
-    // function must first be called at the upper limit
-    auto add_int = [&](double lim, bool const is_upper){
-      // we may integrate up to the limit but no further
-      lim = std::min(knots.back(), lim);
-
-      // evaluate the basis which is one order greater
-      (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
-
-      // find the index j such that knots[j] <= lim < knots[j + 1]
-      // use -1 if x < knots[0]
-      auto const idx_knot_start =
-        ([&]{
-          auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
-          return std::distance(knots.begin(), knot_j) - 1;
-        })();
-
-      // x is too small for these basis function to be active
-      vajoint_uint const idx_no_support
-        {std::min<vajoint_uint>(idx_knot_start + 1, ncoef)};
-      if(is_upper)
-        std::fill(out + idx_no_support, out + ncoef, 0);
-      // x is large enough that we have integrated over the full support of
-      // these basis functions
-      vajoint_uint i{};
-      vajoint_uint const is_capped =
-        idx_knot_start + 1 >= order ? idx_knot_start + 1 - order : 0;
-      for(; i < is_capped; ++i)
-        if(is_upper)
-          out[i]  = (knots[i + order] - knots[i]) / dorder;
-        else
-          out[i] -= (knots[i + order] - knots[i]) / dorder;
-
-      // the residual is somewhere in between
-      for(; i < idx_no_support; ++i){
-        double su{};
-        for(vajoint_uint j = i; j < idx_no_support; ++j)
-          // TODO: redundant computations
-          su += basis_mem[j];
-        if(is_upper)
-          out[i]  = su * (knots[i + order] - knots[i]) / dorder;
-        else
-          out[i] -= su * (knots[i + order] - knots[i]) / dorder;
-      }
-    };
-
-    add_int(x, true); // the upper limit
-    if(lower_limit > knots[0])
-      add_int(lower_limit, false); // the lower limit
-  }
-
-  void comp_basis(double const x, double *out,
+    void comp_basis(double const x, double *out,
                   double * wk_mem, unsigned const ders) const {
-    // De Boor's algorithm
+    // Cox-de Boor recursion formula
     //    https://en.wikipedia.org/wiki/De_Boor%27s_algorithm
 
     // find the knot such that knot[i] <= x < knot[i + 1]
@@ -285,6 +200,107 @@ public:
     }
   }
 
+public:
+  vajoint_uint const order = default_order, /* order of the spline */
+                     ordm1 = order - 1;     /* order - 1 (3 for cubic splines) */
+  vec const knots;	               /* knot vector */
+  vajoint_uint const nknots = knots.n_elem, /* number of knots
+                                           except for the boundary case */
+                      ncoef =               /* number of coefficients */
+                         nknots > order ? nknots - order : 0L;
+
+  SplineBasis(const vec &knots, const vajoint_uint order = default_order,
+              bool const use_log = default_use_log,
+              bool const with_integral = true);
+
+  SplineBasis(SplineBasis const &other):
+    SplineBasis(other.knots, other.order, other.use_log,
+                static_cast<bool>(other.integral_basis)) { }
+
+  vajoint_uint n_basis() const override {
+    return ncoef;
+  }
+
+  size_t n_wmem() const override {
+    return n_wmem_v;
+  }
+
+  using basisMixin::set_lower_limit;
+  using basisMixin::operator();
+
+  /** the function ignores the use_log as this class is usually not used on its
+   * own
+   */
+  void operator()
+    (double *out, double *wk_mem, double const x,
+     const int ders = default_ders)
+    const override {
+    if(ders >= 0){
+      comp_basis(x, out, wk_mem, ders);
+      return;
+    }
+
+    if(ders < -1)
+      throw std::runtime_error("not implemented for ders < -1");
+    // use formulas from Monotone Regression Splines in Action
+    //    https://doi.org/10.1214/ss/1177012761
+    // TODO: can be implemented smarter...
+    double * const basis_mem = wk_mem;
+    wk_mem += integral_basis->n_basis();
+
+    double dorder{static_cast<double>(order)};
+
+    // computes the indefinte integral at the upper or lower limit. The
+    // function must first be called at the upper limit
+    auto add_int = [&](double lim, bool const is_upper){
+      // we may integrate up to the limit but no further
+      lim = std::min(knots.back(), lim);
+
+      // evaluate the basis which is one order greater
+      (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
+
+      // find the index j such that knots[j] <= lim < knots[j + 1]
+      // use -1 if x < knots[0]
+      auto const idx_knot_start =
+        ([&]{
+          auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
+          return std::distance(knots.begin(), knot_j) - 1;
+        })();
+
+      // x is too small for these basis function to be active
+      vajoint_uint const idx_no_support
+        {std::min<vajoint_uint>(idx_knot_start + 1, ncoef)};
+      if(is_upper)
+        std::fill(out + idx_no_support, out + ncoef, 0);
+      // x is large enough that we have integrated over the full support of
+      // these basis functions
+      vajoint_uint i{};
+      vajoint_uint const is_capped =
+        idx_knot_start + 1 >= order ? idx_knot_start + 1 - order : 0;
+      for(; i < is_capped; ++i)
+        if(is_upper)
+          out[i]  = (knots[i + order] - knots[i]) / dorder;
+        else
+          out[i] -= (knots[i + order] - knots[i]) / dorder;
+
+      // the residual is somewhere in between
+      for(; i < idx_no_support; ++i){
+        double su{};
+        for(vajoint_uint j = i; j < idx_no_support; ++j)
+          // TODO: redundant computations
+          su += basis_mem[j];
+        if(is_upper)
+          out[i]  = su * (knots[i + order] - knots[i]) / dorder;
+        else
+          out[i] -= su * (knots[i + order] - knots[i]) / dorder;
+      }
+    };
+
+    add_int(x, true); // the upper limit
+    if(lower_limit > knots[0])
+      add_int(lower_limit, false); // the lower limit
+  }
+
   virtual ~SplineBasis() = default;
 
   std::unique_ptr<basisMixin> clone() const override {
@@ -302,36 +318,9 @@ private:
 };
 
 class bs final : public SplineBasis {
-public:
-  double const boundary_knots[2];
-  bool const intercept;
-  vajoint_uint const df;
-  size_t n_wmem_v
-    {2 * std::max(SplineBasis::n_basis(), bs::n_basis()) +
-      SplineBasis::n_wmem()};
-
-public:
-  size_t n_wmem() const {
-    return n_wmem_v;
-  }
-
-  bs(const vec &bk, const vec &ik,
-     const bool inter = default_intercept,
-     const vajoint_uint ord = default_order);
-
-  vajoint_uint n_basis() const {
-    return SplineBasis::n_basis() - (!intercept);
-  }
-
-  std::unique_ptr<basisMixin> clone() const {
-    return std::make_unique<bs>(*this);
-  }
-
-  using SplineBasis::set_lower_limit;
-  using SplineBasis::operator();
-  void operator()
-      (double *out, double *wk_mem, double const x,
-       const int ders = default_ders) const {
+  void do_eval
+    (double *out, double *wk_mem, double const x,
+     const int ders = default_ders) const {
     double * const my_wk_mem{wk_mem};
     wk_mem += std::max(SplineBasis::n_basis(), bs::n_basis());
 
@@ -388,7 +377,7 @@ public:
                      delta = x - k_pivot;
 
       auto add_term = [&](int const d, double const f = 1){
-        bs::operator()(my_wk_mem, wk_mem, k_pivot, d);
+        do_eval(my_wk_mem, wk_mem, k_pivot, d);
         for(vajoint_uint i = 0; i < bs::n_basis(); ++i)
           out[i] += f * my_wk_mem[i];
       };
@@ -413,52 +402,62 @@ public:
         out[i - 1L] = my_wk_mem[i];
     }
   }
+
+public:
+  double const boundary_knots[2];
+  bool const intercept;
+  vajoint_uint const df;
+  size_t n_wmem_v
+    {2 * std::max(SplineBasis::n_basis(), bs::n_basis()) +
+      SplineBasis::n_wmem()};
+
+  size_t n_wmem() const {
+    return n_wmem_v;
+  }
+
+  bs(const vec &bk, const vec &ik,
+     const bool inter = default_intercept,
+     const vajoint_uint ord = default_order,
+     bool const use_log = default_use_log);
+
+  vajoint_uint n_basis() const {
+    return SplineBasis::n_basis() - (!intercept);
+  }
+
+  std::unique_ptr<basisMixin> clone() const {
+    return std::make_unique<bs>(*this);
+  }
+
+  using SplineBasis::set_lower_limit;
+  using SplineBasis::operator();
+  void operator()
+      (double *out, double *wk_mem, double const x,
+       const int ders = default_ders) const {
+      if(!use_log){
+        do_eval(out, wk_mem, x, ders);
+        return;
+      }
+
+      do_eval(out, wk_mem, std::log(x), ders);
+      switch(ders){
+      case 0:
+        break;
+      case 1:
+        for(vajoint_uint i = 0; i < n_basis(); ++i)
+          // TODO: we can use that some are zero
+          out[i] /= x;
+        break;
+      default:
+        throw std::runtime_error
+        ("not implemented with use_log and ders " + std::to_string(ders));
+    }
+  }
 };
 
 class ns final : public basisMixin {
   SplineBasis s_basis;
-public:
-  double const boundary_knots[2];
-  bool const intercept;
-  mat const q_matrix = ([&](){
-    // calculate the Q matrix
-    arma::vec tmp{boundary_knots[0], boundary_knots[1]};
-    mat const_basis = s_basis.basis
-      (tmp, wmem::get_double_mem(s_basis.n_wmem()), 2);
-    if (!intercept)
-      const_basis = const_basis.cols(1, const_basis.n_cols - 1);
-    mat qd, rd;
-    if(!qr(qd, rd, const_basis.t()))
-      throw std::invalid_argument("ns: QR decomposition failed");
-    inplace_trans(qd);
-    return qd;
-  })();
-  vec const tl0, tl1, tr0, tr1;
 
-  ns(const vec &boundary_knots, const vec &interior_knots,
-     const bool intercept = default_intercept,
-     const vajoint_uint order = default_order);
-
-  size_t n_wmem() const {
-    return s_basis.n_wmem() + q_matrix.n_rows +
-      s_basis.n_basis() + n_basis();
-  }
-
-  vajoint_uint n_basis() const {
-    return q_matrix.n_rows - 2;
-  }
-
-  std::unique_ptr<basisMixin> clone() const {
-    return std::make_unique<ns>(*this);
-  }
-
-  void set_lower_limit(double const x){
-    lower_limit = x;
-    s_basis.set_lower_limit(x);
-  }
-
-  using basisMixin::operator();
-  void operator()
+  void do_eval
     (double *out, double *wk_mem, double const x,
      int const ders = default_ders) const {
     if(ders < 0){
@@ -564,6 +563,71 @@ public:
     vec out = q_matrix * (intercept ? x : x(span(1, x.n_elem - 1)));
     return out(span(2, out.size() - 1));
   }
+
+public:
+  double const boundary_knots[2];
+  bool const intercept;
+  mat const q_matrix = ([&](){
+    // calculate the Q matrix
+    arma::vec tmp{boundary_knots[0], boundary_knots[1]};
+    mat const_basis = s_basis.basis
+      (tmp, wmem::get_double_mem(s_basis.n_wmem()), 2);
+    if (!intercept)
+      const_basis = const_basis.cols(1, const_basis.n_cols - 1);
+    mat qd, rd;
+    if(!qr(qd, rd, const_basis.t()))
+      throw std::invalid_argument("ns: QR decomposition failed");
+    inplace_trans(qd);
+    return qd;
+  })();
+  vec const tl0, tl1, tr0, tr1;
+
+  ns(const vec &boundary_knots, const vec &interior_knots,
+     const bool intercept = default_intercept,
+     const vajoint_uint order = default_order,
+     const bool use_log = default_use_log);
+
+  size_t n_wmem() const {
+    return s_basis.n_wmem() + q_matrix.n_rows +
+      s_basis.n_basis() + n_basis();
+  }
+
+  vajoint_uint n_basis() const {
+    return q_matrix.n_rows - 2;
+  }
+
+  std::unique_ptr<basisMixin> clone() const {
+    return std::make_unique<ns>(*this);
+  }
+
+  void set_lower_limit(double const x){
+    basisMixin::set_lower_limit(x);
+    s_basis.set_lower_limit(x);
+  }
+
+  using basisMixin::operator();
+  void operator()
+    (double *out, double *wk_mem, double const x,
+     int const ders = default_ders) const {
+    if(!use_log){
+      do_eval(out, wk_mem, x, ders);
+      return;
+    }
+
+    do_eval(out, wk_mem, std::log(x), ders);
+    switch(ders){
+    case 0:
+      break;
+    case 1:
+      for(vajoint_uint i = 0; i < n_basis(); ++i)
+        // TODO: we can use that some are zero
+        out[i] /= x;
+      break;
+    default:
+      throw std::runtime_error
+      ("not implemented with use_log and ders " + std::to_string(ders));
+    }
+  }
 }; // class ns
 
 class iSpline final : public basisMixin {
@@ -590,7 +654,7 @@ public:
   }
 
   void set_lower_limit(double const x){
-    lower_limit = x;
+    basisMixin::set_lower_limit(x);
     bspline.set_lower_limit(x);
   }
 
@@ -663,7 +727,7 @@ public:
   }
 
   void set_lower_limit(double const x){
-    lower_limit = x;
+    basisMixin::set_lower_limit(x);
     bspline.set_lower_limit(x);
   }
 
@@ -766,32 +830,9 @@ class orth_poly final : public basisMixin {
     }
   }
 
-public:
-  // constructor for raw == true
-  orth_poly
-    (vajoint_uint const degree, bool const intercept = default_intercept);
-
-  // constructor for raw == false
-  orth_poly(vec const &alpha, vec const &norm2,
-            bool const intercept = default_intercept);
-
-  std::unique_ptr<basisMixin> clone() const {
-    return std::make_unique<orth_poly>(*this);
-  }
-
-  size_t n_wmem() const {
-    return intercept ? n_basis_v : n_basis_v + 1;
-  }
-
-  /**
-   * behaves like predict(<poly object>, newdata) except there might be an
-   * intercept */
-  using basisMixin::set_lower_limit;
-  using basisMixin::operator();
-  void operator()(double *out, double *wk_mem, double const x,
-                  int const ders = default_ders)
+  void do_eval(double *out, double *wk_mem, double const x,
+               int const ders)
     const {
-
     if(raw){
       eval_raw(out, x, intercept, ders, n_basis_v - intercept, lower_limit);
       return;
@@ -831,6 +872,52 @@ public:
     for(vajoint_uint j = 1; j < alpha.size() + 1; ++j)
       for(vajoint_uint i = 0; i <= j; ++i)
         out[j - !intercept] += wk_mem[i] * *g++;
+  }
+
+public:
+  // constructor for raw == true
+  orth_poly
+    (vajoint_uint const degree, bool const intercept = default_intercept,
+     bool const use_log = default_use_log);
+
+  // constructor for raw == false
+  orth_poly(vec const &alpha, vec const &norm2,
+            bool const intercept = default_intercept,
+            bool const use_log = default_use_log);
+
+  std::unique_ptr<basisMixin> clone() const {
+    return std::make_unique<orth_poly>(*this);
+  }
+
+  size_t n_wmem() const {
+    return intercept ? n_basis_v : n_basis_v + 1;
+  }
+
+  /**
+   * behaves like predict(<poly object>, newdata) except there might be an
+   * intercept */
+  using basisMixin::set_lower_limit;
+  using basisMixin::operator();
+  void operator()(double *out, double *wk_mem, double const x,
+                  int const ders = default_ders)
+    const {
+    if(!use_log){
+      do_eval(out, wk_mem, x, ders);
+      return;
+    }
+
+    do_eval(out, wk_mem, std::log(x), ders);
+    switch(ders){
+    case 0:
+      break;
+    case 1:
+      for(vajoint_uint i = 0; i < n_basis_v; ++i)
+        out[i] /= x;
+      break;
+    default:
+      throw std::runtime_error
+          ("not implemented with use_log and ders " + std::to_string(ders));
+    }
   }
 
   /**
