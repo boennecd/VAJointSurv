@@ -448,7 +448,7 @@ public:
       bases_fix.emplace_back(basis_from_list(marker["time_fixef"]));
       bases_rng.emplace_back(basis_from_list(marker["time_rng"]));
 
-      NumericMatrix X{marker["X"]};
+      NumericMatrix X{Rcpp::as<NumericMatrix>(marker["X"])};
       Rcpp::IntegerVector id = Rcpp::as<Rcpp::IntegerVector>(marker["id"]);
       NumericVector y = Rcpp::as<NumericVector>(marker["y"]),
                        time = Rcpp::as<NumericVector>(marker["time"]);
@@ -478,9 +478,9 @@ public:
       List surv = s;
       bases_fix_surv.emplace_back(basis_from_list(surv["time_fixef"]));
 
-      NumericMatrix Z{surv["Z"]};
-      s_id_vecs.emplace_back(surv["id"]);
-      NumericMatrix y{surv["y"]};
+      NumericMatrix Z{Rcpp::as<NumericMatrix>(surv["Z"])};
+      s_id_vecs.emplace_back(Rcpp::as<Rcpp::IntegerVector>(surv["id"]));
+      NumericMatrix y{Rcpp::as<NumericMatrix>(surv["y"])};
 
       // handle the integral/derivative argument to the basis expansions of the
       // markers

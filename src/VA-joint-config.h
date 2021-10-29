@@ -18,10 +18,8 @@ inline int get_thread_num() noexcept {
 }
 
 /// returns the number of non-zero elements of a triangular matrix
-constexpr vajoint_uint dim_tri(vajoint_uint const x){
-  return (x * (x + 1)) / 2;
-}
-constexpr size_t dim_tri(size_t const x){
+template<class T>
+constexpr T dim_tri(T const x){
   return (x * (x + 1)) / 2;
 }
 
