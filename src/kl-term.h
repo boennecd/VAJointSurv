@@ -6,7 +6,7 @@
 #include <limits.h>
 #include "arma-wrap.h"
 #include "wmem.h"
-#include <AAD.h>
+#include "cfaad/AAD.h"
 
 class kl_term {
   subset_params idx;

@@ -5,7 +5,7 @@
 #include "psqn-reporter.h"
 #include "log-cholesky.h"
 #include "kl-term.h"
-#include <AAD.h>
+#include "cfaad/AAD.h"
 #include <numeric>
 #include <limits>
 #include "survival-term.h"

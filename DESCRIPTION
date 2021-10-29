@@ -16,7 +16,7 @@ Description: Provides function to estiamte joint marker (longitudinal) and
     The functions support multivariate markers allowing for possibly 
     correlated error terms and multiple types of survival outcomes which may be
     left-truncated, right-censored, and recurrent.
-License: MIT + file LICENSE
+License: file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.2
 LinkingTo: 

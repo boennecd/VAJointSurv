@@ -54,6 +54,8 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' supplied.
 #' @param xlab,ylab,... arguments passed to \code{\link{matplot}}.
 #'
+#'
+#' @importFrom graphics matplot
 #' @export
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,

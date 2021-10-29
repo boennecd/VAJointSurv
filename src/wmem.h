@@ -2,7 +2,7 @@
 #define WMEM_H
 
 #include "VA-joint-config.h"
-#include <AAD.h>
+#include "cfaad/AAD.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
