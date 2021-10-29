@@ -38,6 +38,22 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 
 #' Plots Quantiles of the Conditional Hazards
 #' @inheritParams surv_term
+#'
+#' @param time_rng an expansion or a list of expansions for the time-varying
+#' random effects of the markers. See \code{\link{marker_term}}.
+#' @param x_range two dimensional numerical vector with the range the hazard
+#' should be plotted in.
+#' @param fixef_vary fixed effect coefficients for \code{time_fixef}.
+#' @param vcov_vary covariance matrix for the expansion or expansions in
+#' \code{time_rng}.
+#' @param frailty_var variance of the frailty.
+#' @param ps quantiles to plot.
+#' @param log_hazard_shift possible shift on the log hazard.
+#' @param associations association parameter for each \code{time_rng} or
+#' possible multiple parameters for each \code{time_rng} if \code{ders} is
+#' supplied.
+#' @param xlab,ylab,... arguments passed to \code{\link{matplot}}.
+#'
 #' @export
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
@@ -85,7 +101,7 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
   }))
   matplot(tis, hazs, lty = 1, type = "l", col = "black", bty = "l",
           xlab = xlab, xaxs = "i", yaxs = "i", ylab = ylab,
-          ylim = range(hazs, 0))
+          ylim = range(hazs, 0), ...)
   grid()
 
   invisible(list(time = tis, hazard = hazs))

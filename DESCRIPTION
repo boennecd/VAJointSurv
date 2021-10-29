@@ -1,11 +1,21 @@
 Package: VAJointSurv
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Variational Approximation for Joint Survival and Marker Models
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Authors@R: c(
+  person("Benjamin", "Christoffersen", 
+         email = "boennecd@gmail.com", 
+         role = c("cre", "aut")), 
+  person("Mark", "Clements", 
+         role = "aut"),
+  person("Antoine", "Savine", 
+         role = "cph"))
+Maintainer: Benjamin Christoffersen <boennecd@gmail.com>
+Description: Provides function to estiamte joint marker (longitudinal) and 
+    and survival (time-to-event) outcomes using variational approxiamtions.
+    The functions support multivariate markers allowing for possibly 
+    correlated error terms and multiple types of survival outcomes which may be
+    left-truncated, right-censored, and recurrent.
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.2
@@ -29,6 +39,7 @@ Suggests:
     testthat (>= 3.0.0),
     xml2, 
     R.rsp
+Depends: survival
 VignetteBuilder: R.rsp
 SystemRequirements: C++17
 Config/testthat/edition: 3

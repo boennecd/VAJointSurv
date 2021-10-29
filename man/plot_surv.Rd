@@ -27,6 +27,29 @@ basis expansions has boundary knots. It is important that these are set
 to cover the full range of survival times including time zero for some
 expansions.}
 
+\item{time_rng}{an expansion or a list of expansions for the time-varying
+random effects of the markers. See \code{\link{marker_term}}.}
+
+\item{x_range}{two dimensional numerical vector with the range the hazard
+should be plotted in.}
+
+\item{fixef_vary}{fixed effect coefficients for \code{time_fixef}.}
+
+\item{vcov_vary}{covariance matrix for the expansion or expansions in
+\code{time_rng}.}
+
+\item{frailty_var}{variance of the frailty.}
+
+\item{ps}{quantiles to plot.}
+
+\item{log_hazard_shift}{possible shift on the log hazard.}
+
+\item{associations}{association parameter for each \code{time_rng} or
+possible multiple parameters for each \code{time_rng} if \code{ders} is
+supplied.}
+
+\item{xlab, ylab, ...}{arguments passed to \code{\link{matplot}}.}
+
 \item{ders}{a \code{\link{list}} with \code{\link{integer}} vectors for how
 the survival outcome is linked to the markers. 0 implies present values,
 -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
