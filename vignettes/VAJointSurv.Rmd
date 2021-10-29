@@ -1,17 +1,8 @@
 ---
 title: "Joint Survival and Marker Models"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Joint Survival and Marker Models}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
-<style>
-img {
-    border: none; 
-}
-</style>
+[![R-CMD-check](https://github.com/boennecd/VAJointSurv/workflows/R-CMD-check/badge.svg)](https://github.com/boennecd/VAJointSurv/actions)
 
 
 ```{r, include = FALSE}
@@ -25,19 +16,28 @@ knitr::opts_chunk$set(
 options(digits = 4)
 ```
 
-This package provides means of estimating joint models for a mixture of 
-different types of markers and different types of survival outcomes. The models
-are estimated with Gaussian variational approximations (GVAs). We will start 
-by covering the model, then cover some examples, and end with details 
-about the implementation.
+This package provides means of estimating joint models for a mixture of
+different types of markers and different types of survival outcomes. The
+models are estimated with Gaussian variational approximations (GVAs). 
+
+## Installation
+The package can be installed from Github by calling:
+
+```{r how_to_install, eval = FALSE}
+remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
+```
+
+## The Model
+
+We will start by covering the model, then cover some examples, and end with
+details about the implementation.
 
 ### The Markers
 We assume that there are $L$ observed markers at each time point. We let 
 $\vec Y_{ij}$ denote the $j$th observed markers for individual $i$ and let 
 $s_{ij}$ be the observation time. The model for the markers is
 
-$$
-\begin{align*}
+$$\begin{align*}
 \vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
 \epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
 \mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
@@ -48,8 +48,7 @@ $$
 \vec U_i  &= \begin{pmatrix}
     \vec U_{i1} \\ \vdots \\ \vec U_{iL}
   \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) 
-\end{align*}
-$$
+\end{align*}$$
 
 where $\vec\epsilon_{ij}$ is an error term of the observation, $\vec U_i$ is 
 the $R$ dimensional
@@ -67,16 +66,13 @@ and defining $M(s)$ and $X_i$ similarly. Furthermore, let
 $\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)$ and define 
 $\vec\beta$ similarly. Then the conditional mean vector at time $s_{ij}$ is
 
-$$
-\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.
-$$
+$$\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.$$
 
 ### The Survival Outcomes
 We assume that there are $H$ different types of survival outcomes. The 
 conditional hazards of the survival outcomes are
 
-$$
-\begin{align*}
+$$\begin{align*}
 h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
   \vec z_{i1}^\top\vec \delta_1 + 
   \omega_1^\top \vec b_1(t) + 
@@ -90,8 +86,8 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
   \right) \\
 \vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
   &\sim N^{(H)}(\vec 0, \Xi).
-\end{align*}
-$$
+\end{align*}$$
+
 The $\vec\alpha$s are association parameters which makes the markers and the 
 survival outcomes marginally dependent. The $\vec\xi_i$s are frailty effects 
 which makes the survival outcomes marginally dependent even if 
@@ -106,13 +102,11 @@ $s_{i1}$ which is not left-truncated.
 The conditional hazards shown above only allows the hazard to be associated 
 with the population deviation for the mean marker through the current value
 
-$$
-M(t)\vec U_i = \begin{pmatrix}
+$$M(t)\vec U_i = \begin{pmatrix}
     \vec m_1(t)^\top\vec U_{i1} \\
     \vdots \\
     \vec m_L(t)^\top\vec U_{i1}
-  \end{pmatrix}.
-$$
+  \end{pmatrix}.$$
 
 However, the researcher may be interested in using the cumulative value, 
 $\int^t \vec m_k(s)^\top ds\vec U_{ik}$, the derivative,
@@ -123,15 +117,13 @@ $\vec d_k(t) = \int^t \vec m_k(s) ds$,
 $\vec r_k(t) = \partial\vec m_k(t)/\partial t$, and $L = 3$ then it is possible 
 to replace the $\vec\alpha_1^\top M(t)\vec U_i$ in the hazard with 
 
-$$
-\vec\alpha_1^\top\begin{pmatrix}
+$$\vec\alpha_1^\top\begin{pmatrix}
   \vec d_1(t)^\top \vec U_{i1} \\
   \vec m_1(t)^\top \vec U_{i1} \\
   \vec m_2(t)^\top \vec U_{i2} \\
   \vec d_3(t)^\top \vec U_{i3} \\
   \vec r_3(t)^\top \vec U_{i3} \\
-\end{pmatrix}
-$$
+\end{pmatrix}$$
 
 That is, a cumulative and current value for the first marker, 
 only the current value for the second marker, and
@@ -840,9 +832,7 @@ The user can pass any
 quadrature rule with $n$ nodes and weights each denoted by $(n_i, w_i)$ such 
 that
 
-$$
-\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).
-$$
+$$\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).$$
 
 By default Gauss–Legendre quadrature is used. A very simple alternative is 
 to use the midpoint rule. This is illustrated below.
@@ -1890,15 +1880,13 @@ vcov_surv
 We provide a few technical details in this section.
 The concatenated coefficient is given by
 
-$$
-\vec\theta = \begin{pmatrix}
+$$\vec\theta = \begin{pmatrix}
   \vec\gamma \\ \vec\beta\\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
   \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
     \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
-\end{pmatrix}
-$$
+\end{pmatrix}$$
 
 where $\text{vec}(\cdot)$ is the vectorization function
 that stacks the column of a matrix 
@@ -1922,45 +1910,23 @@ Kullback–Leibler (KL) divergence term between the unconditional distribution o
 $(\vec U_i^\top, \vec\xi_i^\top)^\top$ and the assumed conditional 
 distribution. This term is given by 
 
-$$
-\begin{multline*}
-\frac 12\Big(\log\lvert\Omega_i\rvert - 
-  \log\lvert\Psi\rvert - \log\lvert\Xi\rvert 
-  -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}
-  -\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\
-  - \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}
-  - \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}
-  + R + H\Big)
-\end{multline*}
-$$
+$$\begin{multline*}
+\frac{1}{2}\Big(\log\lvert\Omega_i\rvert - \log\lvert\Psi\rvert - \log\lvert\Xi\rvert -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}-\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\- \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}- \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}+ R + H\Big)\end{multline*}$$
 
 where $\text{tr}(\cdot)$ returns the trace of a matrix.
 Thus, the derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta_i$ are
 respectively
 
-$$
-\frac 12\left(\Omega_i^{-1} - 
-  \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right) 
-$$
+$$\frac{1}{2}\left(\Omega_i^{-1} - \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right)$$
 
-$$
-\frac 12
-   \Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top
-   + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}
-$$
+$$\frac{1}{2}\Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}$$
 
-$$
-\frac 12
-   \Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top
-   + \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.
-$$
+$$\frac{1}{2}\Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top+ \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.$$
 
-$$
--\begin{pmatrix}
+$$-\begin{pmatrix}
   \Psi^{-1} & 0 \\
   0 & \Xi^{-1} 
-\end{pmatrix}\vec\zeta_i
-$$
+\end{pmatrix}\vec\zeta_i$$
 
 ## Marker Terms
 
@@ -1968,61 +1934,31 @@ The
 log conditional density term of observation $j$ of individual $i$ at time 
 $s_{ij}$ is
 
-$$
-\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
-  + M(s_{ij})\vec w, \Sigma\right)\right)
-  \phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
-$$
+$$\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec w, \Sigma\right)\right)\phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w$$
 which gives
 
-$$
-\begin{multline*}
--\frac L2\log 2\pi  -\frac 12 \log\lvert\Sigma \rvert 
-  - \frac 12\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
-  \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right) - 
-  \frac 12\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top.
-\end{multline*}
-$$
+$$\begin{multline*}-\frac{L}{2}\log 2\pi  -\frac {1}{2} \log\lvert\Sigma \rvert - \frac{1}{2}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\ \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right) - \frac{1}{2}\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top. \end{multline*}$$
 
 ## Survival Outcomes
 Let $T_{i1}, \dots, T_{iL}$ be the minimum of the censoring time or 
 the observed event time and $D_{i1}, \dots, D_{iL}$ be event indicators. The 
 the lower bound terms for the $k$th time to event is
 
-$$
-\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})
-  -\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds
-  \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.
-$$
+$$\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.$$
 
 Left-truncation is eaisly handled by replacing the zero in the lower limit by 
 the left-truncation point.
 The log hazard term gives the following lower bound terms
 
-$$
-d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
-  \omega_k^\top \vec b_k(t_{ik}) + 
-  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).
-$$
+$$d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + \omega_k^\top \vec b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).$$
 
 As for the expected cumulative hazard term, assume that we can interchange the order 
 of integration. Then the lower bound term is
 
-$$
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}}
-  \exp\left(\omega_k^\top \vec b_k(s) 
-  +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac 12 
-  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
-    \vec\alpha_k \\ 1
-  \end{pmatrix}\right) ds
-$$
+$$-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds$$
 
 where 
 
-$$
-O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
+$$O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
   \Omega_{(1:R, R + k), (1:R, R + k)}
-    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.
-$$
+    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.$$

@@ -57,6 +57,7 @@ if (window.hljs) {
 
 
 
+<link rel="stylesheet" href="data:text/css,img%20%7B%0Aborder%3A%20none%3B%0A%7D%0A" type="text/css" />
 
 
 
@@ -168,17 +169,20 @@ pre code {
 </div>
 
 
-<style>
-img {
-    border: none; 
-}
-</style>
-<p>This package provides means of estimating joint models for a mixture of different types of markers and different types of survival outcomes. The models are estimated with Gaussian variational approximations (GVAs). We will start by covering the model, then cover some examples, and end with details about the implementation.</p>
+<p><a href="https://github.com/boennecd/VAJointSurv/actions"><img src="data:text/plain; charset=utf-8;charset=utf-8,Not%20Found" alt="R-CMD-check" /></a></p>
+<p>This package provides means of estimating joint models for a mixture of different types of markers and different types of survival outcomes. The models are estimated with Gaussian variational approximations (GVAs).</p>
+<div id="installation" class="section level2">
+<h2>Installation</h2>
+<p>The package can be installed from Github by calling:</p>
+<pre class="r"><code>remotes::install_github(&quot;boennecd/VAJointSurv&quot;, build_vignettes = TRUE)</code></pre>
+</div>
+<div id="the-model" class="section level2">
+<h2>The Model</h2>
+<p>We will start by covering the model, then cover some examples, and end with details about the implementation.</p>
 <div id="the-markers" class="section level3">
 <h3>The Markers</h3>
 <p>We assume that there are <span class="math inline">\(L\)</span> observed markers at each time point. We let <span class="math inline">\(\vec Y_{ij}\)</span> denote the <span class="math inline">\(j\)</span>th observed markers for individual <span class="math inline">\(i\)</span> and let <span class="math inline">\(s_{ij}\)</span> be the observation time. The model for the markers is</p>
-<p><span class="math display">\[
-\begin{align*}
+<p><span class="math display">\[\begin{align*}
 \vec Y_{ij}&amp;= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
 \epsilon_{ij} &amp;\sim N^{(L)}(\vec 0, \Sigma) \\
 \mu_{i1}(s, \vec U_i) &amp;= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
@@ -189,8 +193,7 @@ img {
 \vec U_i  &amp;= \begin{pmatrix}
     \vec U_{i1} \\ \vdots \\ \vec U_{iL}
   \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) 
-\end{align*}
-\]</span></p>
+\end{align*}\]</span></p>
 <p>where <span class="math inline">\(\vec\epsilon_{ij}\)</span> is an error term of the observation, <span class="math inline">\(\vec U_i\)</span> is the <span class="math inline">\(R\)</span> dimensional unobserved random effect for individual <span class="math inline">\(i\)</span>, and the <span class="math inline">\(\vec g_k\)</span>s and <span class="math inline">\(\vec m_k\)</span>s are basis expansions. We can write the model more compactly by letting</p>
 <p><span class="math display">\[G(s) = \begin{pmatrix} 
   \vec g_1(s)^\top &amp; 0^\top &amp; \cdots &amp; \vec 0^\top \\
@@ -198,15 +201,12 @@ img {
   \vdots &amp; \ddots &amp; \ddots &amp; \vec 0^\top \\
   \vec 0^\top &amp; \cdots &amp; \vec 0^\top &amp; \vec g_L(s)^\top \end{pmatrix}\]</span></p>
 <p>and defining <span class="math inline">\(M(s)\)</span> and <span class="math inline">\(X_i\)</span> similarly. Furthermore, let <span class="math inline">\(\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)\)</span> and define <span class="math inline">\(\vec\beta\)</span> similarly. Then the conditional mean vector at time <span class="math inline">\(s_{ij}\)</span> is</p>
-<p><span class="math display">\[
-\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.
-\]</span></p>
+<p><span class="math display">\[\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.\]</span></p>
 </div>
 <div id="the-survival-outcomes" class="section level3">
 <h3>The Survival Outcomes</h3>
 <p>We assume that there are <span class="math inline">\(H\)</span> different types of survival outcomes. The conditional hazards of the survival outcomes are</p>
-<p><span class="math display">\[
-\begin{align*}
+<p><span class="math display">\[\begin{align*}
 h_{i1}(t\mid \vec U_i, \vec\xi_i) &amp;= \exp\left( 
   \vec z_{i1}^\top\vec \delta_1 + 
   \omega_1^\top \vec b_1(t) + 
@@ -220,29 +220,25 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
   \right) \\
 \vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
   &amp;\sim N^{(H)}(\vec 0, \Xi).
-\end{align*}
-\]</span> The <span class="math inline">\(\vec\alpha\)</span>s are association parameters which makes the markers and the survival outcomes marginally dependent. The <span class="math inline">\(\vec\xi_i\)</span>s are frailty effects which makes the survival outcomes marginally dependent even if <span class="math inline">\(\vec\alpha = \vec 0\)</span>.</p>
+\end{align*}\]</span></p>
+<p>The <span class="math inline">\(\vec\alpha\)</span>s are association parameters which makes the markers and the survival outcomes marginally dependent. The <span class="math inline">\(\vec\xi_i\)</span>s are frailty effects which makes the survival outcomes marginally dependent even if <span class="math inline">\(\vec\alpha = \vec 0\)</span>.</p>
 <p>The observation process, the <span class="math inline">\(s_{ij}\)</span>s, can be modeled as one of <span class="math inline">\(H\)</span> different types of survival process. This can be done by adding each <span class="math inline">\(s_{ij}\)</span> as a left-truncated outcome of the given type of process except for <span class="math inline">\(s_{i1}\)</span> which is not left-truncated.</p>
 <div id="more-general-survival-sub-model" class="section level4">
 <h4>More General Survival Sub-model</h4>
 <p>The conditional hazards shown above only allows the hazard to be associated with the population deviation for the mean marker through the current value</p>
-<p><span class="math display">\[
-M(t)\vec U_i = \begin{pmatrix}
+<p><span class="math display">\[M(t)\vec U_i = \begin{pmatrix}
     \vec m_1(t)^\top\vec U_{i1} \\
     \vdots \\
     \vec m_L(t)^\top\vec U_{i1}
-  \end{pmatrix}.
-\]</span></p>
+  \end{pmatrix}.\]</span></p>
 <p>However, the researcher may be interested in using the cumulative value, <span class="math inline">\(\int^t \vec m_k(s)^\top ds\vec U_{ik}\)</span>, the derivative, <span class="math inline">\(\partial\vec m_k(t)^\top\vec U_{ik}/\partial t\)</span>, or a combination of these and the current value. This is supported in the package through the <code>ders</code> argument of <code>surv_term</code>. As an example, if we let <span class="math inline">\(\vec d_k(t) = \int^t \vec m_k(s) ds\)</span>, <span class="math inline">\(\vec r_k(t) = \partial\vec m_k(t)/\partial t\)</span>, and <span class="math inline">\(L = 3\)</span> then it is possible to replace the <span class="math inline">\(\vec\alpha_1^\top M(t)\vec U_i\)</span> in the hazard with</p>
-<p><span class="math display">\[
-\vec\alpha_1^\top\begin{pmatrix}
+<p><span class="math display">\[\vec\alpha_1^\top\begin{pmatrix}
   \vec d_1(t)^\top \vec U_{i1} \\
   \vec m_1(t)^\top \vec U_{i1} \\
   \vec m_2(t)^\top \vec U_{i2} \\
   \vec d_3(t)^\top \vec U_{i3} \\
   \vec r_3(t)^\top \vec U_{i3} \\
-\end{pmatrix}
-\]</span></p>
+\end{pmatrix}\]</span></p>
 <p>That is, a cumulative and current value for the first marker, only the current value for the second marker, and the cumulative and derivative for the third marker.</p>
 </div>
 </div>
@@ -263,6 +259,7 @@ M(t)\vec U_i = \begin{pmatrix}
 <li>There cannot be time-varying effects for a covariate. This is not too complicated to implement but not yet implemented.</li>
 <li>Competing events, and multi-state models are not supported.</li>
 </ul>
+</div>
 </div>
 <div id="examples" class="section level2">
 <h2>Examples</h2>
@@ -1110,9 +1107,7 @@ c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(vcov_surv))
 <div id="note-on-quadrature-rule" class="section level4">
 <h4>Note on Quadrature Rule</h4>
 <p>A quadrature rule is used to integrate the expected cumulative hazard. The user can pass any quadrature rule with <span class="math inline">\(n\)</span> nodes and weights each denoted by <span class="math inline">\((n_i, w_i)\)</span> such that</p>
-<p><span class="math display">\[
-\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).
-\]</span></p>
+<p><span class="math display">\[\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).\]</span></p>
 <p>By default Gauss–Legendre quadrature is used. A very simple alternative is to use the midpoint rule. This is illustrated below.</p>
 <pre class="r"><code># computes the midpoint rule
 mid_rule &lt;- function(n)
@@ -2402,102 +2397,48 @@ vcov_surv
 <div id="technical-details" class="section level2">
 <h2>Technical Details</h2>
 <p>We provide a few technical details in this section. The concatenated coefficient is given by</p>
-<p><span class="math display">\[
-\vec\theta = \begin{pmatrix}
+<p><span class="math display">\[\vec\theta = \begin{pmatrix}
   \vec\gamma \\ \vec\beta\\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
   \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
     \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
-\end{pmatrix}
-\]</span></p>
+\end{pmatrix}\]</span></p>
 <p>where <span class="math inline">\(\text{vec}(\cdot)\)</span> is the vectorization function that stacks the column of a matrix on top of each other. <span class="math inline">\(\vec\theta\)</span> is with the parameters from the variational approximation. We work with log Cholesky decompositions of the covariance matrices in practice. The <code>joint_ms_format</code> is a utility functions which returns a list with each of parameter separately.</p>
 <p>There are different types of terms in the lower bound in the GVA. We cover the types below. The lower bound has many parameters even with a moderate amount of parameters. However, we quickly optimize the lower bound using the <a href="https://github.com/boennecd/psqn">psqn package</a>.</p>
 </div>
 <div id="kullbackleibler-divergence-term" class="section level2">
 <h2>Kullback–Leibler Divergence Term</h2>
 <p>In the GVA, we assume that the conditional distribution of <span class="math inline">\((\vec U_i^\top, \vec\xi_i^\top)^\top\)</span> is a normal distribution with mean <span class="math inline">\(\vec\zeta_i\)</span> and covariance matrix <span class="math inline">\(\Omega_i\)</span>. One of the terms in the lower bound of the GVA is the Kullback–Leibler (KL) divergence term between the unconditional distribution of <span class="math inline">\((\vec U_i^\top, \vec\xi_i^\top)^\top\)</span> and the assumed conditional distribution. This term is given by</p>
-<p><span class="math display">\[
-\begin{multline*}
-\frac 12\Big(\log\lvert\Omega_i\rvert - 
-  \log\lvert\Psi\rvert - \log\lvert\Xi\rvert 
-  -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}
-  -\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\
-  - \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}
-  - \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}
-  + R + H\Big)
-\end{multline*}
-\]</span></p>
+<p><span class="math display">\[\begin{multline*}
+\frac{1}{2}\Big(\log\lvert\Omega_i\rvert - \log\lvert\Psi\rvert - \log\lvert\Xi\rvert -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}-\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\- \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}- \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}+ R + H\Big)\end{multline*}\]</span></p>
 <p>where <span class="math inline">\(\text{tr}(\cdot)\)</span> returns the trace of a matrix. Thus, the derivatives w.r.t. <span class="math inline">\(\Omega_i\)</span>, <span class="math inline">\(\Psi\)</span>, <span class="math inline">\(\Xi\)</span>, <span class="math inline">\(\vec\zeta_i\)</span> are respectively</p>
-<p><span class="math display">\[
-\frac 12\left(\Omega_i^{-1} - 
-  \begin{pmatrix} \Psi^{-1} &amp; 0 \\ 0 &amp; \Xi^{-1}\end{pmatrix}\right) 
-\]</span></p>
-<p><span class="math display">\[
-\frac 12
-   \Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top
-   + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}
-\]</span></p>
-<p><span class="math display">\[
-\frac 12
-   \Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top
-   + \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.
-\]</span></p>
-<p><span class="math display">\[
--\begin{pmatrix}
+<p><span class="math display">\[\frac{1}{2}\left(\Omega_i^{-1} - \begin{pmatrix} \Psi^{-1} &amp; 0 \\ 0 &amp; \Xi^{-1}\end{pmatrix}\right)\]</span></p>
+<p><span class="math display">\[\frac{1}{2}\Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}\]</span></p>
+<p><span class="math display">\[\frac{1}{2}\Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top+ \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.\]</span></p>
+<p><span class="math display">\[-\begin{pmatrix}
   \Psi^{-1} &amp; 0 \\
   0 &amp; \Xi^{-1} 
-\end{pmatrix}\vec\zeta_i
-\]</span></p>
+\end{pmatrix}\vec\zeta_i\]</span></p>
 </div>
 <div id="marker-terms" class="section level2">
 <h2>Marker Terms</h2>
 <p>The log conditional density term of observation <span class="math inline">\(j\)</span> of individual <span class="math inline">\(i\)</span> at time <span class="math inline">\(s_{ij}\)</span> is</p>
-<p><span class="math display">\[
-\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
-  + M(s_{ij})\vec w, \Sigma\right)\right)
-  \phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
-\]</span> which gives</p>
-<p><span class="math display">\[
-\begin{multline*}
--\frac L2\log 2\pi  -\frac 12 \log\lvert\Sigma \rvert 
-  - \frac 12\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
-  \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right) - 
-  \frac 12\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top.
-\end{multline*}
-\]</span></p>
+<p><span class="math display">\[\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec w, \Sigma\right)\right)\phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w\]</span> which gives</p>
+<p><span class="math display">\[\begin{multline*}-\frac{L}{2}\log 2\pi  -\frac {1}{2} \log\lvert\Sigma \rvert - \frac{1}{2}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\ \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right) - \frac{1}{2}\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top. \end{multline*}\]</span></p>
 </div>
 <div id="survival-outcomes" class="section level2">
 <h2>Survival Outcomes</h2>
 <p>Let <span class="math inline">\(T_{i1}, \dots, T_{iL}\)</span> be the minimum of the censoring time or the observed event time and <span class="math inline">\(D_{i1}, \dots, D_{iL}\)</span> be event indicators. The the lower bound terms for the <span class="math inline">\(k\)</span>th time to event is</p>
-<p><span class="math display">\[
-\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})
-  -\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds
-  \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.
-\]</span></p>
+<p><span class="math display">\[\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.\]</span></p>
 <p>Left-truncation is eaisly handled by replacing the zero in the lower limit by the left-truncation point. The log hazard term gives the following lower bound terms</p>
-<p><span class="math display">\[
-d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
-  \omega_k^\top \vec b_k(t_{ik}) + 
-  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).
-\]</span></p>
+<p><span class="math display">\[d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + \omega_k^\top \vec b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).\]</span></p>
 <p>As for the expected cumulative hazard term, assume that we can interchange the order of integration. Then the lower bound term is</p>
-<p><span class="math display">\[
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}}
-  \exp\left(\omega_k^\top \vec b_k(s) 
-  +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac 12 
-  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
-    \vec\alpha_k \\ 1
-  \end{pmatrix}\right) ds
-\]</span></p>
+<p><span class="math display">\[-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds\]</span></p>
 <p>where</p>
-<p><span class="math display">\[
-O_{ik}(s) = \begin{pmatrix}M(s) &amp; 0 \\ 0 &amp; 1\end{pmatrix}
+<p><span class="math display">\[O_{ik}(s) = \begin{pmatrix}M(s) &amp; 0 \\ 0 &amp; 1\end{pmatrix}
   \Omega_{(1:R, R + k), (1:R, R + k)}
-    \begin{pmatrix}M(s)^\top &amp; 0 \\ 0 &amp; 1\end{pmatrix}.
-\]</span></p>
+    \begin{pmatrix}M(s)^\top &amp; 0 \\ 0 &amp; 1\end{pmatrix}.\]</span></p>
 </div>
 
 

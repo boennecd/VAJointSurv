@@ -1,9 +1,11 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^vignettes/VAJointSurv\.Rmd
+^vignettes/VAJointSurv\.css
 ^vignettes/cache/*
 ^vignettes/man/*
 ^LICENSE\.md$
 ^TODO\.md$
 ^benchmark/*
 ^create-vignette\.R
+^\.github$

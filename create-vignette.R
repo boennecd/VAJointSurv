@@ -1,7 +1,8 @@
 library(rmarkdown)
 setwd("vignettes")
 
-render("VAJointSurv.Rmd", output_format = "html_document")
+render("VAJointSurv.Rmd", output_format = html_document(
+  css = "VAJointSurv.css"))
 render("VAJointSurv.Rmd", output_format = github_document(
   pandoc_args = "--webtex=https://render.githubusercontent.com/render/math?math="),
   output_file = "README.md")

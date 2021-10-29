@@ -1,17 +1,24 @@
 Joint Survival and Marker Models
 ================
 
-<style>
-img {
-    border: none; 
-}
-</style>
+[![R-CMD-check](https://github.com/boennecd/VAJointSurv/workflows/R-CMD-check/badge.svg)](https://github.com/boennecd/VAJointSurv/actions)
 
 This package provides means of estimating joint models for a mixture of
 different types of markers and different types of survival outcomes. The
-models are estimated with Gaussian variational approximations (GVAs). We
-will start by covering the model, then cover some examples, and end with
-details about the implementation.
+models are estimated with Gaussian variational approximations (GVAs).
+
+## Installation
+
+The package can be installed from Github by calling:
+
+``` r
+remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
+```
+
+## The Model
+
+We will start by covering the model, then cover some examples, and end
+with details about the implementation.
 
 ### The Markers
 
@@ -27,8 +34,7 @@ let
 ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
 be the observation time. The model for the markers is
 
-![
-\\begin{align\*}
+![\\begin{align\*}
 \\vec Y\_{ij}&= \\vec\\mu\_i(s\_{ij}, \\vec U\_i) + \\vec\\epsilon\_{ij} \\\\
 \\epsilon\_{ij} &\\sim N^{(L)}(\\vec 0, \\Sigma) \\\\
 \\mu\_{i1}(s, \\vec U\_i) &= \\vec x\_{i1}^\\top\\vec\\gamma\_1 + \\vec g\_1(s)^\\top\\vec\\beta\_1 + 
@@ -39,9 +45,7 @@ be the observation time. The model for the markers is
 \\vec U\_i  &= \\begin{pmatrix}
     \\vec U\_{i1} \\\\ \\vdots \\\\ \\vec U\_{iL}
   \\end{pmatrix}\\sim N^{(R)}(\\vec0, \\Psi) 
-\\end{align\*}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cbegin%7Balign%2A%7D%0A%5Cvec%20Y_%7Bij%7D%26%3D%20%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%2B%20%5Cvec%5Cepsilon_%7Bij%7D%20%5C%5C%0A%5Cepsilon_%7Bij%7D%20%26%5Csim%20N%5E%7B%28L%29%7D%28%5Cvec%200%2C%20%5CSigma%29%20%5C%5C%0A%5Cmu_%7Bi1%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7Bi1%7D%5E%5Ctop%5Cvec%5Cgamma_1%20%2B%20%5Cvec%20g_1%28s%29%5E%5Ctop%5Cvec%5Cbeta_1%20%2B%20%0A%20%20%5Cvec%20m_1%28s%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%5C%5C%5C%0A%5Cmu_%7BiL%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7BiL%7D%5E%5Ctop%5Cvec%5Cgamma_L%20%2B%20%5Cvec%20g_L%28s%29%5E%5Ctop%5Cvec%5Cbeta_L%20%2B%20%0A%20%20%5Cvec%20m_L%28s%29%5E%5Ctop%5Cvec%20U_%7BiL%7D%20%5C%5C%0A%5Cvec%20U_i%20%20%26%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cvec%20U_%7BiL%7D%0A%20%20%5Cend%7Bpmatrix%7D%5Csim%20N%5E%7B%28R%29%7D%28%5Cvec0%2C%20%5CPsi%29%20%0A%5Cend%7Balign%2A%7D%0A "
-\begin{align*}
+\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0A%5Cvec%20Y_%7Bij%7D%26%3D%20%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%2B%20%5Cvec%5Cepsilon_%7Bij%7D%20%5C%5C%0A%5Cepsilon_%7Bij%7D%20%26%5Csim%20N%5E%7B%28L%29%7D%28%5Cvec%200%2C%20%5CSigma%29%20%5C%5C%0A%5Cmu_%7Bi1%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7Bi1%7D%5E%5Ctop%5Cvec%5Cgamma_1%20%2B%20%5Cvec%20g_1%28s%29%5E%5Ctop%5Cvec%5Cbeta_1%20%2B%20%0A%20%20%5Cvec%20m_1%28s%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%5C%5C%5C%0A%5Cmu_%7BiL%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7BiL%7D%5E%5Ctop%5Cvec%5Cgamma_L%20%2B%20%5Cvec%20g_L%28s%29%5E%5Ctop%5Cvec%5Cbeta_L%20%2B%20%0A%20%20%5Cvec%20m_L%28s%29%5E%5Ctop%5Cvec%20U_%7BiL%7D%20%5C%5C%0A%5Cvec%20U_i%20%20%26%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cvec%20U_%7BiL%7D%0A%20%20%5Cend%7Bpmatrix%7D%5Csim%20N%5E%7B%28R%29%7D%28%5Cvec0%2C%20%5CPsi%29%20%0A%5Cend%7Balign%2A%7D "\begin{align*}
 \vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
 \epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
 \mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
@@ -52,8 +56,7 @@ be the observation time. The model for the markers is
 \vec U_i  &= \begin{pmatrix}
     \vec U_{i1} \\ \vdots \\ \vec U_{iL}
   \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) 
-\end{align*}
-")
+\end{align*}")
 
 where
 ![\\vec\\epsilon\_{ij}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cepsilon_%7Bij%7D "\vec\epsilon_{ij}")
@@ -90,11 +93,7 @@ similarly. Then the conditional mean vector at time
 ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
 is
 
-![
-\\vec\\mu\_i(s\_{ij}, \\vec U\_i) = X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec U\_i.
-](https://render.githubusercontent.com/render/math?math=%0A%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%3D%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20U_i.%0A "
-\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.
-")
+![\\vec\\mu\_i(s\_{ij}, \\vec U\_i) = X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec U\_i.](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%3D%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20U_i. "\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.")
 
 ### The Survival Outcomes
 
@@ -103,8 +102,7 @@ We assume that there are
 different types of survival outcomes. The conditional hazards of the
 survival outcomes are
 
-![
-\\begin{align\*}
+![\\begin{align\*}
 h\_{i1}(t\\mid \\vec U\_i, \\vec\\xi\_i) &= \\exp\\left( 
   \\vec z\_{i1}^\\top\\vec \\delta\_1 + 
   \\omega\_1^\\top \\vec b\_1(t) + 
@@ -118,9 +116,7 @@ h\_{iH}(t\\mid \\vec U\_i,\\vec \\xi\_i) &= \\exp\\left(
   \\right) \\\\
 \\vec\\xi\_i = \\begin{pmatrix}\\xi\_{i1} \\\\ \\vdots \\\\ \\xi\_{iH}\\end{pmatrix}
   &\\sim N^{(H)}(\\vec 0, \\Xi).
-\\end{align\*}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cbegin%7Balign%2A%7D%0Ah_%7Bi1%7D%28t%5Cmid%20%5Cvec%20U_i%2C%20%5Cvec%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%0A%20%20%5Cvec%20z_%7Bi1%7D%5E%5Ctop%5Cvec%20%5Cdelta_1%20%2B%20%0A%20%20%5Comega_1%5E%5Ctop%20%5Cvec%20b_1%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7Bi1%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%20%5C%5C%0Ah_%7BiH%7D%28t%5Cmid%20%5Cvec%20U_i%2C%5Cvec%20%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%20%0A%20%20%5Cvec%20z_%7BiL%7D%5E%5Ctop%5Cvec%20%5Cdelta_H%20%2B%20%0A%20%20%5Comega_H%5E%5Ctop%5Cvec%20b_H%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_H%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7BiH%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvec%5Cxi_i%20%3D%20%5Cbegin%7Bpmatrix%7D%5Cxi_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cxi_%7BiH%7D%5Cend%7Bpmatrix%7D%0A%20%20%26%5Csim%20N%5E%7B%28H%29%7D%28%5Cvec%200%2C%20%5CXi%29.%0A%5Cend%7Balign%2A%7D%0A "
-\begin{align*}
+\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0Ah_%7Bi1%7D%28t%5Cmid%20%5Cvec%20U_i%2C%20%5Cvec%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%0A%20%20%5Cvec%20z_%7Bi1%7D%5E%5Ctop%5Cvec%20%5Cdelta_1%20%2B%20%0A%20%20%5Comega_1%5E%5Ctop%20%5Cvec%20b_1%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7Bi1%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%20%5C%5C%0Ah_%7BiH%7D%28t%5Cmid%20%5Cvec%20U_i%2C%5Cvec%20%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%20%0A%20%20%5Cvec%20z_%7BiL%7D%5E%5Ctop%5Cvec%20%5Cdelta_H%20%2B%20%0A%20%20%5Comega_H%5E%5Ctop%5Cvec%20b_H%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_H%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7BiH%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvec%5Cxi_i%20%3D%20%5Cbegin%7Bpmatrix%7D%5Cxi_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cxi_%7BiH%7D%5Cend%7Bpmatrix%7D%0A%20%20%26%5Csim%20N%5E%7B%28H%29%7D%28%5Cvec%200%2C%20%5CXi%29.%0A%5Cend%7Balign%2A%7D "\begin{align*}
 h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
   \vec z_{i1}^\top\vec \delta_1 + 
   \omega_1^\top \vec b_1(t) + 
@@ -134,8 +130,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
   \right) \\
 \vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
   &\sim N^{(H)}(\vec 0, \Xi).
-\end{align*}
-")
+\end{align*}")
 
 The
 ![\\vec\\alpha](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha "\vec\alpha")s
@@ -162,19 +157,15 @@ The conditional hazards shown above only allows the hazard to be
 associated with the population deviation for the mean marker through the
 current value
 
-![
-M(t)\\vec U\_i = \\begin{pmatrix}
+![M(t)\\vec U\_i = \\begin{pmatrix}
     \\vec m\_1(t)^\\top\\vec U\_{i1} \\\\
     \\vdots \\\\
     \\vec m\_L(t)^\\top\\vec U\_{i1}
-  \\end{pmatrix}.
-](https://render.githubusercontent.com/render/math?math=%0AM%28t%29%5Cvec%20U_i%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%20%20%5Cvdots%20%5C%5C%0A%20%20%20%20%5Cvec%20m_L%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%0A%20%20%5Cend%7Bpmatrix%7D.%0A "
-M(t)\vec U_i = \begin{pmatrix}
+  \\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=M%28t%29%5Cvec%20U_i%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%20%20%5Cvdots%20%5C%5C%0A%20%20%20%20%5Cvec%20m_L%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%0A%20%20%5Cend%7Bpmatrix%7D. "M(t)\vec U_i = \begin{pmatrix}
     \vec m_1(t)^\top\vec U_{i1} \\
     \vdots \\
     \vec m_L(t)^\top\vec U_{i1}
-  \end{pmatrix}.
-")
+  \end{pmatrix}.")
 
 However, the researcher may be interested in using the cumulative value,
 ![\\int^t \\vec m\_k(s)^\\top ds\\vec U\_{ik}](https://render.githubusercontent.com/render/math?math=%5Cint%5Et%20%5Cvec%20m_k%28s%29%5E%5Ctop%20ds%5Cvec%20U_%7Bik%7D "\int^t \vec m_k(s)^\top ds\vec U_{ik}"),
@@ -191,23 +182,19 @@ then it is possible to replace the
 ![\\vec\\alpha\_1^\\top M(t)\\vec U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i "\vec\alpha_1^\top M(t)\vec U_i")
 in the hazard with
 
-![
-\\vec\\alpha\_1^\\top\\begin{pmatrix}
+![\\vec\\alpha\_1^\\top\\begin{pmatrix}
   \\vec d\_1(t)^\\top \\vec U\_{i1} \\\\
   \\vec m\_1(t)^\\top \\vec U\_{i1} \\\\
   \\vec m\_2(t)^\\top \\vec U\_{i2} \\\\
   \\vec d\_3(t)^\\top \\vec U\_{i3} \\\\
   \\vec r\_3(t)^\\top \\vec U\_{i3} \\\\
-\\end{pmatrix}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cvec%5Calpha_1%5E%5Ctop%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%20d_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_2%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi2%7D%20%5C%5C%0A%20%20%5Cvec%20d_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%20%20%5Cvec%20r_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D%0A "
-\vec\alpha_1^\top\begin{pmatrix}
+\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%20d_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_2%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi2%7D%20%5C%5C%0A%20%20%5Cvec%20d_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%20%20%5Cvec%20r_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D "\vec\alpha_1^\top\begin{pmatrix}
   \vec d_1(t)^\top \vec U_{i1} \\
   \vec m_1(t)^\top \vec U_{i1} \\
   \vec m_2(t)^\top \vec U_{i2} \\
   \vec d_3(t)^\top \vec U_{i3} \\
   \vec r_3(t)^\top \vec U_{i3} \\
-\end{pmatrix}
-")
+\end{pmatrix}")
 
 That is, a cumulative and current value for the first marker, only the
 current value for the second marker, and the cumulative and derivative
@@ -1195,11 +1182,7 @@ and weights each denoted by
 ![(n\_i, w\_i)](https://render.githubusercontent.com/render/math?math=%28n_i%2C%20w_i%29 "(n_i, w_i)")
 such that
 
-![
-\\int\_0^1f(x) dx \\approx \\sum\_{i = 1}^nw\_i f(n\_i).
-](https://render.githubusercontent.com/render/math?math=%0A%5Cint_0%5E1f%28x%29%20dx%20%5Capprox%20%5Csum_%7Bi%20%3D%201%7D%5Enw_i%20f%28n_i%29.%0A "
-\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).
-")
+![\\int\_0^1f(x) dx \\approx \\sum\_{i = 1}^nw\_i f(n\_i).](https://render.githubusercontent.com/render/math?math=%5Cint_0%5E1f%28x%29%20dx%20%5Capprox%20%5Csum_%7Bi%20%3D%201%7D%5Enw_i%20f%28n_i%29. "\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).")
 
 By default Gauss–Legendre quadrature is used. A very simple alternative
 is to use the midpoint rule. This is illustrated below.
@@ -2577,23 +2560,19 @@ vcov_surv
 We provide a few technical details in this section. The concatenated
 coefficient is given by
 
-![
-\\vec\\theta = \\begin{pmatrix}
+![\\vec\\theta = \\begin{pmatrix}
   \\vec\\gamma \\\\ \\vec\\beta\\\\
   \\vec\\omega\_1 \\\\ \\vec\\delta\_1 \\\\ \\vec\\alpha\_1 \\\\
   \\vdots \\\\
   \\vec\\omega\_H \\\\ \\vec\\delta\_H \\\\ \\vec\\alpha\_H \\\\
     \\text{vec}(\\Sigma) \\\\ \\text{vec}(\\Psi) \\\\ \\text{vec}(\\Xi)
-\\end{pmatrix}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cvec%5Ctheta%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%5Cgamma%20%5C%5C%20%5Cvec%5Cbeta%5C%5C%0A%20%20%5Cvec%5Comega_1%20%5C%5C%20%5Cvec%5Cdelta_1%20%5C%5C%20%5Cvec%5Calpha_1%20%5C%5C%0A%20%20%5Cvdots%20%5C%5C%0A%20%20%5Cvec%5Comega_H%20%5C%5C%20%5Cvec%5Cdelta_H%20%5C%5C%20%5Cvec%5Calpha_H%20%5C%5C%0A%20%20%20%20%5Ctext%7Bvec%7D%28%5CSigma%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CPsi%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CXi%29%0A%5Cend%7Bpmatrix%7D%0A "
-\vec\theta = \begin{pmatrix}
+\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%5Cgamma%20%5C%5C%20%5Cvec%5Cbeta%5C%5C%0A%20%20%5Cvec%5Comega_1%20%5C%5C%20%5Cvec%5Cdelta_1%20%5C%5C%20%5Cvec%5Calpha_1%20%5C%5C%0A%20%20%5Cvdots%20%5C%5C%0A%20%20%5Cvec%5Comega_H%20%5C%5C%20%5Cvec%5Cdelta_H%20%5C%5C%20%5Cvec%5Calpha_H%20%5C%5C%0A%20%20%20%20%5Ctext%7Bvec%7D%28%5CSigma%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CPsi%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CXi%29%0A%5Cend%7Bpmatrix%7D "\vec\theta = \begin{pmatrix}
   \vec\gamma \\ \vec\beta\\
   \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
   \vdots \\
   \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
     \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
-\end{pmatrix}
-")
+\end{pmatrix}")
 
 where
 ![\\text{vec}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Bvec%7D%28%5Ccdot%29 "\text{vec}(\cdot)")
@@ -2623,27 +2602,9 @@ One of the terms in the lower bound of the GVA is the Kullback–Leibler
 ![(\\vec U\_i^\\top, \\vec\\xi\_i^\\top)^\\top](https://render.githubusercontent.com/render/math?math=%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop "(\vec U_i^\top, \vec\xi_i^\top)^\top")
 and the assumed conditional distribution. This term is given by
 
-![
-\\begin{multline\*}
-\\frac 12\\Big(\\log\\lvert\\Omega\_i\\rvert - 
-  \\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert 
-  -\\vec\\zeta\_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta\_{i,1:R}
-  -\\vec\\zeta\_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta\_{i,(-1:R)} \\\\
-  - \\text{tr}\\Omega\_{i,1:R,1:R}\\Psi^{-1}
-  - \\text{tr}\\Omega\_{i,(-1:R),(-1:R)}\\Xi^{-1}
-  + R + H\\Big)
-\\end{multline\*}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cbegin%7Bmultline%2A%7D%0A%5Cfrac%2012%5CBig%28%5Clog%5Clvert%5COmega_i%5Crvert%20-%20%0A%20%20%5Clog%5Clvert%5CPsi%5Crvert%20-%20%5Clog%5Clvert%5CXi%5Crvert%20%0A%20%20-%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%5CPsi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%0A%20%20-%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%5CXi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%20%5C%5C%0A%20%20-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5CPsi%5E%7B-1%7D%0A%20%20-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%5CXi%5E%7B-1%7D%0A%20%20%2B%20R%20%2B%20H%5CBig%29%0A%5Cend%7Bmultline%2A%7D%0A "
-\begin{multline*}
-\frac 12\Big(\log\lvert\Omega_i\rvert - 
-  \log\lvert\Psi\rvert - \log\lvert\Xi\rvert 
-  -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}
-  -\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\
-  - \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}
-  - \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}
-  + R + H\Big)
-\end{multline*}
-")
+![\\begin{multline\*}
+\\frac{1}{2}\\Big(\\log\\lvert\\Omega\_i\\rvert - \\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert -\\vec\\zeta\_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta\_{i,1:R}-\\vec\\zeta\_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta\_{i,(-1:R)} \\\\- \\text{tr}\\Omega\_{i,1:R,1:R}\\Psi^{-1}- \\text{tr}\\Omega\_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R + H\\Big)\\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D%0A%5Cfrac%7B1%7D%7B2%7D%5CBig%28%5Clog%5Clvert%5COmega_i%5Crvert%20-%20%5Clog%5Clvert%5CPsi%5Crvert%20-%20%5Clog%5Clvert%5CXi%5Crvert%20-%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%5CPsi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D-%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%5CXi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%20%5C%5C-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5CPsi%5E%7B-1%7D-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%5CXi%5E%7B-1%7D%2B%20R%20%2B%20H%5CBig%29%5Cend%7Bmultline%2A%7D "\begin{multline*}
+\frac{1}{2}\Big(\log\lvert\Omega_i\rvert - \log\lvert\Psi\rvert - \log\lvert\Xi\rvert -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}-\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\- \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}- \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}+ R + H\Big)\end{multline*}")
 
 where
 ![\\text{tr}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Btr%7D%28%5Ccdot%29 "\text{tr}(\cdot)")
@@ -2654,45 +2615,19 @@ returns the trace of a matrix. Thus, the derivatives w.r.t.
 ![\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Czeta_i "\vec\zeta_i")
 are respectively
 
-![
-\\frac 12\\left(\\Omega\_i^{-1} - 
-  \\begin{pmatrix} \\Psi^{-1} & 0 \\\\ 0 & \\Xi^{-1}\\end{pmatrix}\\right) 
-](https://render.githubusercontent.com/render/math?math=%0A%5Cfrac%2012%5Cleft%28%5COmega_i%5E%7B-1%7D%20-%20%0A%20%20%5Cbegin%7Bpmatrix%7D%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%200%20%26%20%5CXi%5E%7B-1%7D%5Cend%7Bpmatrix%7D%5Cright%29%20%0A "
-\frac 12\left(\Omega_i^{-1} - 
-  \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right) 
-")
+![\\frac{1}{2}\\left(\\Omega\_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0 \\\\ 0 & \\Xi^{-1}\\end{pmatrix}\\right)](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5COmega_i%5E%7B-1%7D%20-%20%5Cbegin%7Bpmatrix%7D%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%200%20%26%20%5CXi%5E%7B-1%7D%5Cend%7Bpmatrix%7D%5Cright%29 "\frac{1}{2}\left(\Omega_i^{-1} - \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right)")
 
-![
-\\frac 12
-   \\Psi^{-1}(\\vec\\zeta\_{i,1:R}\\vec\\zeta\_{i,1:R}^\\top
-   + \\Omega\_{i,1:R,1:R} - \\Psi)\\Psi^{-1}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cfrac%2012%0A%20%20%20%5CPsi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%0A%20%20%20%2B%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%20-%20%5CPsi%29%5CPsi%5E%7B-1%7D%0A "
-\frac 12
-   \Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top
-   + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}
-")
+![\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta\_{i,1:R}\\vec\\zeta\_{i,1:R}^\\top + \\Omega\_{i,1:R,1:R} - \\Psi)\\Psi^{-1}](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CPsi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%20%2B%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%20-%20%5CPsi%29%5CPsi%5E%7B-1%7D "\frac{1}{2}\Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}")
 
-![
-\\frac 12
-   \\Xi^{-1}(\\vec\\zeta\_{i,(-1:R)}\\vec\\zeta\_{i,(-1:R)}^\\top
-   + \\Omega\_{i,(-1:R),(-1:R)} - \\Xi)\\Xi^{-1}.
-](https://render.githubusercontent.com/render/math?math=%0A%5Cfrac%2012%0A%20%20%20%5CXi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%0A%20%20%20%2B%20%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%20-%20%5CXi%29%5CXi%5E%7B-1%7D.%0A "
-\frac 12
-   \Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top
-   + \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.
-")
+![\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta\_{i,(-1:R)}\\vec\\zeta\_{i,(-1:R)}^\\top+ \\Omega\_{i,(-1:R),(-1:R)} - \\Xi)\\Xi^{-1}.](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CXi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%2B%20%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%20-%20%5CXi%29%5CXi%5E%7B-1%7D. "\frac{1}{2}\Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top+ \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.")
 
-![
--\\begin{pmatrix}
+![-\\begin{pmatrix}
   \\Psi^{-1} & 0 \\\\
   0 & \\Xi^{-1} 
-\\end{pmatrix}\\vec\\zeta\_i
-](https://render.githubusercontent.com/render/math?math=%0A-%5Cbegin%7Bpmatrix%7D%0A%20%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%0A%20%200%20%26%20%5CXi%5E%7B-1%7D%20%0A%5Cend%7Bpmatrix%7D%5Cvec%5Czeta_i%0A "
--\begin{pmatrix}
+\\end{pmatrix}\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=-%5Cbegin%7Bpmatrix%7D%0A%20%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%0A%20%200%20%26%20%5CXi%5E%7B-1%7D%20%0A%5Cend%7Bpmatrix%7D%5Cvec%5Czeta_i "-\begin{pmatrix}
   \Psi^{-1} & 0 \\
   0 & \Xi^{-1} 
-\end{pmatrix}\vec\zeta_i
-")
+\end{pmatrix}\vec\zeta_i")
 
 ## Marker Terms
 
@@ -2704,37 +2639,11 @@ time
 ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
 is
 
-![
-\\int \\log\\left(\\phi^{(L)}\\left(\\vec y\_{ij}; X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta 
-  + M(s\_{ij})\\vec w, \\Sigma\\right)\\right)
-  \\phi^{(R)}\\left(\\vec w; \\vec\\zeta\_{i,1:R}, \\Omega\_{i,1:R,1:R}\\right) d\\vec w
-](https://render.githubusercontent.com/render/math?math=%0A%5Cint%20%5Clog%5Cleft%28%5Cphi%5E%7B%28L%29%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%3B%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%0A%20%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20w%2C%20%5CSigma%5Cright%29%5Cright%29%0A%20%20%5Cphi%5E%7B%28R%29%7D%5Cleft%28%5Cvec%20w%3B%20%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%2C%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5Cright%29%20d%5Cvec%20w%0A "
-\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta 
-  + M(s_{ij})\vec w, \Sigma\right)\right)
-  \phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
-")
+![\\int \\log\\left(\\phi^{(L)}\\left(\\vec y\_{ij}; X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec w, \\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta\_{i,1:R}, \\Omega\_{i,1:R,1:R}\\right) d\\vec w](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Clog%5Cleft%28%5Cphi%5E%7B%28L%29%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%3B%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20w%2C%20%5CSigma%5Cright%29%5Cright%29%5Cphi%5E%7B%28R%29%7D%5Cleft%28%5Cvec%20w%3B%20%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%2C%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5Cright%29%20d%5Cvec%20w "\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec w, \Sigma\right)\right)\phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w")
 
 which gives
 
-![
-\\begin{multline\*}
--\\frac L2\\log 2\\pi  -\\frac 12 \\log\\lvert\\Sigma \\rvert 
-  - \\frac 12\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta 
-  - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right)^\\top \\\\
-  \\Sigma^{-1}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta 
-  - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right) - 
-  \\frac 12\\text{tr}\\Sigma^{-1}M(s\_{ij})\\Omega\_{i,1:R,1:R}M(s\_{ij})^\\top.
-\\end{multline\*}
-](https://render.githubusercontent.com/render/math?math=%0A%5Cbegin%7Bmultline%2A%7D%0A-%5Cfrac%20L2%5Clog%202%5Cpi%20%20-%5Cfrac%2012%20%5Clog%5Clvert%5CSigma%20%5Crvert%20%0A%20%20-%20%5Cfrac%2012%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%0A%20%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%5E%5Ctop%20%5C%5C%0A%20%20%5CSigma%5E%7B-1%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%0A%20%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%20-%20%0A%20%20%5Cfrac%2012%5Ctext%7Btr%7D%5CSigma%5E%7B-1%7DM%28s_%7Bij%7D%29%5COmega_%7Bi%2C1%3AR%2C1%3AR%7DM%28s_%7Bij%7D%29%5E%5Ctop.%0A%5Cend%7Bmultline%2A%7D%0A "
-\begin{multline*}
--\frac L2\log 2\pi  -\frac 12 \log\lvert\Sigma \rvert 
-  - \frac 12\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
-  \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta 
-  - M(s_{ij})\vec\zeta_{i,1:R}\right) - 
-  \frac 12\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top.
-\end{multline*}
-")
+![\\begin{multline\*}-\\frac{L}{2}\\log 2\\pi  -\\frac {1}{2} \\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right)^\\top \\\\ \\Sigma^{-1}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right) - \\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s\_{ij})\\Omega\_{i,1:R,1:R}M(s\_{ij})^\\top. \\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D-%5Cfrac%7BL%7D%7B2%7D%5Clog%202%5Cpi%20%20-%5Cfrac%20%7B1%7D%7B2%7D%20%5Clog%5Clvert%5CSigma%20%5Crvert%20-%20%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%5E%5Ctop%20%5C%5C%20%5CSigma%5E%7B-1%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%20-%20%5Cfrac%7B1%7D%7B2%7D%5Ctext%7Btr%7D%5CSigma%5E%7B-1%7DM%28s_%7Bij%7D%29%5COmega_%7Bi%2C1%3AR%2C1%3AR%7DM%28s_%7Bij%7D%29%5E%5Ctop.%20%5Cend%7Bmultline%2A%7D "\begin{multline*}-\frac{L}{2}\log 2\pi  -\frac {1}{2} \log\lvert\Sigma \rvert - \frac{1}{2}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\ \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right) - \frac{1}{2}\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top. \end{multline*}")
 
 ## Survival Outcomes
 
@@ -2746,57 +2655,23 @@ be event indicators. The the lower bound terms for the
 ![k](https://render.githubusercontent.com/render/math?math=k "k")th time
 to event is
 
-![
-\\int \\left(d\_{ik}\\log h\_{ik}(t\_{ik}\\mid \\vec w\_{1:R}, w\_{R + k})
-  -\\int\_0^{t\_{ik}}  h\_{ik}(s\\mid \\vec w\_{1:R}, w\_{R + k})ds
-  \\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta\_i, \\Omega\_i)d\\vec w.
-](https://render.githubusercontent.com/render/math?math=%0A%5Cint%20%5Cleft%28d_%7Bik%7D%5Clog%20h_%7Bik%7D%28t_%7Bik%7D%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29%0A%20%20-%5Cint_0%5E%7Bt_%7Bik%7D%7D%20%20h_%7Bik%7D%28s%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29ds%0A%20%20%5Cright%29%5Cphi%5E%7B%28R%20%2B%20H%29%7D%28%5Cvec%20w%3B%20%5Cvec%5Czeta_i%2C%20%5COmega_i%29d%5Cvec%20w.%0A "
-\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})
-  -\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds
-  \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.
-")
+![\\int \\left(d\_{ik}\\log h\_{ik}(t\_{ik}\\mid \\vec w\_{1:R}, w\_{R + k})-\\int\_0^{t\_{ik}}  h\_{ik}(s\\mid \\vec w\_{1:R}, w\_{R + k})ds \\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta\_i, \\Omega\_i)d\\vec w.](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Cleft%28d_%7Bik%7D%5Clog%20h_%7Bik%7D%28t_%7Bik%7D%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29-%5Cint_0%5E%7Bt_%7Bik%7D%7D%20%20h_%7Bik%7D%28s%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29ds%20%5Cright%29%5Cphi%5E%7B%28R%20%2B%20H%29%7D%28%5Cvec%20w%3B%20%5Cvec%5Czeta_i%2C%20%5COmega_i%29d%5Cvec%20w. "\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.")
 
 Left-truncation is eaisly handled by replacing the zero in the lower
 limit by the left-truncation point. The log hazard term gives the
 following lower bound terms
 
-![
-d\_{ik}\\left(\\vec z\_{ik}^\\top\\vec\\delta\_k + 
-  \\omega\_k^\\top \\vec b\_k(t\_{ik}) + 
-  \\vec\\alpha\_k^\\top M(t\_{ik})\\vec\\zeta\_{i,1:R} + \\zeta\_{i,R + k}\\right).
-](https://render.githubusercontent.com/render/math?math=%0Ad_%7Bik%7D%5Cleft%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%0A%20%20%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28t_%7Bik%7D%29%20%2B%20%0A%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28t_%7Bik%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%20%5Czeta_%7Bi%2CR%20%2B%20k%7D%5Cright%29.%0A "
-d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + 
-  \omega_k^\top \vec b_k(t_{ik}) + 
-  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).
-")
+![d\_{ik}\\left(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\omega\_k^\\top \\vec b\_k(t\_{ik}) +  \\vec\\alpha\_k^\\top M(t\_{ik})\\vec\\zeta\_{i,1:R} + \\zeta\_{i,R + k}\\right).](https://render.githubusercontent.com/render/math?math=d_%7Bik%7D%5Cleft%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28t_%7Bik%7D%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28t_%7Bik%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%20%5Czeta_%7Bi%2CR%20%2B%20k%7D%5Cright%29. "d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + \omega_k^\top \vec b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).")
 
 As for the expected cumulative hazard term, assume that we can
 interchange the order of integration. Then the lower bound term is
 
-![
--\\exp(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\zeta\_{R +k})\\int\_0^{t\_{ij}}
-  \\exp\\left(\\omega\_k^\\top \\vec b\_k(s) 
-  +  \\vec\\alpha\_k^\\top M(s)\\vec\\zeta\_{i,1:R} +\\frac 12 
-  (\\vec\\alpha\_k^\\top, 1) O\_{ik}(s)\\begin{pmatrix}
-    \\vec\\alpha\_k \\\\ 1
-  \\end{pmatrix}\\right) ds
-](https://render.githubusercontent.com/render/math?math=%0A-%5Cexp%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Czeta_%7BR%20%2Bk%7D%29%5Cint_0%5E%7Bt_%7Bij%7D%7D%0A%20%20%5Cexp%5Cleft%28%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28s%29%20%0A%20%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28s%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%5Cfrac%2012%20%0A%20%20%28%5Cvec%5Calpha_k%5E%5Ctop%2C%201%29%20O_%7Bik%7D%28s%29%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%5Calpha_k%20%5C%5C%201%0A%20%20%5Cend%7Bpmatrix%7D%5Cright%29%20ds%0A "
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}}
-  \exp\left(\omega_k^\top \vec b_k(s) 
-  +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac 12 
-  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix}
-    \vec\alpha_k \\ 1
-  \end{pmatrix}\right) ds
-")
+![-\\exp(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\zeta\_{R +k})\\int\_0^{t\_{ij}} \\exp\\left(\\omega\_k^\\top \\vec b\_k(s) +  \\vec\\alpha\_k^\\top M(s)\\vec\\zeta\_{i,1:R} +\\frac{1}{2}  (\\vec\\alpha\_k^\\top, 1) O\_{ik}(s)\\begin{pmatrix} \\vec\\alpha\_k \\\\ 1 \\end{pmatrix}\\right) ds](https://render.githubusercontent.com/render/math?math=-%5Cexp%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Czeta_%7BR%20%2Bk%7D%29%5Cint_0%5E%7Bt_%7Bij%7D%7D%20%5Cexp%5Cleft%28%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28s%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28s%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%5Cfrac%7B1%7D%7B2%7D%20%20%28%5Cvec%5Calpha_k%5E%5Ctop%2C%201%29%20O_%7Bik%7D%28s%29%5Cbegin%7Bpmatrix%7D%20%5Cvec%5Calpha_k%20%5C%5C%201%20%5Cend%7Bpmatrix%7D%5Cright%29%20ds "-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds")
 
 where
 
-![
-O\_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
+![O\_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
   \\Omega\_{(1:R, R + k), (1:R, R + k)}
-    \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.
-](https://render.githubusercontent.com/render/math?math=%0AO_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D.%0A "
-O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
+    \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=O_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D. "O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
   \Omega_{(1:R, R + k), (1:R, R + k)}
-    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.
-")
+    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.")
