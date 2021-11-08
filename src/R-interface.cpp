@@ -814,11 +814,18 @@ List joint_ms_opt_lb
    unsigned const max_it, unsigned const n_threads, double const c1,
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
-   unsigned const pre_method, List quad_rule){
+   unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask){
   profiler pp("joint_ms_opt_lb");
 
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
+
+  obj->optim().set_masked(mask.begin(), mask.end());
+  struct clear_masked {
+    problem_data &dat;
+    clear_masked(problem_data &dat): dat{dat} { }
+    ~clear_masked() { dat.optim().clear_masked(); }
+  } clear_m(*obj);
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;

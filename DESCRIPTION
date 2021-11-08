@@ -24,10 +24,10 @@ LinkingTo:
     RcppArmadillo,
     RcppEigen,
     testthat, 
-    psqn
+    psqn (>= 0.2.2)
 Imports: 
     Rcpp,
-    splines, 
+    splines,
     utils, 
     stats,
     SimSurvNMarker,

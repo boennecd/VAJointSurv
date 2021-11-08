@@ -41,8 +41,8 @@ opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule) {
     .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule)
 }
 
-joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule) {
-    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule)
+joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask) {
+    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask)
 }
 
 ph_ll <- function(time_fixef, Z, surv) {
