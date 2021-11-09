@@ -270,7 +270,7 @@ joint_ms_profile <- function(
 
   # setup
   mask <- unique(c(mask, which_prof - 1L))
-  n_global <- comp_obj$indices$va_params_start - 1L
+  n_global <- object$indices$va_params_start - 1L
   par <- opt_out$par
   max_lb <- -opt_out$value
 
