@@ -114,7 +114,7 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 #' @export
 joint_ms_start_val <- function(object, n_threads = object$max_threads,
                                rel_eps = 1e-8, c1 = 1e-4, c2 = .9,
-                               max_it = 100L, quad_rule = object$quad_rule){
+                               max_it = 1000L, quad_rule = object$quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
   if(is.null(quad_rule))
@@ -168,7 +168,7 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #' arguments to pass to the C++ version of \code{\link{psqn}}.
 #' @export
 joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
-                         max_it = 100L, n_threads = object$max_threads,
+                         max_it = 1000L, n_threads = object$max_threads,
                          c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0L,
                          cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
                          pre_method = 1L, quad_rule = object$quad_rule,
@@ -179,12 +179,16 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
   check_quad_rule(quad_rule)
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
-  joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,
-                  max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-                  use_bfgs = use_bfgs, trace = trace, cg_tol = cg_tol,
-                  strong_wolfe = strong_wolfe, max_cg = max_cg,
-                  pre_method = pre_method, quad_rule = quad_rule,
-                  mask = mask)
+  fit <- joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,
+                         max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+                         use_bfgs = use_bfgs, trace = trace, cg_tol = cg_tol,
+                         strong_wolfe = strong_wolfe, max_cg = max_cg,
+                         pre_method = pre_method, quad_rule = quad_rule,
+                         mask = mask)
+  if(!fit$convergence)
+    warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
+                    fit$info))
+  fit
 }
 
 #' Formats the Parameter Vector
@@ -256,7 +260,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' @export
 joint_ms_profile <- function(
   object, opt_out, which_prof, delta, level = .95, max_step = 15L,
-  rel_eps = 1e-8, max_it = 100L, n_threads = object$max_threads, c1 = 1e-04,
+  rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
   max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
   mask = integer()){
@@ -306,6 +310,10 @@ joint_ms_profile <- function(
       trace = trace, cg_tol = cg_tol, strong_wolfe = strong_wolfe,
       max_cg = max_cg, pre_method = pre_method, quad_rule = quad_rule,
       mask = mask)
+    if(!fit$convergence)
+      stop(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
+                   fit$info))
+
     format_fit(x, dir = dir, fit = fit, lb = lb, ub = ub)
   }
 

@@ -58,7 +58,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL){
   XZ <- cbind(Z, t(time_fixef$eval(y[, 2])))
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
-    stop("Design matrix is singular. Perhaps remove an intercept or a time-varying term from 'formula'")
+    stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
 
   # reorder the data and return
   ord <- order(id, y[, 2])

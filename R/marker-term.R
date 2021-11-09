@@ -57,7 +57,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   XZ <- cbind(X, t(with(time_fixef, eval(time))))
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
-    stop("Design matrix is singular. Perhaps remove an intercept or a time-varying term from 'formula'")
+    stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
 
   # prepare the data to return
   time_var <-  time_fixef$time
