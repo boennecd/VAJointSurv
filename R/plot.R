@@ -87,7 +87,8 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
   time_rngs <- function(x){
     bases <- mapply(function(expansion, ders, assoc) {
       basis_vecs <- sapply(ders, expansion$eval, x = x)
-      rowSums(basis_vecs * rep(assoc, each = NROW(basis_vecs)))
+      res <- basis_vecs * rep(assoc, each = NROW(basis_vecs))
+      if(is.matrix(res)) rowSums(res) else res
     }, expansion = time_rng, ders = ders, assoc = associations,
     SIMPLIFY = FALSE)
     do.call(c, bases)

@@ -104,3 +104,29 @@ test_that("The C++ version of ns gives the right result", {
   expansion <- obj_cpp$eval(out_x)
   expect_equal(expansion, t(truth),  ignore_attr = TRUE)
 })
+
+test_that("The plot_surv works with one-dimensional basis", {
+  g1_basis <- ns_term(knots = c(3.33, 6.67), Boundary.knots = c(0, 10))
+  g2_basis <- ns_term(knots = c(3.33, 6.67), Boundary.knots = c(0, 10))
+  m1_basis <- poly_term(degree = 1, raw = TRUE, intercept = TRUE)
+  m2_basis <- poly_term(degree = 0, raw = TRUE, intercept = TRUE)
+
+  vcov_vary <- structure(c(0.021875, 5e-04, -0.003125, 5e-04, 0.012, -0.0015, -0.003125, -0.0015, 0.02), .Dim = c(3L, 3L))
+
+  # the survival parameters
+  fixef_surv <- c(-3, .4)
+  association <- c(-1, 2)
+  fixef_vary_surv <- c(.5, .1, -.015)
+  fvar <- matrix(1e-6^2, 1)
+
+  b_basis <- poly_term(degree = 3, raw = TRUE)
+
+  # this failed in one version
+  res <- plot_surv(
+    time_fixef = b_basis, time_rng = list(m1_basis, m2_basis),
+    x_range = c(0, 10), fixef_vary = fixef_vary_surv,  vcov_vary = vcov_vary,
+    frailty_var = fvar, ps = c(.1, .5, .9), log_hazard_shift = fixef_surv[1],
+    associations = association)
+
+  expect_snapshot_value(res, cran = TRUE, style = "serialize")
+})

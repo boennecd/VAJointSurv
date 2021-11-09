@@ -258,7 +258,8 @@ joint_ms_profile <- function(
   object, opt_out, which_prof, delta, level = .95, max_step = 15L,
   rel_eps = 1e-8, max_it = 100L, n_threads = object$max_threads, c1 = 1e-04,
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
-  max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE){
+  max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
+  mask = integer()){
   stopifnot(is.integer(which_prof), length(which_prof) == 1L,
             which_prof >= 1L, which_prof <= length(opt_out$par),
             is.numeric(delta), is.finite(delta), length(delta) == 1,
@@ -268,7 +269,7 @@ joint_ms_profile <- function(
             opt_out$convergence)
 
   # setup
-  mask <- which_prof - 1L
+  mask <- unique(c(mask, which_prof - 1L))
   n_global <- comp_obj$indices$va_params_start - 1L
   par <- opt_out$par
   max_lb <- -opt_out$value
