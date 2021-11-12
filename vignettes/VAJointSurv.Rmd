@@ -696,7 +696,7 @@ b_func <- function(x)
 
 # sample a few survival curves and plot them 
 library(SimSurvNMarker)
- # time points where we evaluate the conditional survival functions
+# time points where we evaluate the conditional survival functions
 tis <- seq(0, 2, length.out = 50)
 set.seed(1)
 # compute the conditional survival functions disregarding the fixed effect

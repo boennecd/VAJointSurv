@@ -6,3 +6,4 @@ inst/doc
 benchmark/*.out*
 vignettes/cache/*
 vignettes/man/*
+tests/testthat/Rplots.pdf

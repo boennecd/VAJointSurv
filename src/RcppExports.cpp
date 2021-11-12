@@ -59,28 +59,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // joint_ms_eval_lb
-double joint_ms_eval_lb(NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule);
-RcppExport SEXP _VAJointSurv_joint_ms_eval_lb(SEXP valSEXP, SEXP ptrSEXP, SEXP n_threadsSEXP, SEXP quad_ruleSEXP) {
+double joint_ms_eval_lb(NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule, bool const cache_expansions);
+RcppExport SEXP _VAJointSurv_joint_ms_eval_lb(SEXP valSEXP, SEXP ptrSEXP, SEXP n_threadsSEXP, SEXP quad_ruleSEXP, SEXP cache_expansionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ptr(ptrSEXP);
     Rcpp::traits::input_parameter< unsigned const >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< List >::type quad_rule(quad_ruleSEXP);
-    rcpp_result_gen = Rcpp::wrap(joint_ms_eval_lb(val, ptr, n_threads, quad_rule));
+    Rcpp::traits::input_parameter< bool const >::type cache_expansions(cache_expansionsSEXP);
+    rcpp_result_gen = Rcpp::wrap(joint_ms_eval_lb(val, ptr, n_threads, quad_rule, cache_expansions));
     return rcpp_result_gen;
 END_RCPP
 }
 // joint_ms_eval_lb_gr
-NumericVector joint_ms_eval_lb_gr(NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule);
-RcppExport SEXP _VAJointSurv_joint_ms_eval_lb_gr(SEXP valSEXP, SEXP ptrSEXP, SEXP n_threadsSEXP, SEXP quad_ruleSEXP) {
+NumericVector joint_ms_eval_lb_gr(NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule, bool const cache_expansions);
+RcppExport SEXP _VAJointSurv_joint_ms_eval_lb_gr(SEXP valSEXP, SEXP ptrSEXP, SEXP n_threadsSEXP, SEXP quad_ruleSEXP, SEXP cache_expansionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ptr(ptrSEXP);
     Rcpp::traits::input_parameter< unsigned const >::type n_threads(n_threadsSEXP);
     Rcpp::traits::input_parameter< List >::type quad_rule(quad_ruleSEXP);
-    rcpp_result_gen = Rcpp::wrap(joint_ms_eval_lb_gr(val, ptr, n_threads, quad_rule));
+    Rcpp::traits::input_parameter< bool const >::type cache_expansions(cache_expansionsSEXP);
+    rcpp_result_gen = Rcpp::wrap(joint_ms_eval_lb_gr(val, ptr, n_threads, quad_rule, cache_expansions));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -115,8 +117,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // opt_priv
-NumericVector opt_priv(NumericVector val, SEXP ptr, double const rel_eps, unsigned const max_it, unsigned const n_threads, double const c1, double const c2, List quad_rule);
-RcppExport SEXP _VAJointSurv_opt_priv(SEXP valSEXP, SEXP ptrSEXP, SEXP rel_epsSEXP, SEXP max_itSEXP, SEXP n_threadsSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP quad_ruleSEXP) {
+NumericVector opt_priv(NumericVector val, SEXP ptr, double const rel_eps, unsigned const max_it, unsigned const n_threads, double const c1, double const c2, List quad_rule, bool const cache_expansions);
+RcppExport SEXP _VAJointSurv_opt_priv(SEXP valSEXP, SEXP ptrSEXP, SEXP rel_epsSEXP, SEXP max_itSEXP, SEXP n_threadsSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP quad_ruleSEXP, SEXP cache_expansionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
@@ -127,13 +129,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double const >::type c1(c1SEXP);
     Rcpp::traits::input_parameter< double const >::type c2(c2SEXP);
     Rcpp::traits::input_parameter< List >::type quad_rule(quad_ruleSEXP);
-    rcpp_result_gen = Rcpp::wrap(opt_priv(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule));
+    Rcpp::traits::input_parameter< bool const >::type cache_expansions(cache_expansionsSEXP);
+    rcpp_result_gen = Rcpp::wrap(opt_priv(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions));
     return rcpp_result_gen;
 END_RCPP
 }
 // joint_ms_opt_lb
-List joint_ms_opt_lb(NumericVector val, SEXP ptr, double const rel_eps, unsigned const max_it, unsigned const n_threads, double const c1, double const c2, bool const use_bfgs, unsigned const trace, double const cg_tol, bool const strong_wolfe, size_t const max_cg, unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask);
-RcppExport SEXP _VAJointSurv_joint_ms_opt_lb(SEXP valSEXP, SEXP ptrSEXP, SEXP rel_epsSEXP, SEXP max_itSEXP, SEXP n_threadsSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP use_bfgsSEXP, SEXP traceSEXP, SEXP cg_tolSEXP, SEXP strong_wolfeSEXP, SEXP max_cgSEXP, SEXP pre_methodSEXP, SEXP quad_ruleSEXP, SEXP maskSEXP) {
+List joint_ms_opt_lb(NumericVector val, SEXP ptr, double const rel_eps, unsigned const max_it, unsigned const n_threads, double const c1, double const c2, bool const use_bfgs, unsigned const trace, double const cg_tol, bool const strong_wolfe, size_t const max_cg, unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask, bool const cache_expansions);
+RcppExport SEXP _VAJointSurv_joint_ms_opt_lb(SEXP valSEXP, SEXP ptrSEXP, SEXP rel_epsSEXP, SEXP max_itSEXP, SEXP n_threadsSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP use_bfgsSEXP, SEXP traceSEXP, SEXP cg_tolSEXP, SEXP strong_wolfeSEXP, SEXP max_cgSEXP, SEXP pre_methodSEXP, SEXP quad_ruleSEXP, SEXP maskSEXP, SEXP cache_expansionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
@@ -151,7 +154,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned const >::type pre_method(pre_methodSEXP);
     Rcpp::traits::input_parameter< List >::type quad_rule(quad_ruleSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type mask(maskSEXP);
-    rcpp_result_gen = Rcpp::wrap(joint_ms_opt_lb(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask));
+    Rcpp::traits::input_parameter< bool const >::type cache_expansions(cache_expansionsSEXP);
+    rcpp_result_gen = Rcpp::wrap(joint_ms_opt_lb(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -201,13 +205,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_VAJointSurv_eval_expansion", (DL_FUNC) &_VAJointSurv_eval_expansion, 4},
     {"_VAJointSurv_joint_ms_ptr", (DL_FUNC) &_VAJointSurv_joint_ms_ptr, 3},
     {"_VAJointSurv_joint_ms_n_terms", (DL_FUNC) &_VAJointSurv_joint_ms_n_terms, 1},
-    {"_VAJointSurv_joint_ms_eval_lb", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb, 4},
-    {"_VAJointSurv_joint_ms_eval_lb_gr", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb_gr, 4},
+    {"_VAJointSurv_joint_ms_eval_lb", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb, 5},
+    {"_VAJointSurv_joint_ms_eval_lb_gr", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb_gr, 5},
     {"_VAJointSurv_joint_ms_parameter_names", (DL_FUNC) &_VAJointSurv_joint_ms_parameter_names, 1},
     {"_VAJointSurv_joint_ms_parameter_indices", (DL_FUNC) &_VAJointSurv_joint_ms_parameter_indices, 1},
     {"_VAJointSurv_joint_ms_n_params", (DL_FUNC) &_VAJointSurv_joint_ms_n_params, 1},
-    {"_VAJointSurv_opt_priv", (DL_FUNC) &_VAJointSurv_opt_priv, 8},
-    {"_VAJointSurv_joint_ms_opt_lb", (DL_FUNC) &_VAJointSurv_joint_ms_opt_lb, 15},
+    {"_VAJointSurv_opt_priv", (DL_FUNC) &_VAJointSurv_opt_priv, 9},
+    {"_VAJointSurv_joint_ms_opt_lb", (DL_FUNC) &_VAJointSurv_joint_ms_opt_lb, 16},
     {"_VAJointSurv_ph_ll", (DL_FUNC) &_VAJointSurv_ph_ll, 3},
     {"_VAJointSurv_ph_eval", (DL_FUNC) &_VAJointSurv_ph_eval, 4},
     {"_VAJointSurv_ph_grad", (DL_FUNC) &_VAJointSurv_ph_grad, 4},

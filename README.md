@@ -404,7 +404,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.872   0.008   0.884
+#>   0.844   0.008   0.869
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -420,12 +420,12 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.093   0.000   0.093
+#>   0.095   0.004   0.098
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.123   0.004   0.033
+#>   0.125   0.004   0.035
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -445,7 +445,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   9.359   0.000   2.344
+#>   9.365   0.000   2.344
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -460,7 +460,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #>    user  system elapsed 
-#>  72.490   0.016  18.189
+#>  72.638   0.008  18.218
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -908,7 +908,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.124   0.000   0.031
+#>   0.118   0.000   0.033
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -928,7 +928,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   2.352   0.000   0.591
+#>   2.114   0.000   0.531
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -941,7 +941,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#> 100.637   0.024  25.226
+#> 104.208   0.019  26.115
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1043,7 +1043,7 @@ b_func <- function(x)
 
 # sample a few survival curves and plot them 
 library(SimSurvNMarker)
- # time points where we evaluate the conditional survival functions
+# time points where we evaluate the conditional survival functions
 tis <- seq(0, 2, length.out = 50)
 set.seed(1)
 # compute the conditional survival functions disregarding the fixed effect
@@ -1173,7 +1173,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.224   0.000   0.224
+#>   0.146   0.000   0.146
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1195,7 +1195,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   3.440   0.000   3.441
+#>   1.998   0.000   1.998
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1592,7 +1592,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   1.812   0.000   0.503
+#>   1.405   0.000   0.396
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1612,7 +1612,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  32.252   0.004   8.067
+#>  24.917   0.000   6.232
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1625,7 +1625,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#> 173.669   0.016  43.429
+#> 137.645   0.012  34.419
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -2132,7 +2132,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   3.971   0.004   1.064
+#>   2.808   0.000   0.791
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2153,7 +2153,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  381.99    0.08   95.61
+#> 276.364   0.068  69.149
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2586,7 +2586,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   4.946   0.000   1.336
+#>   3.193   0.000   0.861
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2607,7 +2607,7 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#> 591.493   0.076 148.028
+#> 425.635   0.085 106.491
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value

@@ -580,6 +580,19 @@ public:
     return *optim_obj;
   }
 
+  /// sets the cached expansions for the survival terms
+  void set_cached_expansions(survival::node_weight const &nws){
+    s_dat.set_cached_expansions(nws);
+  }
+
+  /***
+   * clears the cached expansions for the survival terms. Thus, they are
+   * recomputed every time
+   */
+  void clear_cached_expansions(){
+    s_dat.clear_cached_expansions();
+  }
+
   lb_optim const & optim() const {
     return *optim_obj;
   }
@@ -613,6 +626,14 @@ inline void check_par_length(problem_data const &obj, NumericVector par){
     throw std::invalid_argument("invalid parameter size");
 }
 
+inline void set_or_clear_cached_expansions
+  (problem_data &dat, survival::node_weight const &nws, bool const do_set){
+  if(do_set)
+    dat.set_cached_expansions(nws);
+  else
+    dat.clear_cached_expansions();
+}
+
 /// returns a pointer to problem_data object
 // [[Rcpp::export(".joint_ms_ptr", rng = false)]]
 SEXP joint_ms_ptr
@@ -643,7 +664,8 @@ List joint_ms_n_terms(SEXP ptr){
 /// evaluates the lower bound
 // [[Rcpp::export(rng = false)]]
 double joint_ms_eval_lb
-  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
+  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule,
+   bool const cache_expansions){
   profiler pp("joint_ms_eval_lb");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -652,6 +674,7 @@ double joint_ms_eval_lb
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
 
+  set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
   obj->set_n_threads(n_threads);
   double const out{obj->optim().eval(&val[0], nullptr, false)};
   wmem::rewind_all();
@@ -662,7 +685,8 @@ double joint_ms_eval_lb
 /// evaluates the gradient of the lower bound
 // [[Rcpp::export(rng = false)]]
 NumericVector joint_ms_eval_lb_gr
-  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule){
+  (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule,
+   bool const cache_expansions){
   profiler pp("joint_ms_eval_lb_gr");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -670,6 +694,8 @@ NumericVector joint_ms_eval_lb_gr
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+
+  set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
   NumericVector grad(val.size());
   obj->set_n_threads(n_threads);
@@ -789,7 +815,8 @@ int joint_ms_n_params(SEXP ptr){
 NumericVector opt_priv
   (NumericVector val, SEXP ptr,
    double const rel_eps, unsigned const max_it, unsigned const n_threads,
-   double const c1, double const c2, List quad_rule){
+   double const c1, double const c2, List quad_rule,
+   bool const cache_expansions){
   profiler pp("opt_priv");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -797,6 +824,8 @@ NumericVector opt_priv
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+
+  set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
   NumericVector par = clone(val);
   obj->set_n_threads(n_threads);
@@ -814,7 +843,8 @@ List joint_ms_opt_lb
    unsigned const max_it, unsigned const n_threads, double const c1,
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
-   unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask){
+   unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask,
+   bool const cache_expansions){
   profiler pp("joint_ms_opt_lb");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -829,6 +859,8 @@ List joint_ms_opt_lb
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+
+  set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
   NumericVector par = clone(val);
   obj->set_n_threads(n_threads);
@@ -896,7 +928,7 @@ class ph_model {
 
       // the cumulative hazard term
       out += cum_haz(quad_rule, lb(i), ub(i), Z.col(i), fixef, fixef_vary,
-                     &association, &va_mean, &va_var, T_mem, wk_mem);
+                     &association, &va_mean, &va_var, T_mem, wk_mem, nullptr);
     }
 
     return out;

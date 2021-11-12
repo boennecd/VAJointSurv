@@ -35,3 +35,13 @@ microbenchmark(
   `gr 1` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 1L),
   `gr 2` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 2L),
   `gr 4` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 4L), times = 25)
+
+# without caching
+microbenchmark(
+  `fn 1` = joint_ms_lb   (comp_obj, start_val, n_threads = 1L, cache_expansions = FALSE),
+  `fn 2` = joint_ms_lb   (comp_obj, start_val, n_threads = 2L, cache_expansions = FALSE),
+  `fn 4` = joint_ms_lb   (comp_obj, start_val, n_threads = 4L, cache_expansions = FALSE),
+  `gr 1` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 1L, cache_expansions = FALSE),
+  `gr 2` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 2L, cache_expansions = FALSE),
+  `gr 4` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 4L, cache_expansions = FALSE),
+  times = 25)

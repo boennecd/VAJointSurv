@@ -18,6 +18,7 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(VAJointSurv)
+Loading required package: survival
 > load("bench-all.RData")
 > 
 > marker_1 <- marker_term(
@@ -46,7 +47,7 @@ Type 'q()' to quit R.
 > 
 > system.time(start_val <- joint_ms_start_val(comp_obj))
    user  system elapsed 
-  1.067   0.004   0.282 
+  0.722   0.004   0.193 
 > 
 > library(microbenchmark)
 > microbenchmark(
@@ -58,13 +59,31 @@ Type 'q()' to quit R.
 +   `gr 4` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 4L), times = 25)
 Unit: milliseconds
  expr       min        lq      mean    median        uq       max neval
- fn 1 10.211632 10.417841 10.713491 10.643349 10.869622 12.020631    25
- fn 2  5.284341  5.393525  5.596722  5.495497  5.579292  8.493657    25
- fn 4  2.840372  2.912319  4.242976  3.475358  5.759426  6.161876    25
- gr 1 21.563630 22.235527 22.511163 22.357814 22.826597 23.972162    25
- gr 2 11.302101 11.491711 11.759956 11.784040 11.909533 12.445678    25
- gr 4  6.046415  6.361277  7.837575  7.432869  9.412249 10.240893    25
+ fn 1  4.393021  4.488085  4.656423  4.596044  4.854777  5.025184    25
+ fn 2  2.253452  2.361492  2.494890  2.519118  2.582112  2.700670    25
+ fn 4  1.262802  1.355571  2.835198  3.011541  4.412665  4.628508    25
+ gr 1 16.178206 16.714588 16.903591 16.898099 17.138339 17.375451    25
+ gr 2  8.545689  8.839294  9.047819  8.919976  9.174415 11.357401    25
+ gr 4  4.688097  5.425481  6.982264  7.747524  8.147853  8.726398    25
+> 
+> # without caching
+> microbenchmark(
++   `fn 1` = joint_ms_lb   (comp_obj, start_val, n_threads = 1L, cache_expansions = FALSE),
++   `fn 2` = joint_ms_lb   (comp_obj, start_val, n_threads = 2L, cache_expansions = FALSE),
++   `fn 4` = joint_ms_lb   (comp_obj, start_val, n_threads = 4L, cache_expansions = FALSE),
++   `gr 1` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 1L, cache_expansions = FALSE),
++   `gr 2` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 2L, cache_expansions = FALSE),
++   `gr 4` = joint_ms_lb_gr(comp_obj, start_val, n_threads = 4L, cache_expansions = FALSE),
++   times = 25)
+Unit: milliseconds
+ expr       min        lq      mean    median        uq       max neval
+ fn 1 10.618046 10.975324 11.099348 11.081972 11.146486 12.689537    25
+ fn 2  5.461808  5.558590  5.629302  5.619803  5.664565  5.857795    25
+ fn 4  2.953094  3.028306  3.550127  3.666108  3.817313  4.533677    25
+ gr 1 22.653846 23.059570 23.421856 23.295986 23.546390 26.552723    25
+ gr 2 11.841258 11.910962 12.151515 12.115979 12.215032 12.987206    25
+ gr 4  6.388838  6.958469  7.410551  7.270652  7.532792 12.892353    25
 > 
 > proc.time()
    user  system elapsed 
-  5.686   0.097   3.084 
+  7.933   0.124   4.140 

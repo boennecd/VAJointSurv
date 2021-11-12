@@ -9,14 +9,16 @@ joint_ms_lb(
   object,
   par,
   n_threads = object$max_threads,
-  quad_rule = object$quad_rule
+  quad_rule = object$quad_rule,
+  cache_expansions = object$cache_expansions
 )
 
 joint_ms_lb_gr(
   object,
   par,
   n_threads = object$max_threads,
-  quad_rule = object$quad_rule
+  quad_rule = object$quad_rule,
+  cache_expansions = object$cache_expansions
 )
 }
 \arguments{
@@ -28,6 +30,14 @@ joint_ms_lb_gr(
 
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}
+
+\item{cache_expansions}{\code{TRUE} if the expansions in the numerical
+integration in the survival parts of the lower bound should be cached (not
+recomputed). This requires more memory and may be an advantage
+particularly with
+expansions that take longer to compute (like \code{\link{ns_term}} and
+\code{\link{bs_term}}). The computation time may be worse particularly if
+you use more threads as the CPU cache is not well utilized.}
 }
 \description{
 Evaluates the Lower Bound or the Gradient of the Lower Bound

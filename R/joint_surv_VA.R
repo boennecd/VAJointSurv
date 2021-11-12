@@ -28,10 +28,22 @@ check_quad_rule <- function(quad_rule)
 #' @param max_threads maximum number of threads to use.
 #' @param quad_rule list with nodes and weights for a quadrature rule for the
 #' integral from zero to one.
+#' @param cache_expansions \code{TRUE} if the expansions in the numerical
+#' integration in the survival parts of the lower bound should be cached (not
+#' recomputed). This requires more memory and may be an advantage
+#' particularly with
+#' expansions that take longer to compute (like \code{\link{ns_term}} and
+#' \code{\link{bs_term}}). The computation time may be worse particularly if
+#' you use more threads as the CPU cache is not well utilized.
 #'
 #' @export
 joint_ms_ptr <- function(markers = list(), survival_terms = list(),
-                         max_threads = 1L, quad_rule = NULL){
+                         max_threads = 1L, quad_rule = NULL,
+                         cache_expansions = TRUE){
+  stopifnot(
+    length(max_threads) == 1, max_threads > 0,
+    is.logical(cache_expansions), length(cache_expansions) == 1)
+
   # handle defaults
   if(inherits(markers, "marker_term"))
     markers <- list(markers)
@@ -99,7 +111,8 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   structure(
     list(param_names = param_names, indices = indices, ptr = ptr,
          start_val = start_val, max_threads = max_threads,
-         quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr)),
+         quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr),
+         cache_expansions = cache_expansions),
     class = "joint_ms")
 }
 
@@ -114,7 +127,8 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 #' @export
 joint_ms_start_val <- function(object, n_threads = object$max_threads,
                                rel_eps = 1e-8, c1 = 1e-4, c2 = .9,
-                               max_it = 1000L, quad_rule = object$quad_rule){
+                               max_it = 1000L, quad_rule = object$quad_rule,
+                               cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
   if(is.null(quad_rule))
@@ -123,7 +137,7 @@ joint_ms_start_val <- function(object, n_threads = object$max_threads,
 
   opt_priv(val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
            max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-           quad_rule = quad_rule)
+           quad_rule = quad_rule, cache_expansions = cache_expansions)
 }
 
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound
@@ -135,7 +149,8 @@ joint_ms_start_val <- function(object, n_threads = object$max_threads,
 #'
 #' @export
 joint_ms_lb <- function(object, par, n_threads = object$max_threads,
-                        quad_rule = object$quad_rule){
+                        quad_rule = object$quad_rule,
+                        cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
   if(is.null(quad_rule))
@@ -143,13 +158,14 @@ joint_ms_lb <- function(object, par, n_threads = object$max_threads,
   check_quad_rule(quad_rule)
 
   joint_ms_eval_lb(val = par, ptr = object$ptr, n_threads = n_threads,
-                   quad_rule = quad_rule)
+                   quad_rule = quad_rule, cache_expansions = cache_expansions)
 }
 
 #' @rdname joint_ms_lb
 #' @export
 joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
-                           quad_rule = object$quad_rule){
+                           quad_rule = object$quad_rule,
+                           cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
   if(is.null(quad_rule))
@@ -157,7 +173,7 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
   check_quad_rule(quad_rule)
 
   joint_ms_eval_lb_gr(val = par, ptr = object$ptr, n_threads = n_threads,
-                      quad_rule = quad_rule)
+                      quad_rule = quad_rule, cache_expansions = cache_expansions)
 }
 
 #' Optimizes the Lower Bound
@@ -172,7 +188,8 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0L,
                          cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
                          pre_method = 1L, quad_rule = object$quad_rule,
-                         mask = integer()){
+                         mask = integer(),
+                         cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
   if(is.null(quad_rule))
     quad_rule <- default_quad_rule()
@@ -184,7 +201,8 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          use_bfgs = use_bfgs, trace = trace, cg_tol = cg_tol,
                          strong_wolfe = strong_wolfe, max_cg = max_cg,
                          pre_method = pre_method, quad_rule = quad_rule,
-                         mask = mask)
+                         mask = mask,
+                         cache_expansions = cache_expansions)
   if(!fit$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                     fit$info))
@@ -263,7 +281,7 @@ joint_ms_profile <- function(
   rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
   max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
-  mask = integer()){
+  mask = integer(), cache_expansions = object$cache_expansions){
   stopifnot(is.integer(which_prof), length(which_prof) == 1L,
             which_prof >= 1L, which_prof <= length(opt_out$par),
             is.numeric(delta), is.finite(delta), length(delta) == 1,
@@ -309,7 +327,7 @@ joint_ms_profile <- function(
       n_threads = n_threads, c1 = c1, c2 = c2, use_bfgs = use_bfgs,
       trace = trace, cg_tol = cg_tol, strong_wolfe = strong_wolfe,
       max_cg = max_cg, pre_method = pre_method, quad_rule = quad_rule,
-      mask = mask)
+      mask = mask, cache_expansions = cache_expansions)
     if(!fit$convergence)
       stop(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                    fit$info))

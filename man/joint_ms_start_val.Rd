@@ -10,8 +10,9 @@ joint_ms_start_val(
   rel_eps = 1e-08,
   c1 = 1e-04,
   c2 = 0.9,
-  max_it = 100L,
-  quad_rule = object$quad_rule
+  max_it = 1000L,
+  quad_rule = object$quad_rule,
+  cache_expansions = object$cache_expansions
 )
 }
 \arguments{
@@ -24,6 +25,14 @@ joint_ms_start_val(
 
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}
+
+\item{cache_expansions}{\code{TRUE} if the expansions in the numerical
+integration in the survival parts of the lower bound should be cached (not
+recomputed). This requires more memory and may be an advantage
+particularly with
+expansions that take longer to compute (like \code{\link{ns_term}} and
+\code{\link{bs_term}}). The computation time may be worse particularly if
+you use more threads as the CPU cache is not well utilized.}
 }
 \description{
 Quick Heuristic for the Starting Values
