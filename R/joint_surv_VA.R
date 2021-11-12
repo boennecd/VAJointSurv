@@ -1,7 +1,7 @@
 # use Gauss-Legendre quadrature by default
 #' @importFrom SimSurvNMarker get_gl_rule
 default_quad_rule <- function(){
-  rule <- get_gl_rule(50)
+  rule <- get_gl_rule(25L)
   within(rule, {
     node <- node / 2 + .5
     weight <- weight / 2
