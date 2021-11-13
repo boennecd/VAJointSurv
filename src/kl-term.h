@@ -8,6 +8,12 @@
 #include "wmem.h"
 #include "cfaad/AAD.h"
 
+enum class lb_terms {
+  all,
+  markers,
+  surv
+};
+
 class kl_term {
   subset_params idx;
   vajoint_uint n_vars;
@@ -20,6 +26,8 @@ class kl_term {
   bool has_vcov = false,
        has_vcov_surv = false;
 
+  lb_terms which_terms{lb_terms::all};
+
 public:
   kl_term(): idx{}, n_vars{} { }
   kl_term(subset_params const &idx);
@@ -27,7 +35,8 @@ public:
   /**
    * sets up objects to evaluate the divergence. Has to be called prior to
    * calling eval and grad */
-  void setup(double const *param, double *wk_mem);
+  void setup(double const *param, double *wk_mem,
+             lb_terms which = lb_terms::all);
 
   /// Evaluates the lower bound term
   double eval(double const *param, double *wk_mem) const;

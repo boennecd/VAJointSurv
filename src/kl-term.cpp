@@ -2,15 +2,27 @@
 #include "lp-joint.h"
 #include <algorithm>
 
+inline void copy_sub_mat
+  (double *wk_mem, double const *mat, vajoint_uint const offset,
+   vajoint_uint const dim, vajoint_uint const n_vars){
+  double const * ele{mat + offset * (offset + dim + 1)};
+  for(vajoint_uint j = 0; j < dim; ++j, ele += n_vars, wk_mem += dim)
+    std::copy(ele, ele + dim, wk_mem);
+};
+
 kl_term::kl_term(subset_params const &idx):
   idx(idx),
   n_vars(idx.n_shared() + idx.n_shared_surv())
   { }
 
-void kl_term::setup(double const *param, double *wk_mem){
+void kl_term::setup(double const *param, double *wk_mem,
+                    lb_terms which){
   eval_constant = 0;
+  which_terms = which;
 
-  if((has_vcov = idx.n_shared())){
+  has_vcov = idx.n_shared() &&
+    (which_terms == lb_terms::all || which_terms == lb_terms::markers);
+  if(has_vcov){
     vajoint_uint const dim{idx.n_shared()};
     vcov_fac.reset(new cfaad::CholFactorization
                      (param + idx.vcov_vary(), dim, true));
@@ -18,7 +30,9 @@ void kl_term::setup(double const *param, double *wk_mem){
     eval_constant += log(vcov_fac->determinant()) - static_cast<double>(dim);
   }
 
-  if((has_vcov_surv = idx.n_shared_surv())){
+  has_vcov_surv = idx.n_shared_surv() &&
+    (which_terms == lb_terms::all || which_terms == lb_terms::surv);
+  if(has_vcov_surv){
     vajoint_uint const dim{idx.n_shared_surv()};
     vcov_surv_fac.reset(new cfaad::CholFactorization(
       param + idx.vcov_surv(), dim, true));
@@ -33,32 +47,50 @@ double kl_term::eval(double const *param, double *wk_mem) const {
   if(!has_vcov and !has_vcov_surv)
     return out;
 
+  vajoint_uint const n_shared{idx.n_shared()},
+                n_shared_surv{idx.n_shared_surv()};
+
   double const * const va_mean{param + idx.va_mean()},
                * const va_vcov{param + idx.va_vcov()};
 
-   {
+    if(which_terms == lb_terms::markers && n_shared_surv){
+      copy_sub_mat(wk_mem, va_vcov, 0, n_shared, n_vars);
+
+      double log_det;
+      arma::mat vcov_va_mat(const_cast<double*>(wk_mem), n_shared, n_shared,
+                            false);
+      if(!arma::log_det_sympd(log_det, vcov_va_mat))
+        throw std::runtime_error("kl_term: log_det_sympd(vcov_va_mat) failed");
+      out -= log_det;
+
+    }
+    else if(which_terms == lb_terms::surv && n_shared){
+      copy_sub_mat(wk_mem, va_vcov, n_shared, n_shared_surv, n_vars);
+
+      double log_det;
+      arma::mat vcov_va_mat(const_cast<double*>(wk_mem), n_shared_surv,
+                            n_shared_surv, false);
+      if(!arma::log_det_sympd(log_det, vcov_va_mat))
+        throw std::runtime_error("kl_term: log_det_sympd(vcov_va_mat) failed");
+      out -= log_det;
+
+    } else {
       double log_det;
       arma::mat vcov_va_mat(const_cast<double*>(va_vcov), n_vars, n_vars,
                             false);
       if(!arma::log_det_sympd(log_det, vcov_va_mat))
         throw std::runtime_error("kl_term: log_det_sympd(vcov_va_mat) failed");
       out -= log_det;
-   }
+
+    }
 
   // handle the non-determinant term
-  vajoint_uint const n_shared{idx.n_shared()},
-                n_shared_surv{idx.n_shared_surv()};
-
   auto handle_terms = [&]
   (vajoint_uint const offset, vajoint_uint const dim,
    cfaad::CholFactorization const &fact, double const *org){
     // copy parts of the VA covariance matrix
     double * const sub_VA_vcov{wk_mem};
-    {
-      double const * ele{va_vcov + offset * (offset + dim + 1)};
-      for(vajoint_uint j = 0; j < dim; ++j, ele += n_vars)
-        std::copy(ele, ele + dim, sub_VA_vcov + j * dim);
-    }
+    copy_sub_mat(sub_VA_vcov, va_vcov, offset, dim, n_vars);
 
     // handle the two terms
     double term{};
@@ -88,7 +120,28 @@ double kl_term::grad(double *g, double const *param, double *wk_mem) const {
   vajoint_uint const n_shared = idx.n_shared(),
                 n_shared_surv = idx.n_shared_surv();
 
- {
+  auto handle_sub_part = [&](vajoint_uint const offset, vajoint_uint const dim){
+    copy_sub_mat(wk_mem, va_vcov, offset, dim, n_vars);
+    arma::mat va_cov_mat(const_cast<double*>(wk_mem),
+                         dim, dim, false),
+              inv_mat   (wk_mem + dim * dim, dim, dim, false);
+
+    if(!arma::inv_sympd(inv_mat, va_cov_mat))
+      throw std::runtime_error("inv(va_cov_mat) failed");
+
+    double *der_term{g + idx.va_vcov() + offset * (offset + dim + 1)};
+    double const *term{inv_mat.begin()};
+
+    for(vajoint_uint i = 0; i < dim; ++i, der_term += n_vars, term += dim)
+      for(vajoint_uint j = 0; j < dim; ++j)
+        der_term[j] -= .5 * term[j];
+  };
+
+  if(which_terms == lb_terms::markers && n_shared_surv)
+    handle_sub_part(0, n_shared);
+  else if(which_terms == lb_terms::surv && n_shared)
+    handle_sub_part(n_shared, n_shared_surv);
+  else {
     arma::mat va_cov_mat(const_cast<double*>(va_vcov),
                          n_vars, n_vars, false),
               inv_mat   (wk_mem, n_vars, n_vars, false);

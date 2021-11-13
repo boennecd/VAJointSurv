@@ -406,7 +406,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.875   0.000   0.892
+#>   0.814   0.000   0.814
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -422,12 +422,12 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.101   0.000   0.100
+#>   0.092   0.000   0.093
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.127   0.000   0.034
+#>   0.124   0.003   0.035
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -447,7 +447,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  10.225   0.012   2.565
+#>   8.978   0.003   2.248
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -462,7 +462,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #>    user  system elapsed 
-#>  78.785   0.016  19.766
+#>  71.207   0.019  17.863
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -910,7 +910,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.122   0.000   0.032
+#>   0.128   0.000   0.032
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -930,7 +930,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   2.044   0.000   0.513
+#>   2.054   0.000   0.514
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -943,7 +943,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#> 101.064   0.016  25.328
+#> 101.515   0.015  25.441
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1175,7 +1175,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.081   0.000   0.022
+#>   0.081   0.000   0.023
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1197,7 +1197,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   1.523   0.000   0.382
+#>   1.508   0.008   0.380
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1594,11 +1594,11 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.822   0.000   0.222
+#>   2.712   0.000   0.702
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
-#> [1] -8945.0752
+#> [1] -7542.5637
 
 # check that the gradient is correct
 f <- function(x){
@@ -1608,13 +1608,13 @@ f <- function(x){
 
 all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)), 
           head(joint_ms_lb_gr(comp_obj, start_val), 29 + 2 * 20))
-#> [1] TRUE
+#> [1] "Mean relative difference: 7.058e-08"
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  16.075   0.004   4.023
+#>  17.152   0.000   4.292
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1627,11 +1627,11 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  79.143   0.004  19.789
+#>  78.330   0.004  19.587
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
-#> [1] -7264.4233
+#> [1] -7257.4159
 lbfgs_res$counts # may have hit maxit!
 #> [1] 2000 2000
 
@@ -1641,7 +1641,7 @@ fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
 # the parameters for the first marker
 fmt_ests$markers[[1]] 
 #> $fixef
-#> [1] -0.4927  1.0171
+#> [1] -0.4924  1.0171
 #> 
 #> $fixef_vary
 #> [1]  1.403 -1.190 -2.031
@@ -1654,10 +1654,10 @@ fixef_vary_marker[[1]] # true values
 # the parameters for the second marker
 fmt_ests$markers[[2]]
 #> $fixef
-#> [1] 0.244
+#> [1] 0.2441
 #> 
 #> $fixef_vary
-#> [1] 0.6132 0.6280
+#> [1] 0.6130 0.6281
 fixef_marker[[2]] # true values
 #> [1] 0.25
 fixef_vary_marker[[2]] # true values
@@ -1666,10 +1666,10 @@ fixef_vary_marker[[2]] # true values
 # the fixed effects for the survival outcome and the association parameters
 fmt_ests$survival[[1]]
 #> $fixef
-#> [1] -0.5066  0.2611
+#> [1] -0.5066  0.2612
 #> 
 #> $fixef_vary
-#> [1] 0.40363 0.07536 0.03282
+#> [1] 0.40358 0.07527 0.03279
 #> 
 #> $associations
 #> [1] -0.7313  0.7050
@@ -1683,10 +1683,10 @@ associations
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
 #>           [,1]      [,2]     [,3]      [,4]
-#> [1,]  0.316896  0.008877 -0.04163  0.012351
-#> [2,]  0.008877  0.167250 -0.05161 -0.004236
-#> [3,] -0.041632 -0.051614  0.30509  0.090917
-#> [4,]  0.012351 -0.004236  0.09092  0.139208
+#> [1,]  0.316746  0.008737 -0.04182  0.012385
+#> [2,]  0.008737  0.167255 -0.05185 -0.004203
+#> [3,] -0.041825 -0.051852  0.30519  0.090854
+#> [4,]  0.012385 -0.004203  0.09085  0.139242
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.02 -0.05  0.01
@@ -1697,8 +1697,8 @@ vcov_vary # the true values
 # the parameters for the error term covariance matrix
 fmt_ests$vcov$vcov_marker
 #>         [,1]    [,2]
-#> [1,] 0.37496 0.09841
-#> [2,] 0.09841 0.16336
+#> [1,] 0.37499 0.09842
+#> [2,] 0.09842 0.16335
 vcov_marker
 #>      [,1] [,2]
 #> [1,] 0.36 0.10
@@ -1707,7 +1707,7 @@ vcov_marker
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 #>         [,1]
-#> [1,] 0.03717
+#> [1,] 0.03716
 vcov_surv
 #>      [,1]
 #> [1,] 0.04
@@ -1789,17 +1789,17 @@ prof_conf <- joint_ms_profile(
   max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1)
 #> 
 #> Finding the upper limit of the approximate profile likelihood curve
-#> LogLike: -7258.1517 at        -0.481309
-#> LogLike: -7261.6076 at        -0.231309
-#> LogLike: -7259.3833 at        -0.371717. Lb, target, ub: -7259.3833, -7258.9427, -7258.1517
-#> LogLike: -7258.8933 at        -0.410710. Lb, target, ub: -7259.3833, -7258.9427, -7258.8933
+#> LogLike: -7258.1512 at        -0.481341
+#> LogLike: -7261.6071 at        -0.231341
+#> LogLike: -7259.3836 at        -0.371689. Lb, target, ub: -7259.3836, -7258.9427, -7258.1512
+#> LogLike: -7258.8939 at        -0.410696. Lb, target, ub: -7259.3836, -7258.9427, -7258.8939
 #> 
 #> Finding the lower limit of the approximate profile likelihood curve
-#> LogLike: -7258.0519 at        -0.981309
-#> LogLike: -7260.7863 at        -1.231309
-#> LogLike: -7259.2647 at        -1.108637. Lb, target, ub: -7259.2647, -7258.9427, -7258.0519
-#> LogLike: -7258.8561 at        -1.070165. Lb, target, ub: -7259.2647, -7258.9427, -7258.8561
-#> LogLike: -7257.0220 at        -0.731309
+#> LogLike: -7258.0511 at        -0.981341
+#> LogLike: -7260.7839 at        -1.231341
+#> LogLike: -7259.2659 at        -1.108781. Lb, target, ub: -7259.2659, -7258.9427, -7258.0511
+#> LogLike: -7258.8569 at        -1.070228. Lb, target, ub: -7259.2659, -7258.9427, -7258.8569
+#> LogLike: -7257.0220 at        -0.731341
 ```
 
 ``` r
@@ -2134,11 +2134,11 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   1.552   0.000   0.414
+#>  28.340   0.008   7.121
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
-#> [1] -9210.493
+#> [1] -7885.9098
 
 # check that the gradient is correct
 f <- function(x){
@@ -2155,11 +2155,11 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#> 199.668   0.031  49.928
+#> 118.981   0.024  29.754
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
-#> [1] -7600.1892
+#> [1] -7600.1897
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
@@ -2167,10 +2167,10 @@ fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
 # the parameters for the first marker
 fmt_ests$markers[[1]]
 #> $fixef
-#> [1] -0.5132  1.9734
+#> [1] -0.5136  1.9734
 #> 
 #> $fixef_vary
-#> [1]  1.397  1.553 -1.615
+#> [1]  1.400  1.562 -1.605
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  2.0
@@ -2183,7 +2183,7 @@ fmt_ests$markers[[2]]
 #> [1] 1.036
 #> 
 #> $fixef_vary
-#> [1]  0.48431 -0.02008
+#> [1]  0.48437 -0.02006
 fixef_marker[[2]] # true values
 #> [1] 1
 fixef_vary_marker[[2]] # true values
@@ -2193,13 +2193,13 @@ fixef_vary_marker[[2]] # true values
 # for the terminal event
 fmt_ests$survival[[1]]
 #> $fixef
-#> [1] -0.8607  0.2573
+#> [1] -0.8592  0.2570
 #> 
 #> $fixef_vary
-#> [1] -0.06069  1.14718 -1.25719  0.23109
+#> [1] -0.06391  1.14594 -1.26923  0.21335
 #> 
 #> $associations
-#> [1]  0.5683 -0.3626
+#> [1]  0.5682 -0.3618
 fixef_surv[[1]]
 #> [1] -1.00  0.25
 fixef_vary_surv[[1]]
@@ -2210,13 +2210,13 @@ associations[[1]]
 # same for the observation process
 fmt_ests$survival[[2]]
 #> $fixef
-#> [1] 0.247
+#> [1] 0.2475
 #> 
 #> $fixef_vary
-#> [1] -1.3442 -0.3396
+#> [1] -1.3472 -0.3466
 #> 
 #> $associations
-#> [1] -0.7369  0.2075
+#> [1] -0.7367  0.2075
 fixef_surv[[2]]
 #> [1] 0.2
 fixef_vary_surv[[2]]
@@ -2226,11 +2226,11 @@ associations[[2]]
 
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
-#>           [,1]      [,2]     [,3]     [,4]
-#> [1,]  0.289642 -0.149804  0.05285 0.001458
-#> [2,] -0.149804  1.478403 -0.12438 0.008186
-#> [3,]  0.052848 -0.124385  0.27872 0.091815
-#> [4,]  0.001458  0.008186  0.09181 0.116780
+#>            [,1]      [,2]     [,3]      [,4]
+#> [1,]  0.2933931 -0.147358  0.05182 0.0005979
+#> [2,] -0.1473583  1.479406 -0.12538 0.0071053
+#> [3,]  0.0518234 -0.125377  0.27873 0.0918405
+#> [4,]  0.0005979  0.007105  0.09184 0.1167060
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.08 -0.05  0.01
@@ -2251,8 +2251,8 @@ vcov_marker
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 #>           [,1]     [,2]
-#> [1,]  0.009441 -0.01255
-#> [2,] -0.012549  0.02798
+#> [1,]  0.007833 -0.01106
+#> [2,] -0.011062  0.02787
 vcov_surv
 #>        [,1]   [,2]
 #> [1,] 0.0400 0.0225
@@ -2294,14 +2294,14 @@ w_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression            median
 #>   <bch:expr>          <bch:tm>
-#> 1 w/ caching 1 thread   9.84ms
-#> 2 w/ caching 2 thread   5.38ms
-#> 3 w/ caching 3 thread   3.68ms
-#> 4 w/ caching 4 thread   3.37ms
+#> 1 w/ caching 1 thread  10.07ms
+#> 2 w/ caching 2 thread   5.35ms
+#> 3 w/ caching 3 thread   3.78ms
+#> 4 w/ caching 4 thread      3ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#> [1] 342ms
+#> [1] 298ms
 
 # w/o caching
 wo_caching <- bench::mark(
@@ -2317,14 +2317,14 @@ wo_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression             median
 #>   <bch:expr>           <bch:tm>
-#> 1 w/o caching 1 thread  21.27ms
-#> 2 w/o caching 2 thread  11.45ms
-#> 3 w/o caching 3 thread   7.82ms
-#> 4 w/o caching 4 thread   6.97ms
+#> 1 w/o caching 1 thread  20.81ms
+#> 2 w/o caching 2 thread  11.23ms
+#> 3 w/o caching 3 thread   7.98ms
+#> 4 w/o caching 4 thread   6.27ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#> [1] 328ms
+#> [1] 301ms
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
@@ -2656,11 +2656,11 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   1.728   0.000   0.469
+#>  25.150   0.008   6.337
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
-#> [1] -9627.3676
+#> [1] -7950.3587
 
 # check that the gradient is correct
 f <- function(x){
@@ -2677,11 +2677,11 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#> 309.201   0.044  77.317
+#> 182.967   0.032  45.754
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
-#> [1] -7596.3229
+#> [1] -7596.267
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
@@ -2689,10 +2689,10 @@ fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
 # the parameters for the first marker
 fmt_ests$markers[[1]]
 #> $fixef
-#> [1] -0.4304  2.0078
+#> [1] -0.4305  2.0078
 #> 
 #> $fixef_vary
-#> [1]  1.355  1.220 -1.801
+#> [1]  1.354  1.218 -1.802
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  2.0
@@ -2705,7 +2705,7 @@ fmt_ests$markers[[2]]
 #> [1] 0.99
 #> 
 #> $fixef_vary
-#> [1]  0.53113 -0.02201
+#> [1]  0.53134 -0.02203
 fixef_marker[[2]] # true values
 #> [1] 1
 fixef_vary_marker[[2]] # true values
@@ -2715,13 +2715,13 @@ fixef_vary_marker[[2]] # true values
 # for the terminal event
 fmt_ests$survival[[1]]
 #> $fixef
-#> [1] -1.0908  0.2988
+#> [1] -1.0825  0.2979
 #> 
 #> $fixef_vary
-#> [1]  0.76425  0.02201 -0.01300 -0.52999
+#> [1]  0.73677  0.06267 -0.13962 -0.42780
 #> 
 #> $associations
-#> [1] -0.4101  0.5480 -0.4304
+#> [1] -0.4080  0.5438 -0.4289
 fixef_surv[[1]]
 #> [1] -1.00  0.25
 fixef_vary_surv[[1]]
@@ -2735,10 +2735,10 @@ fmt_ests$survival[[2]]
 #> [1] 0.2207
 #> 
 #> $fixef_vary
-#> [1] -1.2675 -0.2883
+#> [1] -1.273 -0.288
 #> 
 #> $associations
-#> [1] -0.7095  0.1841 -0.7858
+#> [1] -0.7098  0.1848 -0.7879
 fixef_surv[[2]]
 #> [1] 0.2
 fixef_vary_surv[[2]]
@@ -2749,10 +2749,10 @@ associations[[2]]
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
 #>          [,1]    [,2]     [,3]     [,4]
-#> [1,]  0.34414  0.2414 -0.07474 -0.03183
-#> [2,]  0.24138  2.1632 -0.26088 -0.11255
-#> [3,] -0.07474 -0.2609  0.27216  0.10393
-#> [4,] -0.03183 -0.1125  0.10393  0.12936
+#> [1,]  0.34409  0.2390 -0.07326 -0.03133
+#> [2,]  0.23903  2.1588 -0.25940 -0.11215
+#> [3,] -0.07326 -0.2594  0.27219  0.10388
+#> [4,] -0.03133 -0.1122  0.10388  0.12939
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.08 -0.05  0.01
@@ -2763,8 +2763,8 @@ vcov_vary # the true values
 # the parameters for the error term covariance matrix
 fmt_ests$vcov$vcov_marker
 #>         [,1]    [,2]
-#> [1,] 0.33309 0.09296
-#> [2,] 0.09296 0.16214
+#> [1,] 0.33312 0.09298
+#> [2,] 0.09298 0.16214
 vcov_marker
 #>      [,1] [,2]
 #> [1,] 0.36 0.10
@@ -2773,8 +2773,8 @@ vcov_marker
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 #>          [,1]     [,2]
-#> [1,]  0.06095 -0.04167
-#> [2,] -0.04167  0.03820
+#> [1,]  0.05505 -0.04439
+#> [2,] -0.04439  0.03742
 vcov_surv
 #>        [,1]   [,2]
 #> [1,] 0.0400 0.0225

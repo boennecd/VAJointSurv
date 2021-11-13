@@ -132,18 +132,56 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 #' @importFrom psqn psqn
 #'
 #' @export
-joint_ms_start_val <- function(object, n_threads = object$max_threads,
-                               rel_eps = 1e-8, c1 = 1e-4, c2 = .9,
-                               max_it = 1000L, quad_rule = object$quad_rule,
-                               cache_expansions = object$cache_expansions){
+joint_ms_start_val <- function(
+  object, par = object$start_val,
+  rel_eps = 1e-8,  max_it = 1000L, n_threads = object$max_threads,
+  c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0, cg_tol = 0.5,
+  strong_wolfe = TRUE, max_cg = 0, pre_method = 1,
+  quad_rule = object$quad_rule, mask = integer(),
+  cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
   check_n_threads(object, n_threads)
+  stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
-  opt_priv(val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
-           max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-           quad_rule = quad_rule, cache_expansions = cache_expansions)
+  opt_va <- opt_priv(
+    val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
+    max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+    quad_rule = quad_rule, cache_expansions = cache_expansions)
+
+  if(anyNA(opt_va))
+    stop("Failed to find starting values for the variational parameter")
+
+  if(length(object$indices$markers) == 0 ||
+      length(object$indices$survival) == 0){
+    attr(opt_va, "value") <-joint_ms_lb(
+      object = object, par = opt_va, n_threads = n_threads,
+      quad_rule = quad_rule, cache_expansions = cache_expansions)
+
+    return(opt_va)
+  }
+
+  # improve the fit for the marker part of the model
+  out <- joint_ms_opt_lb(val = opt_va, ptr = object$ptr, rel_eps = rel_eps,
+                         max_it = max_it, n_threads = n_threads, c1 = c1,
+                         c2 = c2, use_bfgs = use_bfgs, trace = trace,
+                         cg_tol = cg_tol, strong_wolfe = strong_wolfe,
+                         max_cg = max_cg, pre_method = pre_method,
+                         quad_rule = quad_rule, mask = mask,
+                         cache_expansions = cache_expansions,
+                         only_markers = TRUE)
+
+  if(!out$convergence)
+    warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
+                    out$info))
+
+  out <- out$par
+  attr(out, "value") <-joint_ms_lb(
+    object = object, par = out, n_threads = n_threads, quad_rule = quad_rule,
+    cache_expansions = cache_expansions)
+
+  out
 }
 
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound
@@ -205,7 +243,8 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          strong_wolfe = strong_wolfe, max_cg = max_cg,
                          pre_method = pre_method, quad_rule = quad_rule,
                          mask = mask,
-                         cache_expansions = cache_expansions)
+                         cache_expansions = cache_expansions,
+                         only_markers = FALSE)
   if(!fit$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                     fit$info))

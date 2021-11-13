@@ -1632,7 +1632,7 @@ vcov_surv
 Some basis expansions like `bs_term` and `ns_term` take relatively long time to 
 evaluate
 in the approximation of the approximate expected cumulative hazard. 
-Thus, it may be advantageous to save the expansions if the same quadrature rule  
+Thus, it may be advantageous to save the expansions if the same quadrature rule
 is used. This is done by setting the `cache_expansions` argument to true. 
 The pros of doing this is that the expensive basis expansions are only evaluated 
 once which may decrees the computation time. The cons are 

@@ -63,6 +63,45 @@ context("testing kl-terms") {
      dput(Omega_deriv <- deriv[
      seq_along(Omega_chol) + length(Xi_chol) + length(Psi_chol)])
      dput(zeta_deriv <- tail(deriv, length(zeta)))
+
+# only with the markers
+     f <- function(Omega, Xi, Psi, zeta)
+     (-determinant(Omega[1:n_shared, 1:n_shared])$modulus + # determinant(Xi)$modulus +
+     determinant(Psi)$modulus +
+     drop(zeta[1:n_shared] %*% solve(Psi, zeta[1:n_shared])) +
+# drop(zeta[-(1:n_shared)] %*% solve(Xi, zeta[-(1:n_shared)])) +
+     sum(diag(solve(Psi, Omega[1:n_shared, 1:n_shared]))) +
+# sum(diag(solve(Xi, Omega[-(1:n_shared), -(1:n_shared)])))
+     -n_shared)/2
+
+     dput(f(Omega, Xi, Psi, zeta))
+     deriv <- numDeriv::grad(g, c(Xi_chol, Psi_chol, Omega_chol, zeta))
+
+     dput(Xi_deriv <- deriv[seq_along(Xi_chol)])
+     dput(Psi_deriv <- deriv[seq_along(Psi_chol) + length(Xi_chol)])
+     dput(Omega_deriv <- deriv[
+     seq_along(Omega_chol) + length(Xi_chol) + length(Psi_chol)])
+     dput(zeta_deriv <- tail(deriv, length(zeta)))
+
+# only survival
+     f <- function(Omega, Xi, Psi, zeta)
+     (-determinant(Omega[-(1:n_shared), -(1:n_shared)])$modulus +
+     determinant(Xi)$modulus +
+# determinant(Psi)$modulus +
+# drop(zeta[1:n_shared] %*% solve(Psi, zeta[1:n_shared])) +
+     drop(zeta[-(1:n_shared)] %*% solve(Xi, zeta[-(1:n_shared)])) +
+# sum(diag(solve(Psi, Omega[1:n_shared, 1:n_shared]))) +
+     sum(diag(solve(Xi, Omega[-(1:n_shared), -(1:n_shared)]))) -
+     n_shared_surv)/2
+
+     dput(f(Omega, Xi, Psi, zeta))
+     deriv <- numDeriv::grad(g, c(Xi_chol, Psi_chol, Omega_chol, zeta))
+
+     dput(Xi_deriv <- deriv[seq_along(Xi_chol)])
+     dput(Psi_deriv <- deriv[seq_along(Psi_chol) + length(Xi_chol)])
+     dput(Omega_deriv <- deriv[
+     seq_along(Omega_chol) + length(Xi_chol) + length(Psi_chol)])
+     dput(zeta_deriv <- tail(deriv, length(zeta)))
      */
     constexpr vajoint_uint n_shared = 2,
                   n_shared_surv = 3,
@@ -126,41 +165,83 @@ context("testing kl-terms") {
     std::fill(gr.get(), gr.get() + n_params_w_va, 0.);
     std::fill(gr_res.get(), gr_res.get() + params.n_params_w_va<true>(), 0.);
 
-    double const val = term.grad(gr.get(), par.get(), mem.get());
+    double val = term.grad(gr.get(), par.get(), mem.get());
     expect_true(pass_rel_err(val, true_kl_term));
 
-    {
-      double *g_out = gr_res.get() + params.vcov_surv<true>();
-      double const *g_in = gr.get() + params.vcov_surv();
-      log_chol::dpd_mat::get(Xi_chol, n_shared_surv, g_out, g_in);
+    auto test_grad = [&](double const *Xi_deriv, double const *Psi_deriv,
+                         double const *Omega_deriv, double const *zeta_deriv){
+      {
+        double *g_out = gr_res.get() + params.vcov_surv<true>();
+        double const *g_in = gr.get() + params.vcov_surv();
+        log_chol::dpd_mat::get(Xi_chol, n_shared_surv, g_out, g_in);
 
-      for(vajoint_uint i = 0; i < dim_tri(n_shared_surv); ++i)
-        expect_true(pass_rel_err(g_out[i], Xi_deriv[i]));
-    }
+        for(vajoint_uint i = 0; i < dim_tri(n_shared_surv); ++i)
+          expect_true(pass_rel_err(g_out[i], Xi_deriv[i]));
+      }
 
-    {
-      double *g_out = gr_res.get() + params.vcov_vary<true>();
-      double const *g_in = gr.get() + params.vcov_vary();
-      log_chol::dpd_mat::get(Psi_chol, n_shared, g_out, g_in);
+      {
+        double *g_out = gr_res.get() + params.vcov_vary<true>();
+        double const *g_in = gr.get() + params.vcov_vary();
+        log_chol::dpd_mat::get(Psi_chol, n_shared, g_out, g_in);
 
-      for(vajoint_uint i = 0; i < dim_tri(n_shared); ++i)
-        expect_true(pass_rel_err(g_out[i], Psi_deriv[i]));
-    }
+        for(vajoint_uint i = 0; i < dim_tri(n_shared); ++i)
+          expect_true(pass_rel_err(g_out[i], Psi_deriv[i]));
+      }
 
-    {
-      double *g_out = gr_res.get() + params.va_vcov<true>();
-      double const *g_in = gr.get() + params.va_vcov();
-      log_chol::dpd_mat::get(Omega_chol, n_vars, g_out, g_in);
+      {
+        double *g_out = gr_res.get() + params.va_vcov<true>();
+        double const *g_in = gr.get() + params.va_vcov();
+        log_chol::dpd_mat::get(Omega_chol, n_vars, g_out, g_in);
 
-      for(vajoint_uint i = 0; i < dim_tri(n_vars); ++i)
-        expect_true(pass_rel_err(g_out[i], Omega_deriv[i]));
-    }
+        for(vajoint_uint i = 0; i < dim_tri(n_vars); ++i)
+          expect_true(pass_rel_err(g_out[i], Omega_deriv[i]));
+      }
 
-    {
-      double const *g_out = gr.get() + params.va_mean();
-      for(vajoint_uint i = 0; i < n_vars; ++i)
-        expect_true(pass_rel_err(g_out[i], zeta_deriv[i]));
-    }
+      {
+        double const *g_out = gr.get() + params.va_mean();
+        for(vajoint_uint i = 0; i < n_vars; ++i)
+          expect_true(pass_rel_err(g_out[i], zeta_deriv[i]));
+      }
+    };
+
+    test_grad(Xi_deriv, Psi_deriv, Omega_deriv, zeta_deriv);
+
+    // without the survival part
+    constexpr double true_kl_term_no_surv{5.43857866944945},
+                     Xi_deriv_no_s[] = {0., 0., 0., 0., 0., 0.},
+                     Psi_deriv_no_s[] = {-0.427035663832965, -0.0740751251107456, -12.8125448527058},
+                     Omega_deriv_no_s[] = {-0.619605949523746, 1.20999189732096, 10.1852434869334, 0,
+                                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                     zeta_deriv_no_s[] = {0.963963112174406, -1.62815076286685, 0, 0, 0};;
+
+    term.setup(par.get(), mem.get(), lb_terms::markers);
+    expect_true(
+      pass_rel_err(term.eval(par.get(), mem.get()), true_kl_term_no_surv));
+
+    std::fill(gr.get(), gr.get() + n_params_w_va, 0.);
+    std::fill(gr_res.get(), gr_res.get() + params.n_params_w_va<true>(), 0.);
+
+    val = term.grad(gr.get(), par.get(), mem.get());
+    expect_true(pass_rel_err(val, true_kl_term_no_surv));
+
+    test_grad(Xi_deriv_no_s, Psi_deriv_no_s, Omega_deriv_no_s, zeta_deriv_no_s);
+
+    // without markers
+    constexpr double true_kl_term_no_marker{7.47606508560383},
+                     Xi_deriv_no_m[] = {-5.803114499632, -3.32225269517634, -5.84896643129221, -3.36986740815176,
+                                        -4.70975985768593, -9.17044789529971},
+                     Psi_deriv_no_m[] = {0, 0, 0},
+                     Omega_deriv_no_m[] = {0, 0, 0, -0.619384955968862, 0.201941440223768, 3.26394555054402,
+                                           -0.808825953840981, -0.314820162313017, 1.31531055565136, 0.15054243930918,
+                                           -0.39063512977232, -3.50835643881455, 0.858372808603325, -0.221739103733836,
+                                           2.19167623243605},
+                     zeta_deriv_no_m[] = {0, 0, -1.3800903909731, -0.682457259664746, 0.46533056191001};
+
+
+    term.setup(par.get(), mem.get(), lb_terms::surv);
+    expect_true(
+      pass_rel_err(term.eval(par.get(), mem.get()), true_kl_term_no_marker));
+
 
     // clean up
     wmem::clear_all();

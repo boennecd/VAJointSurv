@@ -153,6 +153,8 @@ class lower_bound_caller {
   bool setup_failed;
 
 public:
+  static bool optimze_survival;
+
   lower_bound_caller(std::vector<lower_bound_term const*> &);
 
   void setup(double const *val, bool const comp_grad);
@@ -160,6 +162,8 @@ public:
   double eval_grad(lower_bound_term const &obj, double const * val,
                    double *gr);
 };
+
+bool lower_bound_caller::optimze_survival = true;
 
 class lower_bound_term {
   subset_params const &par_idx;
@@ -236,9 +240,10 @@ public:
       double res = kl_dat.eval(par_vec, inter_mem);
       for(vajoint_uint idx : marker_indices)
         res += m_dat(par_vec, inter_mem, idx);
-      for(auto &idx : surv_indices)
-        res += s_dat(par_vec, inter_mem, idx[0], idx[1],
-                     inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
+      if(lower_bound_caller::optimze_survival)
+        for(auto &idx : surv_indices)
+          res += s_dat(par_vec, inter_mem, idx[0], idx[1],
+                       inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
 
       return res;
     }
@@ -294,9 +299,10 @@ public:
     Number res{0};
     for(vajoint_uint idx : marker_indices)
       res += m_dat(par_vec_num, inter_mem_num, idx);
-    for(auto &idx : surv_indices)
-      res += s_dat(par_vec_num, inter_mem_num, idx[0], idx[1],
-                   inter_mem_dub, *cur_quad_rule);
+    if(lower_bound_caller::optimze_survival)
+      for(auto &idx : surv_indices)
+        res += s_dat(par_vec_num, inter_mem_num, idx[0], idx[1],
+                     inter_mem_dub, *cur_quad_rule);
 
     res += kl_dat.grad(par_vec_gr, par_vec_dub, inter_mem_dub);
 
@@ -385,7 +391,8 @@ void lower_bound_caller::setup(double const *val, bool const comp_grad){
 
     // setup the market data, kl term, and the survival data
     m_dat->setup(par_vec.data(), wmem);
-    kl_dat->setup(par_vec.data(), wmem);
+    kl_dat->setup(par_vec.data(), wmem,
+                  optimze_survival ? lb_terms::all : lb_terms::markers);
   } catch(...){
     setup_failed = true;
   }
@@ -844,8 +851,13 @@ List joint_ms_opt_lb
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
    unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask,
-   bool const cache_expansions){
+   bool const cache_expansions, bool const only_markers){
   profiler pp("joint_ms_opt_lb");
+
+  lower_bound_caller::optimze_survival = !only_markers;
+  struct reset_opt_surv {
+    ~reset_opt_surv() { lower_bound_caller::optimze_survival = true; }
+  } reset_opt_surv_obj;
 
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
