@@ -357,12 +357,12 @@ joint_ms_profile <- function(
       } else
         message() # line feed
     }
-    list(x = x, value = -fit$value, par = head(fit$par, n_global),
+    list(x = x, value = -fit$value, par = fit$par,
          z_val = sign(dir) * sqrt((max_lb + fit$value) * 2))
   }
 
   # fits the model
-  fit_model <- function(x, dir, lb = NULL, ub = NULL){
+  fit_model <- function(x, dir, par, lb = NULL, ub = NULL){
     par[which_prof] <- x
     fit <- joint_ms_opt(
       object = object, par = par, rel_eps = rel_eps, max_it = max_it,
@@ -390,9 +390,23 @@ joint_ms_profile <- function(
     prev <- max_lb
     did_fail <- FALSE
 
+    closest_par <- numeric()
+    closests_diff <- Inf
+
+    update_closest_par <- function(new_fit){
+      new_diff <- abs(new_fit$value - crit_value)
+      if(new_diff < closests_diff){
+        closest_par <<- new_fit$par
+        closests_diff <<- new_diff
+      }
+    }
+    tmp <- opt_out
+    tmp$value <- -tmp$value
+    update_closest_par(tmp)
+
     while(prev > crit_value && (step <- step + 1L) <= max_step){
       out[[step]] <- fit_model(par[which_prof] + dir *  2^(step - 1) * delta,
-                               dir = dir)
+                               dir = dir, par = closest_par)
       if(out[[step]]$value > prev){
         warning("The lower bound did not decrease. Either the input is not an optimum or the precision needs to be increased")
         did_fail <- TRUE
@@ -400,6 +414,7 @@ joint_ms_profile <- function(
       }
 
       prev <- out[[step]]$value
+      update_closest_par(out[[step]])
     }
 
     .report_failed <- function()
@@ -429,12 +444,15 @@ joint_ms_profile <- function(
       else
         next_val <- 8 / 9 * next_val + lb$x / 9
 
-      out[[step]] <- fit_model(next_val, dir = dir, lb = lb, ub = ub)
+      out[[step]] <- fit_model(next_val, dir = dir, par = closest_par, lb = lb,
+                               ub = ub)
 
       if(out[[step]]$value > ub$value || out[[step]]$value < lb$value){
         warning("Log likelihood does not seem monotonic. Likely the precision needs to be increased")
         break
       }
+
+      update_closest_par(out[[step]])
 
       if(out[[step]]$value < crit_value)
         lb <- out[[step]]
@@ -448,7 +466,17 @@ joint_ms_profile <- function(
   }
 
   res_up   <- get_points( 1)
+  # get rid of the extra parameters to save space
+  res_up <- lapply(res_up, function(x){
+    x$par <- head(x$par, n_global)
+    x
+  })
   res_down <- get_points(-1)
+  # get rid of the extra parameters to save space
+  res_down <- lapply(res_down, function(x){
+    x$par <- head(x$par, n_global)
+    x
+  })
   out <- c(
     res_down, list(format_fit(par[which_prof], opt_out, dir = 0)), res_up)
 

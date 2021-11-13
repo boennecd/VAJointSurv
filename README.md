@@ -1594,7 +1594,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.712   0.000   0.702
+#>   2.965   0.004   0.774
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1614,7 +1614,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  17.152   0.000   4.292
+#>  17.063   0.008   4.272
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1627,7 +1627,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  78.330   0.004  19.587
+#>  81.375   0.011  20.357
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1790,22 +1790,22 @@ prof_conf <- joint_ms_profile(
 #> 
 #> Finding the upper limit of the approximate profile likelihood curve
 #> LogLike: -7258.1512 at        -0.481341
-#> LogLike: -7261.6071 at        -0.231341
-#> LogLike: -7259.3836 at        -0.371689. Lb, target, ub: -7259.3836, -7258.9427, -7258.1512
-#> LogLike: -7258.8939 at        -0.410696. Lb, target, ub: -7259.3836, -7258.9427, -7258.8939
+#> LogLike: -7261.6067 at        -0.231341
+#> LogLike: -7259.3845 at        -0.371687. Lb, target, ub: -7259.3845, -7258.9427, -7258.1512
+#> LogLike: -7258.8944 at        -0.410731. Lb, target, ub: -7259.3845, -7258.9427, -7258.8944
 #> 
 #> Finding the lower limit of the approximate profile likelihood curve
 #> LogLike: -7258.0511 at        -0.981341
-#> LogLike: -7260.7839 at        -1.231341
-#> LogLike: -7259.2659 at        -1.108781. Lb, target, ub: -7259.2659, -7258.9427, -7258.0511
-#> LogLike: -7258.8569 at        -1.070228. Lb, target, ub: -7259.2659, -7258.9427, -7258.8569
+#> LogLike: -7260.7881 at        -1.231341
+#> LogLike: -7259.3136 at        -1.108738. Lb, target, ub: -7259.3136, -7258.9427, -7258.0511
+#> LogLike: -7258.8542 at        -1.067635. Lb, target, ub: -7259.3136, -7258.9427, -7258.8542
 #> LogLike: -7257.0220 at        -0.731341
 ```
 
 ``` r
 prof_conf$confs # the approximate confidence interval
 #>  2.50 pct. 97.50 pct. 
-#>    -1.0786    -0.4066
+#>    -1.0759    -0.4067
 
 # plot the approximate log profile likelihood and highlight the critical value
 par(mar = c(5, 5, 1, 1))
@@ -2264,10 +2264,10 @@ vcov_surv
 Some basis expansions like `bs_term` and `ns_term` take relatively long
 time to evaluate in the approximation of the approximate expected
 cumulative hazard. Thus, it may be advantageous to save the expansions
-if the same quadrature rule  
-is used. This is done by setting the `cache_expansions` argument to
-true. The pros of doing this is that the expensive basis expansions are
-only evaluated once which may decrees the computation time. The cons are
+if the same quadrature rule is used. This is done by setting the
+`cache_expansions` argument to true. The pros of doing this is that the
+expensive basis expansions are only evaluated once which may decrees the
+computation time. The cons are
 
   - We no longer use the CPU cache efficiently with present hardware.
     Thus, you may not see great advantages of using many threads and the
