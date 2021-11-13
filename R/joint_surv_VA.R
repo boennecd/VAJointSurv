@@ -8,16 +8,25 @@ default_quad_rule <- function(){
   })
 }
 
-# check a quadrature rule the integral from zero to one
-check_quad_rule <- function(quad_rule)
-  with(quad_rule, {
-    stopifnot(is.list(quad_rule),
-              is.numeric(node), all(is.finite(node)),
-              all(node >= 0), all(node <= 1),
-              is.numeric(weight), all(is.finite(weight)),
-              length(node) == length(weight))
-  })
+set_n_check_quad_rule <- function(quad_rule){
+  if(is.null(quad_rule))
+    quad_rule <- default_quad_rule()
 
+  with(quad_rule,
+       stopifnot(is.list(quad_rule),
+                 is.numeric(node), all(is.finite(node)),
+                 all(node >= 0), all(node <= 1),
+                 is.numeric(weight), all(is.finite(weight)),
+                 length(node) == length(weight)))
+
+  quad_rule
+}
+
+check_n_threads <- function(object, n_threads){
+  stopifnot(length(n_threads) == 1, n_threads > 0)
+  if(object$max_threads < n_threads)
+    warning("Maximum number of threads is less then n_threads")
+}
 
 #' Creates a joint_ms Object to Estimate a Joint Survival and Marker Model
 #'
@@ -54,9 +63,7 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   else
     stopifnot(all(sapply(survival_terms, inherits, "surv_term")))
 
-  if(is.null(quad_rule))
-    quad_rule <- default_quad_rule()
-  check_quad_rule(quad_rule)
+  quad_rule <- set_n_check_quad_rule(quad_rule)
 
   # handle the default for ders
   survival_terms <- lapply(survival_terms, function(x){
@@ -131,9 +138,8 @@ joint_ms_start_val <- function(object, n_threads = object$max_threads,
                                cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
-  if(is.null(quad_rule))
-    quad_rule <- default_quad_rule()
-  check_quad_rule(quad_rule)
+  quad_rule <- set_n_check_quad_rule(quad_rule)
+  check_n_threads(object, n_threads)
 
   opt_priv(val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
            max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
@@ -153,9 +159,8 @@ joint_ms_lb <- function(object, par, n_threads = object$max_threads,
                         cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
-  if(is.null(quad_rule))
-    quad_rule <- default_quad_rule()
-  check_quad_rule(quad_rule)
+  quad_rule <- set_n_check_quad_rule(quad_rule)
+  check_n_threads(object, n_threads)
 
   joint_ms_eval_lb(val = par, ptr = object$ptr, n_threads = n_threads,
                    quad_rule = quad_rule, cache_expansions = cache_expansions)
@@ -168,9 +173,8 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
                            cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
 
-  if(is.null(quad_rule))
-    quad_rule <- default_quad_rule()
-  check_quad_rule(quad_rule)
+  quad_rule <- set_n_check_quad_rule(quad_rule)
+  check_n_threads(object, n_threads)
 
   joint_ms_eval_lb_gr(val = par, ptr = object$ptr, n_threads = n_threads,
                       quad_rule = quad_rule, cache_expansions = cache_expansions)
@@ -191,9 +195,8 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          mask = integer(),
                          cache_expansions = object$cache_expansions){
   stopifnot(inherits(object, "joint_ms"))
-  if(is.null(quad_rule))
-    quad_rule <- default_quad_rule()
-  check_quad_rule(quad_rule)
+  quad_rule <- set_n_check_quad_rule(quad_rule)
+  check_n_threads(object, n_threads)
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
   fit <- joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,

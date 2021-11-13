@@ -458,7 +458,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <li>Two markers in the <a href="#two-markers">Two Markers</a> section.</li>
 <li>A recurrent event in the <a href="#recurrent-event">Recurrent Event</a> section. It is also shown how to change the quadrature rule that is used to approximate the approximate expected cumulative hazard.</li>
 <li>An example with two markers and a recurrent event is given in the <a href="#two-markers-and-a-recurrent-event">Two Markers and a Recurrent Event</a> section. The section also includes an example of how to construct approximate profile likelihood based confidence intervals.</li>
-<li>An example with two markers, the observation process, and a terminal event is given in the <a href="#two-markers-the-observation-time-process-and-a-terminal-event">Two Markers, the Observation Time Process, and a Terminal Event</a> section. The observation time process and the markers are not marginally independent in the true model. Thus, they need to be modeled together or the dependence accounted for in some other way.</li>
+<li>An example with two markers, the observation process, and a terminal event is given in the <a href="#two-markers-the-observation-time-process-and-a-terminal-event">Two Markers, the Observation Time Process, and a Terminal Event</a> section. The observation time process and the markers are not marginally independent in the true model. Thus, they need to be modeled together or the dependence accounted for in some other way. Examples and comments regarding caching of the expansions are also provided.</li>
 <li>A similar example is provided in the <a href="#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies">Two Markers, the Observation Time Process, a Terminal Event and Mixed Dependencies</a> section but where a mixture of the cumulative, the present value, and the derivative is used in the sub-survival models.</li>
 </ul>
 <div id="univariate-marker-example" class="section level3">
@@ -549,7 +549,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #&gt;    user  system elapsed 
-#&gt;   0.827   0.000   0.827
+#&gt;   0.875   0.000   0.892
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -565,12 +565,12 @@ system.time(comp_obj &lt;- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #&gt;    user  system elapsed 
-#&gt;   0.093   0.000   0.093
+#&gt;   0.101   0.000   0.100
 
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.123   0.000   0.034
+#&gt;   0.127   0.000   0.034
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -590,7 +590,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   9.226   0.004   2.308
+#&gt;  10.225   0.012   2.565
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -605,7 +605,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #&gt;    user  system elapsed 
-#&gt;  70.507   0.012  17.687
+#&gt;  78.785   0.016  19.766
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -1019,7 +1019,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   2.152   0.000   0.539
+#&gt;   2.044   0.000   0.513
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1032,7 +1032,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #&gt;    user  system elapsed 
-#&gt; 101.996   0.063  25.591
+#&gt; 101.064   0.016  25.328
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1245,13 +1245,13 @@ surv_obj &lt;- surv_term(
   time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
 
 comp_obj &lt;- joint_ms_ptr(markers = list(),
-                         survival_terms = surv_obj, max_threads = 1L)
+                         survival_terms = surv_obj, max_threads = 4L)
 rm(surv_obj)
 
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.081   0.000   0.081
+#&gt;   0.081   0.000   0.022
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1273,7 +1273,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   1.427   0.000   1.427
+#&gt;   1.523   0.000   0.382
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1284,15 +1284,15 @@ fmt_est &lt;- joint_ms_format(comp_obj, opt_out$par)
 
 rbind(estimate = fmt_est$survival[[1]]$fixef, truth = fixef_surv)
 #&gt;             [,1]   [,2]
-#&gt; estimate -0.5074 0.2584
+#&gt; estimate -0.5075 0.2583
 #&gt; truth    -0.5000 0.2500
 rbind(estimate = fmt_est$survival[[1]]$fixef_vary, truth = fixef_vary_surv)
-#&gt;            [,1]  [,2]    [,3]    [,4]
-#&gt; estimate 0.3982 0.257 -0.3216 0.08045
-#&gt; truth    0.5000 0.100 -0.2000 0.11000
+#&gt;            [,1]   [,2]    [,3]    [,4]
+#&gt; estimate 0.3981 0.2571 -0.3212 0.07987
+#&gt; truth    0.5000 0.1000 -0.2000 0.11000
 c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(vcov_surv))
 #&gt; estimate    truth 
-#&gt;   0.2282   0.2000</code></pre>
+#&gt;   0.2285   0.2000</code></pre>
 <div id="note-on-quadrature-rule" class="section level4">
 <h4>Note on Quadrature Rule</h4>
 <p>A quadrature rule is used to integrate the expected cumulative hazard. The user can pass any quadrature rule with <span class="math inline">\(n\)</span> nodes and weights each denoted by <span class="math inline">\((n_i, w_i)\)</span> such that</p>
@@ -1308,15 +1308,15 @@ for(n in 2^(3:12)){
                      quad_rule = mid_rule(n))
   cat(sprintf(&quot;# nodes, lower bound  %5d %12.4f\n&quot;, n, res))
 }
-#&gt; # nodes, lower bound      8    1859.8027
-#&gt; # nodes, lower bound     16    1861.5038
-#&gt; # nodes, lower bound     32    1862.3788
-#&gt; # nodes, lower bound     64    1862.8257
-#&gt; # nodes, lower bound    128    1863.0516
-#&gt; # nodes, lower bound    256    1863.1652
-#&gt; # nodes, lower bound    512    1863.2221
-#&gt; # nodes, lower bound   1024    1863.2506
-#&gt; # nodes, lower bound   2048    1863.2649
+#&gt; # nodes, lower bound      8    1859.7688
+#&gt; # nodes, lower bound     16    1861.4885
+#&gt; # nodes, lower bound     32    1862.3715
+#&gt; # nodes, lower bound     64    1862.8221
+#&gt; # nodes, lower bound    128    1863.0499
+#&gt; # nodes, lower bound    256    1863.1643
+#&gt; # nodes, lower bound    512    1863.2217
+#&gt; # nodes, lower bound   1024    1863.2504
+#&gt; # nodes, lower bound   2048    1863.2648
 #&gt; # nodes, lower bound   4096    1863.2720
 
 # the maximum lower bound value we got with Gauss–Legendre quadrature
@@ -1339,17 +1339,17 @@ for(n in 2^(2:8)){
                      quad_rule = rules[[n]])
   cat(sprintf(&quot;# nodes, lower bound  %5d %12.8f\n&quot;, n, res))
 }
-#&gt; # nodes, lower bound      4 1863.11242721
-#&gt; # nodes, lower bound      8 1863.26658153
-#&gt; # nodes, lower bound     16 1863.27837759
-#&gt; # nodes, lower bound     32 1863.27909462
-#&gt; # nodes, lower bound     64 1863.27914177
-#&gt; # nodes, lower bound    128 1863.27914477
-#&gt; # nodes, lower bound    256 1863.27914495
+#&gt; # nodes, lower bound      4 1863.11282879
+#&gt; # nodes, lower bound      8 1863.26663158
+#&gt; # nodes, lower bound     16 1863.27841006
+#&gt; # nodes, lower bound     32 1863.27912599
+#&gt; # nodes, lower bound     64 1863.27917307
+#&gt; # nodes, lower bound    128 1863.27917606
+#&gt; # nodes, lower bound    256 1863.27917625
 
 # the result we got
 print(-opt_out$value, digits = 14)
-#&gt; [1] -1863.279296975
+#&gt; [1] -1863.2793280361
 length(comp_obj$quad_rule$node) # the number of nodes we used
 #&gt; [1] 25</code></pre>
 <p>Evaluating the approximate expected cumulative hazard is by far the most computationally expensive part of the likelihood. Therefore, it may be nice to use fewer nodes e.g. when finding starting values.</p>
@@ -1616,7 +1616,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.824   0.000   0.225
+#&gt;   0.822   0.000   0.222
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1636,7 +1636,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;  15.758   0.000   3.941
+#&gt;  16.075   0.004   4.023
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1649,7 +1649,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #&gt;    user  system elapsed 
-#&gt;  79.351   0.008  19.843
+#&gt;  79.143   0.004  19.789
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -2117,7 +2117,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   1.436   0.000   0.388
+#&gt;   1.552   0.000   0.414
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -2138,7 +2138,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt; 189.690   0.056  47.441
+#&gt; 199.668   0.031  49.928
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2240,6 +2240,62 @@ vcov_surv
 #&gt;        [,1]   [,2]
 #&gt; [1,] 0.0400 0.0225
 #&gt; [2,] 0.0225 0.0625</code></pre>
+<div id="caching-expansions" class="section level4">
+<h4>Caching Expansions</h4>
+<p>Some basis expansions like <code>bs_term</code> and <code>ns_term</code> take relatively long time to evaluate in the approximation of the approximate expected cumulative hazard. Thus, it may be advantageous to save the expansions if the same quadrature rule<br />
+is used. This is done by setting the <code>cache_expansions</code> argument to true. The pros of doing this is that the expensive basis expansions are only evaluated once which may decrees the computation time. The cons are</p>
+<ul>
+<li>We no longer use the CPU cache efficiently with present hardware. Thus, you may not see great advantages of using many threads and the performance<br />
+may even be worse. This is more likely to be an issue with larger data set.</li>
+<li>It requires a lot more memory which may be an issue larger problems.</li>
+</ul>
+<p>We illustrate this by showing the computation time where we change the number of threads we use.</p>
+<pre class="r"><code># with caching
+w_caching &lt;- bench::mark(
+  `w/ caching 1 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 1, cache_expansions = TRUE),
+  `w/ caching 2 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 2, cache_expansions = TRUE),
+  `w/ caching 3 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 3, cache_expansions = TRUE),
+  `w/ caching 4 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 4, cache_expansions = TRUE))
+w_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
+#&gt; # A tibble: 4 × 2
+#&gt;   expression            median
+#&gt;   &lt;bch:expr&gt;          &lt;bch:tm&gt;
+#&gt; 1 w/ caching 1 thread   9.84ms
+#&gt; 2 w/ caching 2 thread   5.38ms
+#&gt; 3 w/ caching 3 thread   3.68ms
+#&gt; 4 w/ caching 4 thread   3.37ms
+
+# difference between one and four threads
+with(w_caching, median[4] / median[1]) 
+#&gt; [1] 342ms
+
+# w/o caching
+wo_caching &lt;- bench::mark(
+  `w/o caching 1 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 1, cache_expansions = FALSE),
+  `w/o caching 2 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 2, cache_expansions = FALSE),
+  `w/o caching 3 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 3, cache_expansions = FALSE),
+  `w/o caching 4 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 4, cache_expansions = FALSE))
+wo_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
+#&gt; # A tibble: 4 × 2
+#&gt;   expression             median
+#&gt;   &lt;bch:expr&gt;           &lt;bch:tm&gt;
+#&gt; 1 w/o caching 1 thread  21.27ms
+#&gt; 2 w/o caching 2 thread  11.45ms
+#&gt; 3 w/o caching 3 thread   7.82ms
+#&gt; 4 w/o caching 4 thread   6.97ms
+
+# difference between one and four threads
+with(wo_caching, median[4] / median[1]) 
+#&gt; [1] 328ms</code></pre>
+</div>
 </div>
 <div id="two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies" class="section level3">
 <h3>Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies</h3>
@@ -2548,7 +2604,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   1.694   0.000   0.458
+#&gt;   1.728   0.000   0.469
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -2569,7 +2625,7 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt; 305.941   0.056  76.505
+#&gt; 309.201   0.044  77.317
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value

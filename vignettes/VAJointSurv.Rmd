@@ -169,7 +169,7 @@ section. The examples includes:
  - Two markers in the [Two Markers](#two-markers) section.
  - A recurrent event in the [Recurrent Event](#recurrent-event) section. It is
    also shown how to change the quadrature rule that is used to approximate the 
-   approximate expected cumulative hazard. 
+   approximate expected cumulative hazard.
  - An example with two markers and a recurrent event is given in the 
    [Two Markers and a Recurrent Event](#two-markers-and-a-recurrent-event)
    section. The section also includes an example of how to construct approximate
@@ -179,7 +179,8 @@ section. The examples includes:
    [Two Markers, the Observation Time Process, and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
    section. The observation time process and the markers are not marginally 
    independent in the true model. Thus, they need to be modeled together or the
-   dependence accounted for in some other way.
+   dependence accounted for in some other way. Examples and comments regarding 
+   caching of the expansions are also provided.
  - A similar example is provided in the 
    [Two Markers, the Observation Time Process, a Terminal Event and Mixed Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
    section but where a mixture of the cumulative, the present value, and the 
@@ -799,7 +800,7 @@ surv_obj <- surv_term(
   time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
 
 comp_obj <- joint_ms_ptr(markers = list(),
-                         survival_terms = surv_obj, max_threads = 1L)
+                         survival_terms = surv_obj, max_threads = 4L)
 rm(surv_obj)
 
 # get the starting values
@@ -1624,6 +1625,56 @@ vcov_marker
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv
 vcov_surv
+```
+
+#### Caching Expansions
+
+Some basis expansions like `bs_term` and `ns_term` take relatively long time to 
+evaluate
+in the approximation of the approximate expected cumulative hazard. 
+Thus, it may be advantageous to save the expansions if the same quadrature rule  
+is used. This is done by setting the `cache_expansions` argument to true. 
+The pros of doing this is that the expensive basis expansions are only evaluated 
+once which may decrees the computation time. The cons are 
+
+ - We no longer use the CPU cache efficiently with present hardware. Thus, 
+   you may not see great advantages of using many threads and the performance  
+   may even be worse. This is more likely to be an issue with larger data set.
+ - It requires a lot more memory which may be an issue larger problems.
+ 
+We illustrate this by showing the computation time where we change the number
+of threads we use. 
+
+```{r illu_cache_expansions, cache = 1}
+# with caching
+w_caching <- bench::mark(
+  `w/ caching 1 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 1, cache_expansions = TRUE),
+  `w/ caching 2 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 2, cache_expansions = TRUE),
+  `w/ caching 3 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 3, cache_expansions = TRUE),
+  `w/ caching 4 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 4, cache_expansions = TRUE))
+w_caching[, c("expression", "median")]
+
+# difference between one and four threads
+with(w_caching, median[4] / median[1]) 
+
+# w/o caching
+wo_caching <- bench::mark(
+  `w/o caching 1 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 1, cache_expansions = FALSE),
+  `w/o caching 2 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 2, cache_expansions = FALSE),
+  `w/o caching 3 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 3, cache_expansions = FALSE),
+  `w/o caching 4 thread` = 
+    joint_ms_lb(comp_obj, opt_out$par, n_threads = 4, cache_expansions = FALSE))
+wo_caching[, c("expression", "median")]
+
+# difference between one and four threads
+with(wo_caching, median[4] / median[1]) 
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies

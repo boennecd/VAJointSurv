@@ -65,6 +65,8 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
                     intercept = FALSE,
                     Boundary.knots = range(if(use_log) log(x) else x),
                     use_log = FALSE){
+  stopifnot(degree == 3)
+
   out <- if(is.null(knots)){
     tmp <- bs(if(use_log) log(x) else x, df = df, knots = knots,
               Boundary.knots = Boundary.knots, intercept = intercept)
