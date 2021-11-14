@@ -220,17 +220,27 @@ public:
                         double * cache_mem, double * wk_mem,
                         node_weight const &nws){
     // evaluates the cached expansions
-    for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
-      double const node_val{scale_node_val(lower, upper, nws.ns[i])};
-      (*b)(cache_mem, wk_mem, node_val);
-      cache_mem += b_n_basis();
+    for(vajoint_uint i = 0; i < nws.n_nodes; ++i)
+      cache_mem = cache_expansion_at
+        (scale_node_val(lower, upper, nws.ns[i]), cache_mem, wk_mem);
+  }
 
-      for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
-        for(int der : ders()[j]){
-          (*bases_rng[j])(cache_mem, wk_mem, node_val, der);
-          cache_mem += rng_n_basis(j);
-        }
-    }
+  /***
+   * sets the cached expansion at given node value. Returns a pointer at the end
+   * of the used memory
+   */
+  double * cache_expansion_at
+    (double const at, double * cache_mem, double * wk_mem){
+    (*b)(cache_mem, wk_mem, at);
+    cache_mem += b_n_basis();
+
+    for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
+      for(int der : ders()[j]){
+        (*bases_rng[j])(cache_mem, wk_mem, at, der);
+        cache_mem += rng_n_basis(j);
+      }
+
+    return cache_mem;
   }
 
   vajoint_uint cache_mem_per_node() const {
@@ -294,7 +304,7 @@ class survival_dat {
   /// the cached quadrature nodes and weights
   std::vector<double> cached_nodes, cached_weights;
 
-  bool has_cahced_expansions() const {
+  bool has_cached_expansions() const {
     return cached_expansions.size() > 0;
   }
 
@@ -378,7 +388,7 @@ public:
   }
 
   void set_cached_expansions(node_weight const &nws){
-    if(has_cahced_expansions()){
+    if(has_cached_expansions()){
       /// check if we already use the same quadrature rule
       bool is_same_rule
         {nws.n_nodes == cached_nodes.size() &&
@@ -402,14 +412,22 @@ public:
     for(size_t i = 0; i < obs_info.size(); ++i){
       auto &info_objs = obs_info[i];
       auto &haz_i = cum_hazs[i];
-      size_t const n_basis_cols{n_nodes * info_objs.size()};
+      size_t const n_basis_cols{(n_nodes + 1) * info_objs.size()};
       std::vector<double> wk_mem(haz_i.n_wmem()[1]);
 
       cached_expansions.emplace_back(haz_i.cache_mem_per_node(), n_basis_cols);
-      for(size_t i = 0; i < info_objs.size(); ++i)
+      for(size_t i = 0; i < info_objs.size(); ++i){
+        double * cache_mem{cached_expansions.back().col(i * (n_nodes + 1))};
+
+        // store the event time as the first column
+        if(info_objs[i].event)
+          cache_mem = haz_i.cache_expansion_at
+            (info_objs[i].ub, cache_mem, wk_mem.data());
+
+        // use the rest of the columns for the terms from the cumulative hazard
         haz_i.cache_expansions
-          (info_objs[i].lb, info_objs[i].ub,
-           cached_expansions.back().col(i * n_nodes), wk_mem.data(), nws);
+          (info_objs[i].lb, info_objs[i].ub, cache_mem, wk_mem.data(), nws);
+      }
     }
   }
 
@@ -445,6 +463,16 @@ public:
     expected_cum_hazzard const &haz{cum_hazs[type]};
     auto const &surv_info{par_idx.surv_info()[type]};
 
+    double const * cached_expansions_pass{nullptr};
+    bool const use_cache{has_cached_expansions()};
+    if(use_cache){
+      nws = { cached_nodes.data(), cached_weights.data(),
+              static_cast<vajoint_uint>(cached_nodes.size()) };
+
+      cached_expansions_pass = cached_expansions[type].col
+        ((nws.n_nodes + 1) * idx);
+    }
+
     // compute the approximate expected log hazard if needed
     T out{0};
     double const * const design = design_mats[type].col(idx);
@@ -456,23 +484,45 @@ public:
 
       double * const basis_wmem{dwk_mem + max_basis_dim};
 
-      // TODO: we can use a cached version here
-      (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
-      out -= cfaad::dotProd(dwk_mem, dwk_mem + surv_info.n_variying,
-                            param + surv_info.idx_varying);
+      if(use_cache){
+        out -= cfaad::dotProd
+          (cached_expansions_pass, cached_expansions_pass + haz.b_n_basis(),
+           param + surv_info.idx_varying);
+        cached_expansions_pass += haz.b_n_basis();
 
-      vajoint_uint offset{}, idx_association{surv_info.idx_association};
-      for(size_t i = 0; i < bases_rng.size(); ++i){
-        for(int der : haz.ders()[i]){
-          // TODO: we can use a cached version here
-          (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, der);
-          auto M_VA_mean = cfaad::dotProd
-            (dwk_mem, dwk_mem + haz.rng_n_basis(i),
-             param + par_idx.va_mean() + offset);
-          out -= param[idx_association++] * M_VA_mean;
+        vajoint_uint offset{}, idx_association{surv_info.idx_association};
+        for(size_t i = 0; i < bases_rng.size(); ++i){
+          for(size_t j = 0; j  < haz.ders()[i].size(); ++j){
+            auto M_VA_mean = cfaad::dotProd
+              (cached_expansions_pass,
+               cached_expansions_pass + haz.rng_n_basis(i),
+               param + par_idx.va_mean() + offset);
+            cached_expansions_pass +=  haz.rng_n_basis(i);
+            out -= param[idx_association++] * M_VA_mean;
+          }
+
+          offset += haz.rng_n_basis(i);
+
         }
 
-        offset += haz.rng_n_basis(i);
+      } else {
+        (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
+        out -= cfaad::dotProd(dwk_mem, dwk_mem + haz.b_n_basis(),
+                              param + surv_info.idx_varying);
+
+        vajoint_uint offset{}, idx_association{surv_info.idx_association};
+        for(size_t i = 0; i < bases_rng.size(); ++i){
+          for(int der : haz.ders()[i]){
+            (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, der);
+            auto M_VA_mean = cfaad::dotProd
+              (dwk_mem, dwk_mem + haz.rng_n_basis(i),
+               param + par_idx.va_mean() + offset);
+            out -= param[idx_association++] * M_VA_mean;
+          }
+
+          offset += haz.rng_n_basis(i);
+
+        }
       }
 
       // the frailty term
@@ -506,14 +556,6 @@ public:
         vcov_full[offset + offset * rng_dim];
     }
     wk_mem += n_shared_p1 * n_shared_p1;
-
-    double const * cached_expansions_pass{nullptr};
-    if(has_cahced_expansions()){
-      nws = { cached_nodes.data(), cached_weights.data(),
-              static_cast<vajoint_uint>(cached_nodes.size()) };
-
-      cached_expansions_pass = cached_expansions[type].col(nws.n_nodes * idx);
-    }
 
     out += haz
       (nws, info.lb, info.ub, design, param + surv_info.idx_fix,
