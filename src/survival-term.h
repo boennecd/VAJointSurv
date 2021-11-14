@@ -39,8 +39,20 @@ struct node_weight {
 class expected_cum_hazzard {
   /// the base for the time-varying fixed effect
   std::unique_ptr<basisMixin> b;
+  /// the number of basis function of b
+  vajoint_uint b_n_basis_v{b->n_basis()};
   /// the basis for the time-varying random effects
   bases_vector bases_rng;
+  /// the number of basis functions of each rng base expansion
+  std::vector<vajoint_uint> rng_n_basis_v{
+    ([&]{
+      std::vector<vajoint_uint> out;
+      out.reserve(bases_rng.size());
+      for(auto &b : bases_rng)
+        out.emplace_back(b->n_basis());
+      return out;
+    })()
+  };
   /// the number of fixed effects
   vajoint_uint n_fixef;
   /// the derivative/integral argument to pass to bases_rng
@@ -100,6 +112,11 @@ public:
             std::to_string(bases_rng.size()) + ")");
   }
 
+  vajoint_uint b_n_basis() const { return b_n_basis_v; }
+  vajoint_uint rng_n_basis(size_t const idx) const {
+    return rng_n_basis_v[idx];
+  }
+
   /**
    * evaluates the approximate expected cumulative hazard between
    * lower and upper times minus 1. The wk_mem and dwk_mem arguments are
@@ -125,25 +142,22 @@ public:
         // compute the term from the time-varying fixed effects
         fixef_term =
           cfaad::dotProd(cached_expansions,
-                         // TODO: avoid doing the n_basis() call
-                         cached_expansions + b->n_basis(), fixef_vary);
-        cached_expansions += b->n_basis();
+                         cached_expansions + b_n_basis(), fixef_vary);
+        cached_expansions += b_n_basis();
 
         // construct the (association^T, 1).hat(M)(s) vector
         vajoint_uint idx{}, idx_association{};
         for(vajoint_uint j = 0; j < bases_rng.size(); ++j){
-          for(vajoint_uint k = 0; k < bases_rng[j]->n_basis(); ++k)
+          for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
             association_M[idx + k] = 0;
 
           for(size_t l = 0; l < ders()[j].size(); ++l){
-            // TODO: avoid doing the n_basis() call
-            for(vajoint_uint k = 0; k < bases_rng[j]->n_basis(); ++k)
+            for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
               association_M[idx + k] +=
                 association[idx_association] * *cached_expansions++;
             ++idx_association;
           }
-          // TODO: avoid doing the n_basis() call
-          idx += bases_rng[j]->n_basis();
+          idx += rng_n_basis(j);
         }
         association_M[idx] = 1;
 
@@ -152,25 +166,22 @@ public:
         double const node_val{scale_node_val(lower, upper, nws.ns[i])};
         (*b)(dwk_mem, dwk_mem_basis, node_val);
         fixef_term =
-          // TODO: avoid doing the n_basis() call
-          cfaad::dotProd(dwk_mem, dwk_mem + b->n_basis(), fixef_vary);
+          cfaad::dotProd(dwk_mem, dwk_mem + b_n_basis(), fixef_vary);
 
         // construct the (association^T, 1).hat(M)(s) vector
         vajoint_uint idx{}, idx_association{};
         for(vajoint_uint j = 0; j < bases_rng.size(); ++j){
-          for(vajoint_uint k = 0; k < bases_rng[j]->n_basis(); ++k)
+          for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
             association_M[idx + k] = 0;
 
           for(int der : ders()[j]){
             (*bases_rng[j])(dwk_mem, dwk_mem_basis, node_val, der);
-            // TODO: avoid doing the n_basis() call
-            for(vajoint_uint k = 0; k < bases_rng[j]->n_basis(); ++k)
+            for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
               association_M[idx + k] +=
                 association[idx_association] * dwk_mem[k];
             ++idx_association;
           }
-          // TODO: avoid doing the n_basis() call
-          idx += bases_rng[j]->n_basis();
+          idx += rng_n_basis(j);
         }
         association_M[idx] = 1;
       }
@@ -212,20 +223,20 @@ public:
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
       double const node_val{scale_node_val(lower, upper, nws.ns[i])};
       (*b)(cache_mem, wk_mem, node_val);
-      cache_mem += b->n_basis();
+      cache_mem += b_n_basis();
 
-      for(vajoint_uint i = 0; i < bases_rng.size(); ++i)
-        for(int der : ders()[i]){
-          (*bases_rng[i])(cache_mem, wk_mem, node_val, der);
-          cache_mem += bases_rng[i]->n_basis();
+      for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
+        for(int der : ders()[j]){
+          (*bases_rng[j])(cache_mem, wk_mem, node_val, der);
+          cache_mem += rng_n_basis(j);
         }
     }
   }
 
   vajoint_uint cache_mem_per_node() const {
-    vajoint_uint out{b->n_basis()};
+    vajoint_uint out{b_n_basis()};
     for(vajoint_uint i = 0; i < bases_rng.size(); ++i)
-      out += ders()[i].size() * bases_rng[i]->n_basis();
+      out += ders()[i].size() * rng_n_basis(i);
     return out;
   }
 };
@@ -447,7 +458,6 @@ public:
 
       // TODO: we can use a cached version here
       (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
-      // TODO: avoid doing the n_basis() call
       out -= cfaad::dotProd(dwk_mem, dwk_mem + surv_info.n_variying,
                             param + surv_info.idx_varying);
 
@@ -456,15 +466,13 @@ public:
         for(int der : haz.ders()[i]){
           // TODO: we can use a cached version here
           (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, der);
-          // TODO: avoid doing the n_basis() call
           auto M_VA_mean = cfaad::dotProd
-            (dwk_mem, dwk_mem + bases_rng[i]->n_basis(),
+            (dwk_mem, dwk_mem + haz.rng_n_basis(i),
              param + par_idx.va_mean() + offset);
           out -= param[idx_association++] * M_VA_mean;
         }
 
-        // TODO: avoid doing the n_basis() call
-        offset += bases_rng[i]->n_basis();
+        offset += haz.rng_n_basis(i);
       }
 
       // the frailty term
