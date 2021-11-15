@@ -130,7 +130,7 @@ public:
                T const * VA_vcov, T * wk_mem, double * dwk_mem,
                double const * cached_expansions) const {
     T out{0};
-    bool const use_cache{cached_expansions};
+    bool const use_cache = cached_expansions;
 
     T * const association_M = wk_mem;
     wk_mem += n_basis_rng_p1;

@@ -6,6 +6,11 @@ Joint Survival and Marker Models
 This package provides means of estimating joint models for a mixture of
 different types of markers and different types of survival outcomes. The
 models are estimated with Gaussian variational approximations (GVAs).
+Description of the supported models and multiple examples are given in
+this document. A presentation of the package is available
+[here](https://rpubs.com/boennecd/MEB-VAJointSurv) which includes a
+simulation study to investigate bias of the parameter estimates and
+coverage of approximate likelihood ratio based confidence intervals.
 
 ## Installation
 
