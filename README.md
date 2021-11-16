@@ -13,7 +13,7 @@ simulation study to investigate bias of the parameter estimates and
 coverage of approximate likelihood ratio based confidence intervals.
 
 A comparison with the JM, JMbayes, and joineRML is provided on Github at
-[github.com/boennecd/VAJointSurv/comparisons](https://github.com/boennecd/VAJointSurv/comparisons).
+[github.com/boennecd/VAJointSurv/tree/main/comparisons](https://github.com/boennecd/VAJointSurv/tree/main/comparisons).
 
 ## Installation
 

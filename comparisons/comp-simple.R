@@ -296,7 +296,7 @@ summary(JM_fit)
 
 # the two are not directly comparable because of different baseline hazards
 print(JM_fit$logLik, digits = 6) # maximum log likelihood estimate
-print(-opt_out$value, digits = 6) # the lower bound on maximum log likelihood
+print(-opt_out$value, digits = 6) # the lower bound on the maximum log likelihood
 
 # fit the model with joineRML
 library(joineRML)
