@@ -10,3 +10,4 @@
 ^create-vignette\.R
 ^\.github$
 ^tests/testthat/Rplots\.pdf
+^comparisons/*

@@ -1,0 +1,959 @@
+
+R version 4.1.1 (2021-08-10) -- "Kick Things"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(digits = 4)
+> 
+> # settings for the simulation. You can skip this
+> library(VAJointSurv)
+Loading required package: survival
+> library(splines)
+> g_basis <- ns_term(knots = c(3, 5), Boundary.knots = c(1, 8))
+> g_funcs <- \(x) ns(x, knots = c(3, 5), Boundary.knots = c(1, 8))
+> m_basis <- ns_term(knots = numeric(), Boundary.knots = c(1, 8),
++                    intercept = TRUE)
+> m_funcs <- \(x) ns(x, knots = numeric(), Boundary.knots = c(1, 8),
++                    intercept = TRUE)
+> 
+> fixef_vary_marker <- c(1.4, -1.2, .4) # beta
+> fixef_marker <- c(-.5, 1) # gamma
+> 
+> vcov_vary <- structure(c(0.35, 0.004, 0.004, 0.048), .Dim = c(2L, 2L))
+> vcov_marker <- matrix(1, 1)
+> 
+> # the survival parameters
+> fixef_surv <- c(-3.5, .4)
+> association <- -2
+> fixef_vary_surv <- c(.5, .1, -.015)
+> fvar <- matrix(1e-6^2, 1) # not supported by the other models
+> 
+> b_basis <- poly_term(degree = 3, raw = TRUE)
+> b_func <- \(x) cbind(x, x^2, x^3)
+> 
+> # plot the population marker curve
+> par(mar = c(5, 5, 1, 1), cex = 1.2)
+> plot_marker(
++   time_fixef = g_basis, time_rng = m_basis,
++   fixef_vary = fixef_vary_marker, x_range = c(0, 10),
++   vcov_vary = vcov_vary, ylab = "Marker 1")
+> 
+> # plot the conditional hazard
+> plot_surv(time_fixef = b_basis, time_rng = list(m_basis),
++           x_range = c(0, 10), fixef_vary = fixef_vary_surv,
++           vcov_vary = vcov_vary, frailty_var = fvar, ps = c(.1, .5, .9),
++           log_hazard_shift = fixef_surv[1], associations = association)
+> 
+> rm(g_basis, m_basis, b_basis)
+> 
+> # assign function that simulates from the model by sampling a given number of
+> # individuals. You can skip this
+> library(mvtnorm)
+> library(SimSurvNMarker)
+> sim_dat <- function(n_ids){
++   # simulate the outcomes
++   gl_dat <- get_gl_rule(100L)
++   dat <- lapply(1:n_ids, function(id){
++     # draw the censoring time and the random effects
++     cens <- min(10, rexp(1, 1/8))
++     U <- drop(rmvnorm(1, sigma = vcov_vary))
++ 
++     # simulate the survival outcome
++     rng_surv <- rnorm(1, sd = sqrt(fvar))
++     Z <- c(1, runif(1, -1, 1))
++     log_haz_offset <- sum(Z * fixef_surv) + rng_surv
++ 
++     expansion <- function(x)
++       cbind(b_func(x), m_funcs(x) %*% U)
++ 
++     # the conditional survival function
++     surv_func <- function(ti)
++       eval_surv_base_fun(
++         ti = ti, omega = c(fixef_vary_surv, association), b_func = expansion,
++         gl_dat = gl_dat, delta = log_haz_offset)
++ 
++     # simulate the event
++     rng_i <- runif(1)
++     root_func <- function(x) rng_i - surv_func(x)
++     if(root_func(cens) < 0){
++       y <- cens
++       event <- 0
++     } else {
++       root <- uniroot(root_func, c(0, cens), tol = 1e-6)
++       y <- root$root
++       event <- 1
++     }
++ 
++     # format the data
++     Z <- matrix(Z, 1)
++     colnames(Z) <- paste0("Z", 1:NCOL(Z) - 1L)
++ 
++     surv_data <- cbind(y = y, event = event, Z[, -1, drop = FALSE], id = id)
++ 
++     # handle the markers
++     # sample the observations times
++     obs_time <- cumsum(c(0, rexp(20, .5)))
++     obs_time <- obs_time[obs_time < y]
++     n_obs <- length(obs_time)
++ 
++     # sample the fixed effects
++     X <- cbind(rep(1, n_obs), X = rnorm(1))
++     colnames(X) <- paste0("X", 1:NCOL(X) - 1L)
++ 
++     # sample the outcomes
++     eta <- X %*% fixef_marker +
++       g_funcs(obs_time) %*% fixef_vary_marker +
++       m_funcs(obs_time) %*% U
++ 
++     y <- eta + rnorm(n_obs, sd = sqrt(vcov_marker))
++ 
++       marker_data <- cbind(
++         Y = drop(y), X[, -1, drop = FALSE], time = obs_time, id = id)
++ 
++     list(marker_data = marker_data, surv_data = surv_data)
++   })
++ 
++   # combine the data and return
++   marker_data <- as.data.frame(do.call(
++     rbind, lapply(dat, `[[`, "marker_data")))
++   marker_data$id <- as.integer(marker_data$id)
++   # the order does not matter
++   marker_data <- marker_data[sample.int(NROW(marker_data)), ]
++ 
++   surv_data <- as.data.frame(do.call(
++     rbind, lapply(dat, `[[`, "surv_data")))
++   surv_data$id <- as.integer(surv_data$id)
++   # the order does not matter
++   surv_data <- surv_data[sample.int(NROW(surv_data)), ]
++ 
++   list(marker_data = marker_data, surv_data = surv_data)
++ }
+> 
+> # fit the model w/ the VA method
+> set.seed(1)
+> dat <- sim_dat(400L)
+> 
+> mean(dat$surv_data$event) # event rate
+[1] 0.565
+> # quantiles of the uncensored distribution
+> subset(dat$surv_data, event == 1, y, TRUE) |>
++   quantile(probs = seq(0, 1, length.out = 11))
+     0%     10%     20%     30%     40%     50%     60%     70%     80%     90% 
+0.01219 1.08148 1.76427 2.44038 2.96581 3.46787 4.09978 4.44885 5.00838 5.92530 
+   100% 
+8.69485 
+> 
+> # distribution in the number of observed markers
+> quantile(table(dat$marker_data$id),
++          probs = seq(0, 1, length.out = 11))
+  0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
+   1    1    1    1    2    2    3    3    4    5   10 
+> mean(table(dat$marker_data$id))
+[1] 2.635
+> 
+> # add the covariate from the marker to the survival outcome
+> dat$surv_data <- merge(
++   dat$surv_data, subset(dat$marker_data, !duplicated(id), c(id, X1)),
++   by = "id")
+> 
+> # fit the model with the variational approximation
+> n_nodes <- 32L
+> VA_time <- system.time({
++   marker_1 <- marker_term(
++       Y ~ X1, id = id, dat$marker_data,
++       time_fixef = ns_term(time, knots = c(3, 5), Boundary.knots = c(1, 8)),
++       time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(1, 8),
++                          intercept = TRUE))
++ 
++   bks <-  range(dat$surv_data$y)
++   iks <- head(quantile(dat$surv_data$y, length.out = 9)[-1], -1)
++   surv_obj <- surv_term(
++     Surv(y, event) ~ Z1 + X1, id = id, dat$surv_data,
++     time_fixef = ns_term(y, Boundary.knots = bks, knots = iks))
++ 
++   # use the same number of nodes as JMbayes
++   library(SimSurvNMarker)
++   gl_rule <- within(get_gl_rule(n_nodes), {
++     node <- node/2 + 0.5
++     weight <- weight/2
++   })
++ 
++   comp_obj <- joint_ms_ptr(markers = marker_1,
++                            survival_terms = surv_obj, max_threads = 4L,
++                            quad_rule = gl_rule)
++ 
++   # get the starting values
++   start_val <- joint_ms_start_val(comp_obj)
++ 
++   # find the maximum lower bound
++   opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
++                           pre_method = 1L, cg_tol = .2, c2 = .1)
++ })
+> VA_time # estimation time
+   user  system elapsed 
+  4.204   0.003   1.164 
+> 
+> # check the results
+> opt_out$convergence # convergence code
+[1] TRUE
+> fmt_par <- joint_ms_format(comp_obj, opt_out$par)
+> 
+> fmt_par$markers
+[[1]]
+[[1]]$fixef
+[1] -0.5066  0.9391
+
+[[1]]$fixef_vary
+[1]  1.3197 -1.1008  0.5523
+
+
+> fixef_marker
+[1] -0.5  1.0
+> fixef_vary_marker
+[1]  1.4 -1.2  0.4
+> 
+> fmt_par$survival
+[[1]]
+[[1]]$fixef
+[1] -3.4828  0.3966  0.1365
+
+[[1]]$fixef_vary
+[1] 1.64971 3.73846 3.28762 0.05814
+
+[[1]]$associations
+[1] -1.544
+
+
+> c(fixef_surv, 0)
+[1] -3.5  0.4  0.0
+> association
+[1] -2
+> 
+> fmt_par$vcov$vcov_vary
+       [,1]   [,2]
+[1,] 0.5630 0.1341
+[2,] 0.1341 0.1480
+> vcov_vary
+      [,1]  [,2]
+[1,] 0.350 0.004
+[2,] 0.004 0.048
+> 
+> fmt_par$vcov$vcov_marker
+      [,1]
+[1,] 1.005
+> vcov_marker
+     [,1]
+[1,]    1
+> 
+> fmt_par$vcov$vcov_surv # should be zero
+         [,1]
+[1,] 0.001916
+> 
+> # starting values
+> joint_ms_format(comp_obj, start_val)
+$markers
+$markers[[1]]
+$markers[[1]]$fixef
+[1] -0.5015  0.9429
+
+$markers[[1]]$fixef_vary
+[1]  1.5054 -0.7924  0.9102
+
+
+
+$survival
+$survival[[1]]
+$survival[[1]]$fixef
+[1] -3.2899  0.4060  0.1267
+
+$survival[[1]]$fixef_vary
+[1]  1.5292  3.2980  2.4982 -0.8102
+
+$survival[[1]]$associations
+[1] 0
+
+
+
+$vcov
+$vcov$vcov_marker
+      [,1]
+[1,] 1.012
+
+$vcov$vcov_surv
+     [,1]
+[1,] 0.01
+
+$vcov$vcov_vary
+        [,1]    [,2]
+[1,] 0.40453 0.08967
+[2,] 0.08967 0.16170
+
+
+> 
+> # construct an approximate profile likelihood based confidence interval for the
+> # association parameter
+> system.time(joint_pl <- joint_ms_profile(
++   comp_obj, opt_out,
++   which_prof = comp_obj$indices$survival[[1]]$associations, delta = .5))
+
+Finding the upper limit of the approximate profile likelihood curve
+LogLike: -2110.9636 at        -1.044001
+LogLike: -2112.8408 at        -0.544001
+LogLike: -2112.0380 at        -0.703634. Lb, target, ub: -2112.8408, -2112.2772, -2112.0380
+LogLike: -2112.3493 at        -0.637467. Lb, target, ub: -2112.3493, -2112.2772, -2112.0380
+
+Finding the lower limit of the approximate profile likelihood curve
+LogLike: -2110.7062 at        -2.044001
+LogLike: -2111.4549 at        -2.544001
+LogLike: -2113.0801 at        -3.544001
+LogLike: -2112.1832 at        -2.998434. Lb, target, ub: -2113.0801, -2112.2772, -2112.1832
+LogLike: -2112.3528 at        -3.110393. Lb, target, ub: -2112.3528, -2112.2772, -2112.1832
+LogLike: -2110.3565 at        -1.544001
+   user  system elapsed 
+  9.639   0.015   2.418 
+> joint_pl$confs # the confidence interval
+ 2.50 pct. 97.50 pct. 
+   -3.0609    -0.6523 
+> 
+> # plot the log profile likelihood
+> with(joint_pl, {
++   plot(xs, p_log_Lik, pch = 16, bty = "l",
++        xlab = expression(alpha), ylab = "Log profile likelihood")
++ 
++   smooth_est <- smooth.spline(xs, p_log_Lik)
++   lines(predict(smooth_est, seq(min(xs), max(xs), length.out = 100)))
++   abline(v = confs, lty = 2)
++ })
+> 
+> # fit the model with JMbayes
+> library(JMbayes)
+Loading required package: nlme
+Loading required package: doParallel
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: rstan
+Loading required package: StanHeaders
+Loading required package: ggplot2
+rstan (Version 2.21.2, GitRev: 2e1f913d3ca3)
+For execution on a local, multicore CPU with excess RAM we recommend calling
+options(mc.cores = parallel::detectCores()).
+To avoid recompilation of unchanged Stan programs, we recommend calling
+rstan_options(auto_write = TRUE)
+> 
+> JMbayes_time <- system.time({
++   # data has to be sorted the same way
++   dat <- within(dat, {
++     marker_data <- with(marker_data, marker_data[order(id, time), ])
++     surv_data <- with(surv_data, surv_data[order(id, y), ])
++   })
++ 
++   # setup initial objects
++   lme_fit <- lme(
++     Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)),
++     random = ~ ns(time, knots = numeric(), Boundary.knots = c(1, 8),
++                   intercept = TRUE) - 1 | id,
++     data = dat$marker_data,
++     control = lmeControl(
++       maxIter = 1000L, msMaxIter = 1000L, msMaxEval = 10000L))
++ 
++   surv_fit <- coxph(Surv(y, event) ~ Z1 + X1, dat$surv_data, x = TRUE)
++ 
++   # run the MCMC method
++   JMbayes_fit <- jointModelBayes(lme_fit, surv_fit, timeVar = "time",
++                                  # we use the same number Gauss-Legendre nodes
++                                  GQsurv = "GaussLegendre", GQsurv.k = n_nodes,
++                                  # avoid the penalization to ensure we should get
++                                  # roughly an identical model
++                                  baseHaz = "regression-splines",
++                                  verbose = FALSE)
++ })
+> 
+> JMbayes_time # estimation time
+   user  system elapsed 
+  70.06    0.12   70.18 
+> JMbayes_time["elapsed"] / VA_time["elapsed"] # relative estimation time
+elapsed 
+  60.29 
+> 
+> # compare estimates
+> summary(JMbayes_fit)
+
+Call:
+jointModelBayes(lmeObject = lme_fit, survObject = surv_fit, timeVar = "time", 
+    baseHaz = "regression-splines", GQsurv = "GaussLegendre", 
+    GQsurv.k = n_nodes, verbose = FALSE)
+
+Data Descriptives:
+Longitudinal Process		Event Process
+Number of Observations: 1054	Number of Events: 226 (56.5%)
+Number of subjects: 400
+
+Joint Model Summary:
+Longitudinal Process: Linear mixed-effects model
+Event Process: Relative risk model with spline-approximated 
+		baseline risk function
+Parameterization: Time-dependent value 
+
+  LPML  DIC    pD
+ -3486 6635 775.8
+
+Variance Components:
+                                                                          StdDev
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1  0.8923
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2  0.8238
+Residual                                                                  0.9669
+                                                                                Corr
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1 nk=nB=c8i=T
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2      0.4495
+Residual                                                                            
+
+Coefficients:
+Longitudinal Process
+                                                       Value Std.Err Std.Dev
+(Intercept)                                          -0.5072  0.0021  0.0455
+X1                                                    0.9344  0.0020  0.0422
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  1.4366  0.0139  0.2378
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2 -1.1610  0.0257  0.2329
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.4122  0.0333  0.3255
+                                                        2.5%   97.5%      P
+(Intercept)                                          -0.5990 -0.4226 <0.001
+X1                                                    0.8546  1.0231 <0.001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  0.9769  1.9075 <0.001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2 -1.6315 -0.7215 <0.001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3 -0.2794  1.0171  0.201
+
+Event Process
+         Value Std.Err Std.Dev    2.5%   97.5%      P
+Z1      0.3741  0.0062  0.1273  0.1250  0.6144  0.002
+X1      0.9297  0.0360  0.2722  0.3917  1.4285 <0.001
+Assoct -0.8507  0.0375  0.2772 -1.3565 -0.3093 <0.001
+
+MCMC summary:
+iterations: 20000 
+adapt: 3000 
+burn-in: 3000 
+thinning: 10 
+time: 1.1 min
+> 
+> association
+[1] -2
+> fixef_surv[2] # Z1
+[1] 0.4
+> 
+> # the starting values
+> summary(lme_fit)
+Linear mixed-effects model fit by REML
+  Data: dat$marker_data 
+   AIC  BIC logLik
+  3155 3200  -1569
+
+Random effects:
+ Formula: ~ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE) -      1 | id
+ Structure: General positive-definite, Log-Cholesky parametrization
+                                                                         StdDev
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1 0.6704
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2 0.4274
+Residual                                                                 1.0068
+                                                                         Corr       
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1 nk=nB=c8i=T
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2 0.412      
+Residual                                                                            
+
+Fixed effects:  Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)) 
+                                                       Value Std.Error  DF
+(Intercept)                                          -0.5018   0.04194 651
+X1                                                    0.9430   0.03712 398
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  1.5132   0.22962 651
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2 -0.8032   0.16096 651
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.8902   0.22966 651
+                                                     t-value p-value
+(Intercept)                                          -11.965   0e+00
+X1                                                    25.408   0e+00
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1   6.590   0e+00
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  -4.990   0e+00
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3   3.876   1e-04
+ Correlation: 
+                                                     (Intr) X1    
+X1                                                    0.029       
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1 -0.441  0.056
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2 -0.221  0.073
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3 -0.211  0.066
+                                                     n(,k=c(3,5),B.=c(1,8))1
+X1                                                                          
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                        
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  0.289                 
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.114                 
+                                                     n(,k=c(3,5),B.=c(1,8))2
+X1                                                                          
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                        
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                        
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.812                 
+
+Standardized Within-Group Residuals:
+      Min        Q1       Med        Q3       Max 
+-2.622763 -0.647384 -0.006466  0.664875  2.883319 
+
+Number of Observations: 1054
+Number of Groups: 400 
+> summary(surv_fit)
+Call:
+coxph(formula = Surv(y, event) ~ Z1 + X1, data = dat$surv_data, 
+    x = TRUE)
+
+  n= 400, number of events= 226 
+
+     coef exp(coef) se(coef)    z Pr(>|z|)    
+Z1 0.4073    1.5027   0.1175 3.47  0.00053 ***
+X1 0.1310    1.1400   0.0678 1.93  0.05337 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+   exp(coef) exp(-coef) lower .95 upper .95
+Z1      1.50      0.665     1.194      1.89
+X1      1.14      0.877     0.998      1.30
+
+Concordance= 0.561  (se = 0.022 )
+Likelihood ratio test= 16.8  on 2 df,   p=2e-04
+Wald test            = 16.6  on 2 df,   p=2e-04
+Score (logrank) test = 16.7  on 2 df,   p=2e-04
+
+> 
+> plot(JMbayes_fit, ask = FALSE) # any mixing problems?
+> 
+> # fit the model with JM
+> library(JM)
+Loading required package: MASS
+Registered S3 methods overwritten by 'JM':
+  method              from   
+  makepredictcall.dbs JMbayes
+  makepredictcall.dns JMbayes
+  makepredictcall.ibs JMbayes
+  makepredictcall.ins JMbayes
+  plot.rocJM          JMbayes
+  print.aucJM         JMbayes
+  print.dynCJM        JMbayes
+  print.prederrJM     JMbayes
+  print.rocJM         JMbayes
+
+Attaching package: ‘JM’
+
+The following objects are masked from ‘package:JMbayes’:
+
+    aucJM, dbs, dns, dynCJM, ibs, ins, prederrJM, rocJM, survfitJM
+
+> 
+> JM_time <- system.time({
++   # data has to be sorted the same way
++   dat <- within(dat, {
++     marker_data <- with(marker_data, marker_data[order(id, time), ])
++     surv_data <- with(surv_data, surv_data[order(id, y), ])
++   })
++ 
++   # setup initial objects
++   lme_fit <- lme(
++     Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)),
++     random = ~ ns(time, knots = numeric(), Boundary.knots = c(1, 8),
++                   intercept = TRUE) - 1 | id,
++     data = dat$marker_data,
++     control = lmeControl(
++       maxIter = 1000L, msMaxIter = 1000L, msMaxEval = 10000L))
++ 
++   surv_fit <- coxph(Surv(y, event) ~ Z1 + X1, dat$surv_data, x = TRUE)
++ 
++   # the number of quadrature nodes is not that comparable. Perhaps fewer
++   # Gauss-Hermite quadrature nodes is enough though?
++   JM_fit <- jointModel(lme_fit, surv_fit, timeVar = "time",
++                        method = "spline-PH-aGH",
++                        typeGH = "adaptive", GHk = 15, GKk = 15)
++ })
+> 
+> JM_time # the estimation time
+   user  system elapsed 
+109.966   1.948 111.923 
+> JM_time["elapsed"] / VA_time["elapsed"] # relative estimation time
+elapsed 
+  96.15 
+> 
+> # the estimates
+> summary(JM_fit)
+
+Call:
+jointModel(lmeObject = lme_fit, survObject = surv_fit, timeVar = "time", 
+    method = "spline-PH-aGH", typeGH = "adaptive", GHk = 15, 
+    GKk = 15)
+
+Data Descriptives:
+Longitudinal Process		Event Process
+Number of Observations: 1054	Number of Events: 226 (56.5%)
+Number of Groups: 400
+
+Joint Model Summary:
+Longitudinal Process: Linear mixed-effects model
+Event Process: Relative risk model with spline-approximated
+		baseline risk function
+Parameterization: Time-dependent 
+
+ log.Lik  AIC  BIC
+   -2109 4260 4344
+
+Variance Components:
+                                                                          StdDev
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1  0.7630
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2  0.3840
+Residual                                                                  1.0024
+                                                                                Corr
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1 nk=nB=c8i=T
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2      0.4839
+Residual                                                                            
+
+Coefficients:
+Longitudinal Process
+                                                       Value Std.Err z-value
+(Intercept)                                          -0.5062  0.0422 -11.995
+X1                                                    0.9394  0.0376  24.975
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  1.3101  0.2445   5.359
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2 -1.1028  0.2801  -3.937
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.5507  0.4074   1.351
+                                                     p-value
+(Intercept)                                          <0.0001
+X1                                                   <0.0001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1 <0.0001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  0.0001
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  0.1765
+
+Event Process
+         Value Std.Err z-value p-value
+Z1      0.3985  0.1323  3.0112  0.0026
+X1      1.5745  0.5603  2.8101  0.0050
+Assoct -1.5285  0.5853 -2.6117  0.0090
+bs1    -3.1904  0.7789 -4.0960 <0.0001
+bs2    -3.1542  0.7312 -4.3140 <0.0001
+bs3    -3.6006  0.7197 -5.0028 <0.0001
+bs4    -3.9494  0.9359 -4.2199 <0.0001
+bs5    -4.3257  1.0062 -4.2992 <0.0001
+bs6    -1.9557  0.6399 -3.0563  0.0022
+bs7     0.4069  0.9435  0.4313  0.6663
+bs8    -1.7596  1.6698 -1.0538  0.2920
+bs9    -6.5765  2.6974 -2.4381  0.0148
+
+Integration:
+method: (pseudo) adaptive Gauss-Hermite
+quadrature points: 15 
+
+Optimization:
+Convergence: 0 
+
+> 
+> # the two are not directly comparable because of different baseline hazards
+> print(JM_fit$logLik, digits = 6) # maximum log likelihood estimate
+[1] -2109.21
+> print(-opt_out$value, digits = 6) # the lower bound on maximum log likelihood
+[1] -2110.36
+> 
+> # fit the model with joineRML
+> library(joineRML)
+> set.seed(1)
+> gc()
+          used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells 2744832 146.6    4176874 223.1  4176874 223.1
+Vcells 7012091  53.5   25459538 194.3 33067106 252.3
+> joineRML_time <- system.time(
++   joineRML_fit <- mjoint(
++     formLongFixed =
++       Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)),
++     formLongRandom = Y ~ ns(time, knots = numeric(), Boundary.knots = c(1, 8),
++                             intercept = TRUE) - 1 | id,
++     formSurv = Surv(y, event) ~ Z1 + X1,
++     data = dat$marker_data,
++     survData = dat$surv_data,
++     timeVar = "time",
++     pfs = FALSE))
+EM algorithm has converged!
+
+> 
+> joineRML_time # the estimation time
+   user  system elapsed 
+ 67.098   0.368  67.469 
+> joineRML_time["elapsed"] / VA_time["elapsed"] # relative estimation time
+elapsed 
+  57.96 
+> 
+> # look at the estimates
+> summary(joineRML_fit)
+
+Call:
+mjoint(formLongFixed = Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 
+    8)), formLongRandom = Y ~ ns(time, knots = numeric(), Boundary.knots = c(1, 
+    8), intercept = TRUE) - 1 | id, formSurv = Surv(y, event) ~ 
+    Z1 + X1, data = dat$marker_data, survData = dat$surv_data, 
+    timeVar = "time", pfs = FALSE)
+
+Data Descriptives:
+
+Event Process
+    Number of subjects: 400 
+    Number of events: 226 (56.5%)
+
+Longitudinal Process
+    Number of longitudinal outcomes: K = 1 
+    Number of observations:
+      Outcome 1: n = 1054
+
+Joint Model Summary:
+
+Longitudinal Process: Univariate linear mixed-effects model
+     Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)), random = Y ~ ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE) - 
+ Y ~ X1 + ns(time, knots = c(3, 5), Boundary.knots = c(1, 8)), random =     1 | id
+Event Process: Cox proportional hazards model
+     Surv(y, event) ~ Z1 + X1
+Model fit statistics:
+ log.Lik  AIC  BIC
+   -2892 5807 5855
+
+Variance Components:
+
+Random effects variance covariance matrix
+                                                                           ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1_1
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1_1                                                                     0.5146
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2_1                                                                     0.1109
+                                                                           ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2_1
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1_1                                                                     0.1109
+ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2_1                                                                     0.1451
+  Standard Deviations: 0.7174 0.381 
+
+Residual standard errors(s):
+sigma2_1 
+   1.002 
+
+Coefficient Estimates:
+
+Longitudinal sub-model:
+                                                         Value Std.Err z-value
+(Intercept)_1                                          -0.5066      NA      NA
+X1_1                                                    0.9385      NA      NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1_1  1.3333      NA      NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2_1 -1.0673      NA      NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3_1  0.5980      NA      NA
+                                                       p-value
+(Intercept)_1                                               NA
+X1_1                                                        NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1_1      NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2_1      NA
+ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3_1      NA
+
+Time-to-event sub-model:
+          Value Std.Err z-value p-value
+Z1       0.4005      NA      NA      NA
+X1       0.1412      NA      NA      NA
+gamma_1 -1.5358      NA      NA      NA
+
+Algorithm Summary:
+    Total computational time: 1.1 mins 
+    EM algorithm computational time: 1.1 mins 
+    Convergence status: converged
+    Convergence criterion: sas 
+    Final Monte Carlo sample size: 2629 
+    Standard errors calculated using method: none
+> 
+> # gather all the estimators and show them together. We use the posterior mean
+> # for the MCMC method
+> true_vals <- list(
++   fixef_marker = fixef_marker,
++   fixef_vary_marker = fixef_vary_marker,
++   # we use the parameterization from JM and JMbayes
++   fixef_surv = c(fixef_surv[2], 0 - association * fixef_marker[2]),
++   assoc = association,
++   err_std = sqrt(vcov_marker),
++   vcov_vary_diag = diag(vcov_vary))
+> 
+> mcmc_est <- with(summary(JMbayes_fit), list(
++   fixef_marker = `CoefTable-Long`[1:2, "Value"],
++   fixef_vary_marker = `CoefTable-Long`[-(1:2), "Value"],
++   fixef_surv = `CoefTable-Event`[c("Z1", "X1"), "Value"],
++   assoc = `CoefTable-Event`["Assoct", "Value"],
++   err_std = sigma,
++   vcov_vary_diag = diag(D)))
+> 
+> jm_est <- with(summary(JM_fit), list(
++   fixef_marker = `CoefTable-Long`[1:2, "Value"],
++   fixef_vary_marker = `CoefTable-Long`[-(1:2), "Value"],
++   fixef_surv = `CoefTable-Event`[c("Z1", "X1"), "Value"],
++   assoc = `CoefTable-Event`["Assoct", "Value"],
++   err_std = sigma,
++   vcov_vary_diag = diag(D)))
+> 
+> va_est <- with(fmt_par, list(
++   fixef_marker = markers[[1]]$fixef,
++   fixef_vary_marker = markers[[1]]$fixef_vary,
++   # we use the parameterization from JM and JMbayes
++   fixef_surv = with(
++     survival[[1]],
++     c(fixef[2], fixef[3] - associations * markers[[1]]$fixef[2])),
++   assoc =  survival[[1]]$associations,
++   err_std = sqrt(vcov$vcov_marker),
++   vcov_vary_diag = diag(vcov$vcov_vary)))
+> 
+> joineRML_est <- with(coef(joineRML_fit), list(
++   fixef_marker = beta[1:2],
++   fixef_vary_marker = beta[3:5],
++   # we use the parameterization from JM and JMbayes
++   fixef_surv = c(gamma[1], gamma[2] - gamma[3] * beta[2]),
++   assoc = gamma[3],
++   err_std = sqrt(sigma2),
++   vcov_vary_diag = diag(D)))
+> 
+> # all parameters
+> rbind(JMbayes = unlist(mcmc_est),
++       JM = unlist(jm_est),
++       VAJointSurv = unlist(va_est),
++       joineRML = unlist(joineRML_est),
++       Truth = unlist(true_vals))
+            fixef_marker.(Intercept) fixef_marker.X1
+JMbayes                      -0.5072          0.9344
+JM                           -0.5062          0.9394
+VAJointSurv                  -0.5066          0.9391
+joineRML                     -0.5066          0.9385
+Truth                        -0.5000          1.0000
+            fixef_vary_marker.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1
+JMbayes                                                                      1.437
+JM                                                                           1.310
+VAJointSurv                                                                  1.320
+joineRML                                                                     1.333
+Truth                                                                        1.400
+            fixef_vary_marker.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2
+JMbayes                                                                     -1.161
+JM                                                                          -1.103
+VAJointSurv                                                                 -1.101
+joineRML                                                                    -1.067
+Truth                                                                       -1.200
+            fixef_vary_marker.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3
+JMbayes                                                                     0.4122
+JM                                                                          0.5507
+VAJointSurv                                                                 0.5523
+joineRML                                                                    0.5980
+Truth                                                                       0.4000
+            fixef_surv.Z1 fixef_surv.X1   assoc err_std.sigma
+JMbayes            0.3741        0.9297 -0.8507        0.9669
+JM                 0.3985        1.5745 -1.5285        1.0024
+VAJointSurv        0.3966        1.5865 -1.5440        1.0023
+joineRML           0.4005        1.5826 -1.5358        1.0022
+Truth              0.4000        2.0000 -2.0000        1.0000
+            vcov_vary_diag.ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)1
+JMbayes                                                                                      0.7962
+JM                                                                                           0.5822
+VAJointSurv                                                                                  0.5630
+joineRML                                                                                     0.5146
+Truth                                                                                        0.3500
+            vcov_vary_diag.ns(time, knots = numeric(), Boundary.knots = c(1, 8), intercept = TRUE)2
+JMbayes                                                                                      0.6786
+JM                                                                                           0.1474
+VAJointSurv                                                                                  0.1480
+joineRML                                                                                     0.1451
+Truth                                                                                        0.0480
+> 
+> # the estimated association parameter with bounds
+> rbind(
++   JMbayes = summary(JMbayes_fit)$`CoefTable-Event`[
++     "Assoct", c("Value", "2.5%", "97.5%")],
++   JM = {
++     ests <- summary(JM_fit)$`CoefTable-Event`["Assoct", ]
++     ests["Value"] + c(0, -1.96, 1.96) * ests["Std.Err"]
++   },
++   VAJointSurv = c(
++     fmt_par$survival[[1]]$associations, joint_pl$confs),
++   joineRML = c(joineRML_est$assoc, NA, NA),
++   truth = c(association, NA, NA))
+              Value   2.5%   97.5%
+JMbayes     -0.8507 -1.356 -0.3093
+JM          -1.5285 -2.676 -0.3814
+VAJointSurv -1.5440 -3.061 -0.6523
+joineRML    -1.5358     NA      NA
+truth       -2.0000     NA      NA
+> 
+> # estimation times
+> rbind(JMbayes = JMbayes_time,
++       JM = JM_time,
++       VAJointSurv = VA_time,
++       joineRML = joineRML_time)[, 1:3]
+            user.self sys.self elapsed
+JMbayes        70.060    0.120  70.181
+JM            109.966    1.948 111.923
+VAJointSurv     4.204    0.003   1.164
+joineRML       67.098    0.368  67.469
+> 
+> sessionInfo()
+R version 4.1.1 (2021-08-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 20.04.3 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] parallel  splines   stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] joineRML_0.4.5       JM_1.4-8             MASS_7.3-54         
+ [4] JMbayes_0.8-85       rstan_2.21.2         ggplot2_3.3.5       
+ [7] StanHeaders_2.21.0-7 doParallel_1.0.16    iterators_1.0.13    
+[10] foreach_1.5.1        nlme_3.1-152         SimSurvNMarker_0.1.1
+[13] mvtnorm_1.1-3        VAJointSurv_0.1.0    survival_3.2-13     
+
+loaded via a namespace (and not attached):
+ [1] matrixStats_0.60.1  RColorBrewer_1.1-2  tools_4.1.1        
+ [4] backports_1.3.0     utf8_1.2.1          R6_2.5.1           
+ [7] rpart_4.1-15        Hmisc_4.6-0         colorspace_2.0-2   
+[10] nnet_7.3-16         withr_2.4.2         tidyselect_1.1.1   
+[13] gridExtra_2.3       prettyunits_1.1.1   processx_3.5.2     
+[16] curl_4.3.2          compiler_4.1.1      cli_3.0.1          
+[19] quantreg_5.86       htmlTable_2.3.0     jagsUI_1.5.2       
+[22] SparseM_1.81        scales_1.1.1        checkmate_2.0.0    
+[25] callr_3.7.0         stringr_1.4.0       digest_0.6.28      
+[28] minqa_1.2.4         foreign_0.8-81      base64enc_0.1-3    
+[31] jpeg_0.1-9          pkgconfig_2.0.3     htmltools_0.5.2    
+[34] lme4_1.1-27.1       fastmap_1.1.0       htmlwidgets_1.5.3  
+[37] rlang_0.4.11        rstudioapi_0.13     generics_0.1.0     
+[40] jsonlite_1.7.2      dplyr_1.0.7         inline_0.3.19      
+[43] magrittr_2.0.1      Formula_1.2-4       loo_2.4.1          
+[46] Matrix_1.3-4        Rcpp_1.0.7          munsell_0.5.0      
+[49] fansi_0.5.0         lifecycle_1.0.1     stringi_1.7.4      
+[52] pkgbuild_1.2.0      grid_4.1.1          crayon_1.4.1       
+[55] lattice_0.20-45     knitr_1.36          ps_1.6.0           
+[58] pillar_1.6.3        randtoolbox_1.30.1  boot_1.3-28        
+[61] psqn_0.2.2          codetools_0.2-18    stats4_4.1.1       
+[64] glue_1.4.2          cobs_1.3-4          V8_3.6.0           
+[67] latticeExtra_0.6-29 data.table_1.14.0   RcppParallel_5.1.4 
+[70] nloptr_1.2.2.2      png_0.1-7           vctrs_0.3.8        
+[73] MatrixModels_0.5-0  gtable_0.3.0        purrr_0.3.4        
+[76] xfun_0.26           rngWELL_0.10-6      xtable_1.8-4       
+[79] coda_0.19-4         rjags_4-12          tibble_3.1.5       
+[82] conquer_1.0.2       cluster_2.1.2       ellipsis_0.3.2     
+> 
+> proc.time()
+   user  system elapsed 
+ 264.77    2.62  257.01 
