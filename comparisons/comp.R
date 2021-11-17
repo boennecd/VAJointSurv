@@ -128,7 +128,7 @@ set.seed(1)
 dat <- sim_dat(400L)
 
 mean(dat$surv_data$event) # event rate
-# quantiles of the uncensored distribution
+# quantiles of the uncensored outcomes
 subset(dat$surv_data, event == 1, y, TRUE) |>
   quantile(probs = seq(0, 1, length.out = 11))
 
@@ -178,7 +178,7 @@ VA_time <- system.time({
 VA_time # estimation time
 
 # check the results
-opt_out$convergence # convergence code
+opt_out$convergence # did it converge?
 fmt_par <- joint_ms_format(comp_obj, opt_out$par)
 
 fmt_par$markers
