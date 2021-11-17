@@ -315,7 +315,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' constructing the approximate profile likelihood curve.
 #' @param level confidence level.
 #'
-#' @importFrom stats approx qchisq splinefun qnorm
+#' @importFrom stats approx qchisq splinefun qnorm spline
 #'
 #' @export
 joint_ms_profile <- function(

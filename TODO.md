@@ -4,3 +4,4 @@
 * Go through the manual pages. 
 * Support weights.
 * Get better starting values.
+* Change the Github action to use pak again

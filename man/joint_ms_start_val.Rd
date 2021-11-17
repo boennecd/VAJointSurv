@@ -6,25 +6,49 @@
 \usage{
 joint_ms_start_val(
   object,
-  n_threads = object$max_threads,
+  par = object$start_val,
   rel_eps = 1e-08,
+  max_it = 1000L,
+  n_threads = object$max_threads,
   c1 = 1e-04,
   c2 = 0.9,
-  max_it = 1000L,
+  use_bfgs = TRUE,
+  trace = 0,
+  cg_tol = 0.5,
+  strong_wolfe = TRUE,
+  max_cg = 0,
+  pre_method = 1,
   quad_rule = object$quad_rule,
+  mask = integer(),
   cache_expansions = object$cache_expansions
 )
 }
 \arguments{
 \item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
 
-\item{n_threads}{number of threads to use.}
+\item{par}{starting value.}
 
 \item{rel_eps, c1, c2, max_it}{arguments to pass to the C++ version of
 \code{\link{psqn}}.}
 
+\item{n_threads}{number of threads to use.}
+
+\item{use_bfgs}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{trace}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{cg_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{strong_wolfe}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{max_cg}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{pre_method}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}
+
+\item{mask}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{cache_expansions}{\code{TRUE} if the expansions in the numerical
 integration in the survival parts of the lower bound should be cached (not
