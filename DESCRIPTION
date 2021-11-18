@@ -26,7 +26,7 @@ LinkingTo:
     RcppArmadillo,
     RcppEigen,
     testthat, 
-    psqn (>= 0.2.2)
+    psqn (>= 0.3.0)
 Imports: 
     Rcpp,
     splines,
@@ -34,7 +34,8 @@ Imports:
     stats,
     SimSurvNMarker,
     psqn,
-    Matrix
+    Matrix,
+    methods
 Suggests: 
     rmarkdown,
     knitr,

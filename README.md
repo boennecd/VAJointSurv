@@ -300,7 +300,9 @@ this section. The examples includes:
     [Two Markers and a Recurrent
     Event](#two-markers-and-a-recurrent-event) section. The section also
     includes an example of how to construct approximate profile
-    likelihood based confidence intervals.
+    likelihood based confidence intervals and how to obtain Wald type
+    tests and confidence from the observed information matrix from the
+    `joint_ms_hess` function.
   - An example with two markers, the observation process, and a terminal
     event is given in the [Two Markers, the Observation Time Process,
     and a Terminal
@@ -1602,7 +1604,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.418   0.000   0.632
+#>   2.405   0.005   0.636
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1622,7 +1624,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  15.687   0.008   3.925
+#>  14.939   0.000   3.738
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1635,7 +1637,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  74.366   0.008  18.596
+#>  68.361   0.008  17.095
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1830,6 +1832,100 @@ with(prof_conf, {
 ```
 
 ![](man/figures/README-res_joint_ms_profile-1.png)<!-- -->
+
+#### Observed Information Matrix and Approximate Wald Intervals
+
+The package also supplies an approximation of the observed information
+matrix and the full Hessian of all the parameters. This is illustrated
+below.
+
+``` r
+# compute the Hessian
+system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
+#>    user  system elapsed 
+#>  20.390   0.036  20.427
+
+# compute the covariance matrix from the approximate observed information matrix
+dim(hess$hessian_all) # the full matrix! 
+#> [1] 20029 20029
+# the part only for the model parameters accounting for the variational 
+# parameters
+dim(hess$hessian)
+#> [1] 29 29
+obs_mat <- -hess$hessian # the observed information matrix
+SEs <- sqrt(diag(solve(-obs_mat))) # approximate standard errors
+
+# confidence interval for the association parameters based on Wald 
+# approximations
+idx_assoc <- comp_obj$indices$survival[[1]]$associations
+
+# the intervals 
+matrix(opt_out$par[idx_assoc] + outer(SEs[idx_assoc], c(-1, 1) * 1.96), 2,
+       dimnames = list(c("alpha_1", "alpha_2"), 
+                       sprintf("%.2f pct", c(2.5, 97.5))))
+#>         2.50 pct 97.50 pct
+#> alpha_1  -1.0634   -0.3992
+#> alpha_2   0.6314    0.7785
+
+# we can do this for all parameters. We illustrate this by showing the
+# estimates along with standard errors
+do_comb <- function(est, se){
+  if(is.list(est))
+    setNames(mapply(do_comb, est, se, SIMPLIFY = FALSE), names(est))
+  else 
+    rbind(Estimates = est, SE = se)
+}
+
+par_fmt <- joint_ms_format(comp_obj, opt_out$par)
+par_fmt_SE <- joint_ms_format(comp_obj, SEs)
+do_comb(par_fmt[c("markers", "survival")], par_fmt_SE[c("markers", "survival")])
+#> $markers
+#> $markers[[1]]
+#> $markers[[1]]$fixef
+#>               [,1]    [,2]
+#> Estimates -0.49240 1.01708
+#> SE         0.04693 0.01205
+#> 
+#> $markers[[1]]$fixef_vary
+#>              [,1]    [,2]     [,3]
+#> Estimates 1.40252 -1.1904 -2.03132
+#> SE        0.05532  0.1179  0.04511
+#> 
+#> 
+#> $markers[[2]]
+#> $markers[[2]]$fixef
+#>              [,1]
+#> Estimates 0.24409
+#> SE        0.03147
+#> 
+#> $markers[[2]]$fixef_vary
+#>             [,1]    [,2]
+#> Estimates 0.6130 0.62810
+#> SE        0.0616 0.02979
+#> 
+#> 
+#> 
+#> $survival
+#> $survival[[1]]
+#> $survival[[1]]$fixef
+#>               [,1]    [,2]
+#> Estimates -0.50662 0.26122
+#> SE         0.04755 0.05063
+#> 
+#> $survival[[1]]$fixef_vary
+#>              [,1]    [,2]    [,3]
+#> Estimates 0.40358 0.07527 0.03279
+#> SE        0.05954 0.08391 0.02595
+#> 
+#> $survival[[1]]$associations
+#>              [,1]    [,2]
+#> Estimates -0.7313 0.70496
+#> SE         0.1694 0.03751
+```
+
+We can compute standard error estimates for the covariance matrices’
+parameters but this requires an application of the delta method because
+of the parameterizaiotn of the covariance matrices.
 
 ### Two Markers, the Observation Time Process, and a Terminal Event
 

@@ -218,6 +218,44 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
                       quad_rule = quad_rule, cache_expansions = cache_expansions)
 }
 
+#' Computes the Hessian
+#'
+#' @inheritParams joint_ms_lb
+#' @param eps,scale,tol,order parameter to pass to psqn. See
+#' \code{\link{psqn_hess}}.
+#'
+#' @import methods
+#' @importFrom Matrix solve
+#' @importMethodsFrom Matrix solve
+#' @export
+joint_ms_hess <- function(
+  object, par, quad_rule = object$quad_rule,
+  cache_expansions = object$cache_expansions, eps = 1e-4, scale = 2,
+  tol = .Machine$double.eps^(3/5), order = 6L){
+  stopifnot(inherits(object, "joint_ms"))
+
+  quad_rule <- set_n_check_quad_rule(quad_rule)
+
+  res <- .joint_ms_hess(val = par, ptr = object$ptr, quad_rule =  quad_rule,
+                        cache_expansions = cache_expansions, eps = eps,
+                        scale = scale, tol = tol, order = order)
+
+  # try to compute
+  is_global <- 1:(object$indices$va_params_start - 1L)
+  hess_model_par <- try({
+    v1 <- res[is_global, -is_global] %*% solve(
+      res[-is_global, -is_global], res[-is_global, is_global])
+    res[is_global, is_global] - v1
+  }, silent = TRUE)
+
+  if(inherits(hess_model_par, "try-error")){
+    warning("Failed to compute the hessian of the model parametes")
+    hess_model_par <- matrix(NA, length(is_global), length(is_global))
+  }
+
+  list(hessian = hess_model_par, hessian_all = res)
+}
+
 #' Optimizes the Lower Bound
 #'
 #' @inheritParams joint_ms_lb

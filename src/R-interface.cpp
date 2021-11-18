@@ -712,6 +712,23 @@ NumericVector joint_ms_eval_lb_gr
   return grad;
 }
 
+/// computes the Hessian with numerical differentiation
+// [[Rcpp::export(".joint_ms_hess", rng = false)]]
+Eigen::SparseMatrix<double> joint_ms_hess
+  (NumericVector val, SEXP ptr,  List quad_rule, bool const cache_expansions,
+   double const eps, double const scale, double const tol,
+   unsigned const order){
+  Rcpp::XPtr<problem_data> obj(ptr);
+  check_par_length(*obj, val);
+
+  survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
+  cur_quad_rule = &quad_rule_use;
+
+  set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
+
+  return obj->optim().true_hess_sparse(&val[0], eps, scale, tol, order);
+}
+
 /// returns the names of the parameters
 // [[Rcpp::export(rng = false)]]
 List joint_ms_parameter_names(SEXP ptr){

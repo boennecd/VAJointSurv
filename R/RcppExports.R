@@ -25,6 +25,10 @@ joint_ms_eval_lb_gr <- function(val, ptr, n_threads, quad_rule, cache_expansions
     .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads, quad_rule, cache_expansions)
 }
 
+.joint_ms_hess <- function(val, ptr, quad_rule, cache_expansions, eps, scale, tol, order) {
+    .Call(`_VAJointSurv_joint_ms_hess`, val, ptr, quad_rule, cache_expansions, eps, scale, tol, order)
+}
+
 joint_ms_parameter_names <- function(ptr) {
     .Call(`_VAJointSurv_joint_ms_parameter_names`, ptr)
 }

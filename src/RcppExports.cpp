@@ -86,6 +86,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// joint_ms_hess
+Eigen::SparseMatrix<double> joint_ms_hess(NumericVector val, SEXP ptr, List quad_rule, bool const cache_expansions, double const eps, double const scale, double const tol, unsigned const order);
+RcppExport SEXP _VAJointSurv_joint_ms_hess(SEXP valSEXP, SEXP ptrSEXP, SEXP quad_ruleSEXP, SEXP cache_expansionsSEXP, SEXP epsSEXP, SEXP scaleSEXP, SEXP tolSEXP, SEXP orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type val(valSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ptr(ptrSEXP);
+    Rcpp::traits::input_parameter< List >::type quad_rule(quad_ruleSEXP);
+    Rcpp::traits::input_parameter< bool const >::type cache_expansions(cache_expansionsSEXP);
+    Rcpp::traits::input_parameter< double const >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< double const >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< double const >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< unsigned const >::type order(orderSEXP);
+    rcpp_result_gen = Rcpp::wrap(joint_ms_hess(val, ptr, quad_rule, cache_expansions, eps, scale, tol, order));
+    return rcpp_result_gen;
+END_RCPP
+}
 // joint_ms_parameter_names
 List joint_ms_parameter_names(SEXP ptr);
 RcppExport SEXP _VAJointSurv_joint_ms_parameter_names(SEXP ptrSEXP) {
@@ -208,6 +225,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_VAJointSurv_joint_ms_n_terms", (DL_FUNC) &_VAJointSurv_joint_ms_n_terms, 1},
     {"_VAJointSurv_joint_ms_eval_lb", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb, 5},
     {"_VAJointSurv_joint_ms_eval_lb_gr", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb_gr, 5},
+    {"_VAJointSurv_joint_ms_hess", (DL_FUNC) &_VAJointSurv_joint_ms_hess, 8},
     {"_VAJointSurv_joint_ms_parameter_names", (DL_FUNC) &_VAJointSurv_joint_ms_parameter_names, 1},
     {"_VAJointSurv_joint_ms_parameter_indices", (DL_FUNC) &_VAJointSurv_joint_ms_parameter_indices, 1},
     {"_VAJointSurv_joint_ms_n_params", (DL_FUNC) &_VAJointSurv_joint_ms_n_params, 1},
