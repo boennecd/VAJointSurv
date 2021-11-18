@@ -217,6 +217,11 @@ with(joint_pl, {
   abline(v = confs, lty = 2)
 })
 
+# get the observed information matrix instead
+system.time(joint_obs_mat <- joint_ms_hess(comp_obj, opt_out$par))
+joint_obs_mat <- -joint_obs_mat$hessian
+joint_vcov <- solve(-joint_obs_mat)
+
 # fit the model with JMbayes
 library(JMbayes)
 
@@ -389,6 +394,45 @@ rbind(
     fmt_par$survival[[1]]$associations, joint_pl$confs),
   joineRML = c(joineRML_est$assoc, NA, NA),
   truth = c(association, NA, NA))
+
+# compare the covariance matrix estimates
+JM_vcov <- vcov(JM_fit)
+JM_vcov_keep <- which(!grepl(
+  "(^T\\.bs\\d|\\.sigma$|^B\\.D\\d)", rownames(JM_vcov)))
+JM_vcov <- JM_vcov[JM_vcov_keep, JM_vcov_keep]
+
+VA_vcov <- joint_vcov
+indices <- with(
+  comp_obj$indices, c(
+    markers[[1]]$fixef, markers[[1]]$fixef_vary,
+    survival[[1]]$fixef[-1], # the intercept
+    survival[[1]]$associations))
+VA_vcov <- VA_vcov[indices, indices]
+nams <- unlist(comp_obj$param_names$param_names)
+dimnames(VA_vcov) <- list(nams[indices], nams[indices])
+
+# compare the covariance matrix estimates (the X1 should not match because of
+# different parameterizations)
+JM_vcov
+VA_vcov
+
+# account for the different parameterizations (i.e. transform one)
+# TODO: very hard coded
+R <- diag(NCOL(VA_vcov))
+R[NCOL(R) - 1L, 2] <- -fmt_par$survival[[1]]$associations
+R[NCOL(R) - 1L, NCOL(R)] <- -fmt_par$markers[[1]]$fixef[2]
+VA_vcov <- tcrossprod(R %*% VA_vcov, R)
+
+# comparison is now valid
+JM_vcov
+VA_vcov
+
+norm(JM_vcov - VA_vcov, "F") / norm(JM_vcov, "F") # relative diff
+
+# compare the standard errors (the X1 should not match because of different
+# parameterizations)
+rbind(JM = sqrt(diag(JM_vcov)),
+      VAJointSurv = sqrt(diag(VA_vcov)))
 
 # estimation times
 rbind(JMbayes = JMbayes_time,

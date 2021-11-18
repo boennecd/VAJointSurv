@@ -264,7 +264,8 @@ public:
       auto const idx_knot_start =
         ([&]{
           auto knot_j = std::upper_bound(knots.begin(), knots.end(), lim);
-          return std::distance(knots.begin(), knot_j) - 1;
+          return static_cast<vajoint_uint>
+            (std::distance(knots.begin(), knot_j) - 1);
         })();
 
       // x is too small for these basis function to be active

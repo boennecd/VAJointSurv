@@ -13,7 +13,8 @@ time-varying effects are splines. The output is shown in the
 [`comp.Rout`](comp.Rout) file  and the plots are in 
 [`comp.pdf`](comp.pdf).
 
-The output is created by calling the following commands on Ubuntu
+In both cases, the main output is at the end of the files. The output is created 
+by calling the following commands on Ubuntu
 
 ```bash
 R CMD BATCH --no-save --no-restore comp-simple.R

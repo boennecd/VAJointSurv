@@ -1,5 +1,5 @@
 
-R version 4.1.1 (2021-08-10) -- "Kick Things"
+R version 4.1.2 (2021-11-01) -- "Bird Hippie"
 Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -149,7 +149,7 @@ Loading required package: survival
 > 
 > mean(dat$surv_data$event) # event rate
 [1] 0.565
-> # quantiles of the uncensored distribution
+> # quantiles of the uncensored outcomes
 > subset(dat$surv_data, event == 1, y, TRUE) |>
 +   quantile(probs = seq(0, 1, length.out = 11))
      0%     10%     20%     30%     40%     50%     60%     70%     80%     90% 
@@ -205,10 +205,10 @@ Loading required package: survival
 + })
 > VA_time # estimation time
    user  system elapsed 
-  4.204   0.003   1.164 
+  4.215   0.003   1.177 
 > 
 > # check the results
-> opt_out$convergence # convergence code
+> opt_out$convergence # did it converge?
 [1] TRUE
 > fmt_par <- joint_ms_format(comp_obj, opt_out$par)
 > 
@@ -324,7 +324,7 @@ LogLike: -2112.1832 at        -2.998434. Lb, target, ub: -2113.0801, -2112.2772,
 LogLike: -2112.3528 at        -3.110393. Lb, target, ub: -2112.3528, -2112.2772, -2112.1832
 LogLike: -2110.3565 at        -1.544001
    user  system elapsed 
-  9.639   0.015   2.418 
+  9.728   0.024   2.441 
 > joint_pl$confs # the confidence interval
  2.50 pct. 97.50 pct. 
    -3.0609    -0.6523 
@@ -338,6 +338,13 @@ LogLike: -2110.3565 at        -1.544001
 +   lines(predict(smooth_est, seq(min(xs), max(xs), length.out = 100)))
 +   abline(v = confs, lty = 2)
 + })
+> 
+> # get the observed information matrix instead
+> system.time(joint_obs_mat <- joint_ms_hess(comp_obj, opt_out$par))
+   user  system elapsed 
+  0.614   0.008   0.623 
+> joint_obs_mat <- -joint_obs_mat$hessian
+> joint_vcov <- solve(-joint_obs_mat)
 > 
 > # fit the model with JMbayes
 > library(JMbayes)
@@ -385,10 +392,10 @@ rstan_options(auto_write = TRUE)
 > 
 > JMbayes_time # estimation time
    user  system elapsed 
-  70.06    0.12   70.18 
+ 68.067   0.081  68.145 
 > JMbayes_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  60.29 
+   57.9 
 > 
 > # compare estimates
 > summary(JMbayes_fit)
@@ -584,10 +591,10 @@ The following objects are masked from ‘package:JMbayes’:
 > 
 > JM_time # the estimation time
    user  system elapsed 
-109.966   1.948 111.923 
+108.184   1.411 109.594 
 > JM_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  96.15 
+  93.11 
 > 
 > # the estimates
 > summary(JM_fit)
@@ -662,7 +669,7 @@ Convergence: 0
 > # the two are not directly comparable because of different baseline hazards
 > print(JM_fit$logLik, digits = 6) # maximum log likelihood estimate
 [1] -2109.21
-> print(-opt_out$value, digits = 6) # the lower bound on maximum log likelihood
+> print(-opt_out$value, digits = 6) # the lower bound on the maximum log likelihood
 [1] -2110.36
 > 
 > # fit the model with joineRML
@@ -670,8 +677,8 @@ Convergence: 0
 > set.seed(1)
 > gc()
           used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 2744832 146.6    4176874 223.1  4176874 223.1
-Vcells 7012091  53.5   25459538 194.3 33067106 252.3
+Ncells 2757021 147.3    4223027 225.6  4223027 225.6
+Vcells 7037585  53.7   25496301 194.6 33114975 252.7
 > joineRML_time <- system.time(
 +   joineRML_fit <- mjoint(
 +     formLongFixed =
@@ -688,10 +695,10 @@ EM algorithm has converged!
 > 
 > joineRML_time # the estimation time
    user  system elapsed 
- 67.098   0.368  67.469 
+ 65.372   0.436  65.807 
 > joineRML_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  57.96 
+  55.91 
 > 
 > # look at the estimates
 > summary(joineRML_fit)
@@ -885,19 +892,218 @@ VAJointSurv -1.5440 -3.061 -0.6523
 joineRML    -1.5358     NA      NA
 truth       -2.0000     NA      NA
 > 
+> # compare the covariance matrix estimates
+> JM_vcov <- vcov(JM_fit)
+> JM_vcov_keep <- which(!grepl(
++   "(^T\\.bs\\d|\\.sigma$|^B\\.D\\d)", rownames(JM_vcov)))
+> JM_vcov <- JM_vcov[JM_vcov_keep, JM_vcov_keep]
+> 
+> VA_vcov <- joint_vcov
+> indices <- with(
++   comp_obj$indices, c(
++     markers[[1]]$fixef, markers[[1]]$fixef_vary,
++     survival[[1]]$fixef[-1], # the intercept
++     survival[[1]]$associations))
+> VA_vcov <- VA_vcov[indices, indices]
+> nams <- unlist(comp_obj$param_names$param_names)
+> dimnames(VA_vcov) <- list(nams[indices], nams[indices])
+> 
+> # compare the covariance matrix estimates (the X1 should not match because of
+> # different parameterizations)
+> JM_vcov
+                                                       Y.(Intercept)       Y.X1
+Y.(Intercept)                                              1.781e-03  5.357e-05
+Y.X1                                                       5.357e-05  1.415e-03
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1    -4.124e-03  3.362e-04
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2    -1.307e-03  3.888e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3    -1.901e-03 -2.808e-05
+T.Z1                                                      -2.695e-05 -1.950e-05
+T.X1                                                      -5.691e-04  1.536e-03
+T.alpha                                                    6.506e-04  4.860e-06
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1
+Y.(Intercept)                                                                                      -0.0041242
+Y.X1                                                                                                0.0003362
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              0.0597569
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              0.0228033
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              0.0208560
+T.Z1                                                                                               -0.0001883
+T.X1                                                                                               -0.0245473
+T.alpha                                                                                             0.0265433
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2
+Y.(Intercept)                                                                                      -1.307e-03
+Y.X1                                                                                                3.888e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              2.280e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              7.845e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              1.066e-01
+T.Z1                                                                                                2.657e-03
+T.X1                                                                                               -1.224e-02
+T.alpha                                                                                             1.459e-02
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3
+Y.(Intercept)                                                                                      -1.901e-03
+Y.X1                                                                                               -2.808e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              2.086e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              1.066e-01
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              1.660e-01
+T.Z1                                                                                                4.499e-03
+T.X1                                                                                               -2.806e-03
+T.alpha                                                                                             5.504e-03
+                                                             T.Z1       T.X1
+Y.(Intercept)                                          -2.695e-05 -0.0005691
+Y.X1                                                   -1.950e-05  0.0015359
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1 -1.883e-04 -0.0245473
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  2.657e-03 -0.0122438
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  4.499e-03 -0.0028060
+T.Z1                                                    1.751e-02  0.0080394
+T.X1                                                    8.039e-03  0.3139561
+T.alpha                                                -9.150e-03 -0.3240392
+                                                          T.alpha
+Y.(Intercept)                                           6.506e-04
+Y.X1                                                    4.860e-06
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  2.654e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  1.459e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  5.504e-03
+T.Z1                                                   -9.150e-03
+T.X1                                                   -3.240e-01
+T.alpha                                                 3.425e-01
+> VA_vcov
+                  mark1_fixef1 mark1_fixef2 mark1_fixef_vary1 mark1_fixef_vary2
+mark1_fixef1         1.778e-03    5.322e-05        -4.139e-03        -1.366e-03
+mark1_fixef2         5.322e-05    1.411e-03         3.611e-04         9.685e-05
+mark1_fixef_vary1   -4.139e-03    3.611e-04         5.820e-02         2.078e-02
+mark1_fixef_vary2   -1.366e-03    9.685e-05         2.078e-02         7.257e-02
+mark1_fixef_vary3   -1.972e-03    5.040e-05         1.855e-02         9.855e-02
+surv1_fixef2        -2.838e-05   -1.931e-05        -4.405e-06         2.796e-03
+surv1_fixef3        -4.082e-05   -6.154e-04        -1.186e-04         1.264e-03
+surv1_assoc1_1       6.661e-04    8.032e-05         1.672e-02        -1.048e-03
+                  mark1_fixef_vary3 surv1_fixef2 surv1_fixef3 surv1_assoc1_1
+mark1_fixef1             -0.0019722   -2.838e-05   -4.082e-05      6.661e-04
+mark1_fixef2              0.0000504   -1.931e-05   -6.154e-04      8.032e-05
+mark1_fixef_vary1         0.0185516   -4.405e-06   -1.186e-04      1.672e-02
+mark1_fixef_vary2         0.0985512    2.796e-03    1.264e-03     -1.048e-03
+mark1_fixef_vary3         0.1547956    4.626e-03    2.188e-03     -1.403e-02
+surv1_fixef2              0.0046259    1.755e-02   -5.373e-04     -8.539e-03
+surv1_fixef3              0.0021880   -5.373e-04    6.010e-03     -2.382e-03
+surv1_assoc1_1           -0.0140254   -8.539e-03   -2.382e-03      2.985e-01
+> 
+> # account for the different parameterizations (i.e. transform one)
+> # TODO: very hard coded
+> R <- diag(NCOL(VA_vcov))
+> R[NCOL(R) - 1L, 2] <- -fmt_par$survival[[1]]$associations
+> R[NCOL(R) - 1L, NCOL(R)] <- -fmt_par$markers[[1]]$fixef[2]
+> VA_vcov <- tcrossprod(R %*% VA_vcov, R)
+> 
+> # comparison is now valid
+> JM_vcov
+                                                       Y.(Intercept)       Y.X1
+Y.(Intercept)                                              1.781e-03  5.357e-05
+Y.X1                                                       5.357e-05  1.415e-03
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1    -4.124e-03  3.362e-04
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2    -1.307e-03  3.888e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3    -1.901e-03 -2.808e-05
+T.Z1                                                      -2.695e-05 -1.950e-05
+T.X1                                                      -5.691e-04  1.536e-03
+T.alpha                                                    6.506e-04  4.860e-06
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1
+Y.(Intercept)                                                                                      -0.0041242
+Y.X1                                                                                                0.0003362
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              0.0597569
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              0.0228033
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              0.0208560
+T.Z1                                                                                               -0.0001883
+T.X1                                                                                               -0.0245473
+T.alpha                                                                                             0.0265433
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2
+Y.(Intercept)                                                                                      -1.307e-03
+Y.X1                                                                                                3.888e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              2.280e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              7.845e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              1.066e-01
+T.Z1                                                                                                2.657e-03
+T.X1                                                                                               -1.224e-02
+T.alpha                                                                                             1.459e-02
+                                                       Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3
+Y.(Intercept)                                                                                      -1.901e-03
+Y.X1                                                                                               -2.808e-05
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1                                              2.086e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2                                              1.066e-01
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3                                              1.660e-01
+T.Z1                                                                                                4.499e-03
+T.X1                                                                                               -2.806e-03
+T.alpha                                                                                             5.504e-03
+                                                             T.Z1       T.X1
+Y.(Intercept)                                          -2.695e-05 -0.0005691
+Y.X1                                                   -1.950e-05  0.0015359
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1 -1.883e-04 -0.0245473
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  2.657e-03 -0.0122438
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  4.499e-03 -0.0028060
+T.Z1                                                    1.751e-02  0.0080394
+T.X1                                                    8.039e-03  0.3139561
+T.alpha                                                -9.150e-03 -0.3240392
+                                                          T.alpha
+Y.(Intercept)                                           6.506e-04
+Y.X1                                                    4.860e-06
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1  2.654e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2  1.459e-02
+Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3  5.504e-03
+T.Z1                                                   -9.150e-03
+T.X1                                                   -3.240e-01
+T.alpha                                                 3.425e-01
+> VA_vcov
+           [,1]       [,2]       [,3]       [,4]       [,5]       [,6]
+[1,]  1.778e-03  5.322e-05 -4.139e-03 -1.366e-03 -0.0019722 -2.838e-05
+[2,]  5.322e-05  1.411e-03  3.611e-04  9.685e-05  0.0000504 -1.931e-05
+[3,] -4.139e-03  3.611e-04  5.820e-02  2.078e-02  0.0185516 -4.405e-06
+[4,] -1.366e-03  9.685e-05  2.078e-02  7.257e-02  0.0985512  2.796e-03
+[5,] -1.972e-03  5.040e-05  1.855e-02  9.855e-02  0.1547956  4.626e-03
+[6,] -2.838e-05 -1.931e-05 -4.405e-06  2.796e-03  0.0046259  1.755e-02
+[7,] -5.842e-04  1.487e-03 -1.526e-02  2.398e-03  0.0154372  7.452e-03
+[8,]  6.661e-04  8.032e-05  1.672e-02 -1.048e-03 -0.0140254 -8.539e-03
+           [,7]       [,8]
+[1,] -0.0005842  6.661e-04
+[2,]  0.0014870  8.032e-05
+[3,] -0.0152627  1.672e-02
+[4,]  0.0023978 -1.048e-03
+[5,]  0.0154372 -1.403e-02
+[6,]  0.0074520 -8.539e-03
+[7,]  0.2750010 -2.826e-01
+[8,] -0.2826177  2.985e-01
+> 
+> norm(JM_vcov - VA_vcov, "F") / norm(JM_vcov, "F") # relative diff
+[1] 0.1419
+> 
+> # compare the standard errors (the X1 should not match because of different
+> # parameterizations)
+> rbind(JM = sqrt(diag(JM_vcov)),
++       VAJointSurv = sqrt(diag(VA_vcov)))
+            Y.(Intercept)    Y.X1
+JM                0.04220 0.03761
+VAJointSurv       0.04217 0.03756
+            Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))1
+JM                                                          0.2445
+VAJointSurv                                                 0.2412
+            Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))2
+JM                                                          0.2801
+VAJointSurv                                                 0.2694
+            Y.ns(time, knots = c(3, 5), Boundary.knots = c(1, 8))3   T.Z1
+JM                                                          0.4074 0.1323
+VAJointSurv                                                 0.3934 0.1325
+              T.X1 T.alpha
+JM          0.5603  0.5853
+VAJointSurv 0.5244  0.5464
+> 
 > # estimation times
 > rbind(JMbayes = JMbayes_time,
 +       JM = JM_time,
 +       VAJointSurv = VA_time,
 +       joineRML = joineRML_time)[, 1:3]
             user.self sys.self elapsed
-JMbayes        70.060    0.120  70.181
-JM            109.966    1.948 111.923
-VAJointSurv     4.204    0.003   1.164
-joineRML       67.098    0.368  67.469
+JMbayes        68.067    0.081  68.145
+JM            108.184    1.411 109.594
+VAJointSurv     4.215    0.003   1.177
+joineRML       65.372    0.436  65.807
 > 
 > sessionInfo()
-R version 4.1.1 (2021-08-10)
+R version 4.1.2 (2021-11-01)
 Platform: x86_64-pc-linux-gnu (64-bit)
 Running under: Ubuntu 20.04.3 LTS
 
@@ -925,35 +1131,35 @@ other attached packages:
 [13] mvtnorm_1.1-3        VAJointSurv_0.1.0    survival_3.2-13     
 
 loaded via a namespace (and not attached):
- [1] matrixStats_0.60.1  RColorBrewer_1.1-2  tools_4.1.1        
- [4] backports_1.3.0     utf8_1.2.1          R6_2.5.1           
+ [1] matrixStats_0.60.1  RColorBrewer_1.1-2  tools_4.1.2        
+ [4] backports_1.3.0     utf8_1.2.2          R6_2.5.1           
  [7] rpart_4.1-15        Hmisc_4.6-0         colorspace_2.0-2   
 [10] nnet_7.3-16         withr_2.4.2         tidyselect_1.1.1   
 [13] gridExtra_2.3       prettyunits_1.1.1   processx_3.5.2     
-[16] curl_4.3.2          compiler_4.1.1      cli_3.0.1          
+[16] curl_4.3.2          compiler_4.1.2      cli_3.1.0          
 [19] quantreg_5.86       htmlTable_2.3.0     jagsUI_1.5.2       
 [22] SparseM_1.81        scales_1.1.1        checkmate_2.0.0    
 [25] callr_3.7.0         stringr_1.4.0       digest_0.6.28      
 [28] minqa_1.2.4         foreign_0.8-81      base64enc_0.1-3    
 [31] jpeg_0.1-9          pkgconfig_2.0.3     htmltools_0.5.2    
 [34] lme4_1.1-27.1       fastmap_1.1.0       htmlwidgets_1.5.3  
-[37] rlang_0.4.11        rstudioapi_0.13     generics_0.1.0     
+[37] rlang_0.4.12        rstudioapi_0.13     generics_0.1.0     
 [40] jsonlite_1.7.2      dplyr_1.0.7         inline_0.3.19      
 [43] magrittr_2.0.1      Formula_1.2-4       loo_2.4.1          
 [46] Matrix_1.3-4        Rcpp_1.0.7          munsell_0.5.0      
-[49] fansi_0.5.0         lifecycle_1.0.1     stringi_1.7.4      
-[52] pkgbuild_1.2.0      grid_4.1.1          crayon_1.4.1       
+[49] fansi_0.5.0         lifecycle_1.0.1     stringi_1.7.5      
+[52] pkgbuild_1.2.0      grid_4.1.2          crayon_1.4.2       
 [55] lattice_0.20-45     knitr_1.36          ps_1.6.0           
-[58] pillar_1.6.3        randtoolbox_1.30.1  boot_1.3-28        
-[61] psqn_0.2.2          codetools_0.2-18    stats4_4.1.1       
-[64] glue_1.4.2          cobs_1.3-4          V8_3.6.0           
+[58] pillar_1.6.4        randtoolbox_1.30.1  boot_1.3-28        
+[61] psqn_0.3.0          codetools_0.2-18    stats4_4.1.2       
+[64] glue_1.5.0          cobs_1.3-4          V8_3.6.0           
 [67] latticeExtra_0.6-29 data.table_1.14.0   RcppParallel_5.1.4 
 [70] nloptr_1.2.2.2      png_0.1-7           vctrs_0.3.8        
 [73] MatrixModels_0.5-0  gtable_0.3.0        purrr_0.3.4        
-[76] xfun_0.26           rngWELL_0.10-6      xtable_1.8-4       
-[79] coda_0.19-4         rjags_4-12          tibble_3.1.5       
+[76] xfun_0.28           rngWELL_0.10-6      xtable_1.8-4       
+[79] coda_0.19-4         rjags_4-12          tibble_3.1.6       
 [82] conquer_1.0.2       cluster_2.1.2       ellipsis_0.3.2     
 > 
 > proc.time()
    user  system elapsed 
- 264.77    2.62  257.01 
+260.159   2.036 251.753 
