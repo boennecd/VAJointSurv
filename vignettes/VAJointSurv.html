@@ -455,7 +455,7 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
 <li>Only one marker in the <a href="#univariate-marker-example">Univariate Marker Example</a> section where we can compare with lme4. The section also includes some remarks about the implemented expansions.</li>
 <li>Two markers in the <a href="#two-markers">Two Markers</a> section.</li>
 <li>A recurrent event in the <a href="#recurrent-event">Recurrent Event</a> section. It is also shown how to change the quadrature rule that is used to approximate the approximate expected cumulative hazard.</li>
-<li>An example with two markers and a recurrent event is given in the <a href="#two-markers-and-a-recurrent-event">Two Markers and a Recurrent Event</a> section. The section also includes an example of how to construct approximate profile likelihood based confidence intervals and how to obtain Wald type tests and confidence from the observed information matrix from the <code>joint_ms_hess</code> function.</li>
+<li>An example with two markers and a recurrent event is given in the <a href="#two-markers-and-a-recurrent-event">Two Markers and a Recurrent Event</a> section. The section also includes an example of how to construct approximate profile likelihood based confidence intervals and how to obtain Wald type tests and confidence intervals from the observed information matrix.</li>
 <li>An example with two markers, the observation process, and a terminal event is given in the <a href="#two-markers-the-observation-time-process-and-a-terminal-event">Two Markers, the Observation Time Process, and a Terminal Event</a> section. The observation time process and the markers are not marginally independent in the true model. Thus, they need to be modeled together or the dependence accounted for in some other way. Examples and comments regarding caching of the expansions are also provided.</li>
 <li>A similar example is provided in the <a href="#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies">Two Markers, the Observation Time Process, a Terminal Event and Mixed Dependencies</a> section but where a mixture of the cumulative, the present value, and the derivative is used in the sub-survival models.</li>
 </ul>
@@ -547,7 +547,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #&gt;    user  system elapsed 
-#&gt;   0.839   0.008   0.856
+#&gt;   0.888   0.004   0.892
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -563,12 +563,12 @@ system.time(comp_obj &lt;- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #&gt;    user  system elapsed 
-#&gt;   0.095   0.000   0.094
+#&gt;   0.094   0.000   0.094
 
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.123   0.000   0.035
+#&gt;   0.125   0.000   0.034
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -588,7 +588,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   8.271   0.007   2.072
+#&gt;   8.157   0.000   2.041
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -603,7 +603,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #&gt;    user  system elapsed 
-#&gt;  71.501   0.008  17.932
+#&gt;  66.949   0.012  16.797
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -997,7 +997,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.121   0.000   0.032
+#&gt;   0.123   0.000   0.031
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1017,7 +1017,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   1.898   0.000   0.478
+#&gt;   1.806   0.000   0.453
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1030,7 +1030,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #&gt;    user  system elapsed 
-#&gt; 103.448   0.015  25.925
+#&gt;   93.87    0.02   23.53
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1249,7 +1249,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.079   0.000   0.023
+#&gt;   0.082   0.000   0.023
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1271,7 +1271,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   1.563   0.000   0.393
+#&gt;   1.370   0.000   0.343
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1614,7 +1614,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   2.405   0.005   0.636
+#&gt;   2.587   0.000   0.668
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1634,7 +1634,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;  14.939   0.000   3.738
+#&gt;  17.028   0.012   4.263
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1647,7 +1647,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #&gt;    user  system elapsed 
-#&gt;  68.361   0.008  17.095
+#&gt;  73.835   0.008  18.468
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1828,7 +1828,7 @@ with(prof_conf, {
 <pre class="r"><code># compute the Hessian
 system.time(hess &lt;- joint_ms_hess(comp_obj, par = opt_out$par))
 #&gt;    user  system elapsed 
-#&gt;  20.390   0.036  20.427
+#&gt;   9.902   0.016   9.921
 
 # compute the covariance matrix from the approximate observed information matrix
 dim(hess$hessian_all) # the full matrix! 
@@ -1863,50 +1863,62 @@ do_comb &lt;- function(est, se){
 
 par_fmt &lt;- joint_ms_format(comp_obj, opt_out$par)
 par_fmt_SE &lt;- joint_ms_format(comp_obj, SEs)
-do_comb(par_fmt[c(&quot;markers&quot;, &quot;survival&quot;)], par_fmt_SE[c(&quot;markers&quot;, &quot;survival&quot;)])
-#&gt; $markers
-#&gt; $markers[[1]]
-#&gt; $markers[[1]]$fixef
+est_n_se &lt;- 
+  do_comb(par_fmt[c(&quot;markers&quot;, &quot;survival&quot;)], par_fmt_SE[c(&quot;markers&quot;, &quot;survival&quot;)])
+
+# show the result
+est_n_se$markers[[1]]
+#&gt; $fixef
 #&gt;               [,1]    [,2]
 #&gt; Estimates -0.49240 1.01708
 #&gt; SE         0.04693 0.01205
 #&gt; 
-#&gt; $markers[[1]]$fixef_vary
+#&gt; $fixef_vary
 #&gt;              [,1]    [,2]     [,3]
 #&gt; Estimates 1.40252 -1.1904 -2.03132
 #&gt; SE        0.05532  0.1179  0.04511
-#&gt; 
-#&gt; 
-#&gt; $markers[[2]]
-#&gt; $markers[[2]]$fixef
+fixef_marker[[1]]
+#&gt; [1] -0.5  1.0
+fixef_vary_marker[[1]]
+#&gt; [1]  1.4 -1.2 -2.1
+
+est_n_se$markers[[2]]
+#&gt; $fixef
 #&gt;              [,1]
 #&gt; Estimates 0.24409
 #&gt; SE        0.03147
 #&gt; 
-#&gt; $markers[[2]]$fixef_vary
+#&gt; $fixef_vary
 #&gt;             [,1]    [,2]
 #&gt; Estimates 0.6130 0.62810
 #&gt; SE        0.0616 0.02979
-#&gt; 
-#&gt; 
-#&gt; 
-#&gt; $survival
-#&gt; $survival[[1]]
-#&gt; $survival[[1]]$fixef
+fixef_marker[[2]]
+#&gt; [1] 0.25
+fixef_vary_marker[[2]]
+#&gt; [1] 0.50 0.67
+
+est_n_se$survival[[1]]
+#&gt; $fixef
 #&gt;               [,1]    [,2]
 #&gt; Estimates -0.50662 0.26122
 #&gt; SE         0.04755 0.05063
 #&gt; 
-#&gt; $survival[[1]]$fixef_vary
+#&gt; $fixef_vary
 #&gt;              [,1]    [,2]    [,3]
 #&gt; Estimates 0.40358 0.07527 0.03279
 #&gt; SE        0.05954 0.08391 0.02595
 #&gt; 
-#&gt; $survival[[1]]$associations
+#&gt; $associations
 #&gt;              [,1]    [,2]
 #&gt; Estimates -0.7313 0.70496
-#&gt; SE         0.1694 0.03751</code></pre>
-<p>We can compute standard error estimates for the covariance matrices’ parameters but this requires an application of the delta method because of the parameterizaiotn of the covariance matrices.</p>
+#&gt; SE         0.1694 0.03751
+fixef_surv
+#&gt; [1] -0.50  0.25
+fixef_vary_surv
+#&gt; [1] 0.5
+associations
+#&gt; [1] -0.8  0.7</code></pre>
+<p>We can compute standard error estimates for the covariance matrices’ parameters but this requires an application of the delta method because of the parameterization of the covariance matrices.</p>
 </div>
 </div>
 <div id="two-markers-the-observation-time-process-and-a-terminal-event" class="section level3">
@@ -2201,7 +2213,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;  20.721   0.008   5.203
+#&gt;   24.59    0.02    6.18
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -2222,7 +2234,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;  95.319   0.008  23.835
+#&gt; 103.847   0.024  25.982
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2347,14 +2359,14 @@ w_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
 #&gt; # A tibble: 4 × 2
 #&gt;   expression            median
 #&gt;   &lt;bch:expr&gt;          &lt;bch:tm&gt;
-#&gt; 1 w/ caching 1 thread   7.23ms
-#&gt; 2 w/ caching 2 thread   3.81ms
-#&gt; 3 w/ caching 3 thread   2.61ms
-#&gt; 4 w/ caching 4 thread   2.16ms
+#&gt; 1 w/ caching 1 thread   7.48ms
+#&gt; 2 w/ caching 2 thread    3.9ms
+#&gt; 3 w/ caching 3 thread   2.71ms
+#&gt; 4 w/ caching 4 thread   2.29ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#&gt; [1] 298ms
+#&gt; [1] 306ms
 
 # w/o caching
 wo_caching &lt;- bench::mark(
@@ -2370,14 +2382,14 @@ wo_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
 #&gt; # A tibble: 4 × 2
 #&gt;   expression             median
 #&gt;   &lt;bch:expr&gt;           &lt;bch:tm&gt;
-#&gt; 1 w/o caching 1 thread  19.75ms
-#&gt; 2 w/o caching 2 thread  10.27ms
-#&gt; 3 w/o caching 3 thread   7.46ms
-#&gt; 4 w/o caching 4 thread    5.8ms
+#&gt; 1 w/o caching 1 thread  19.63ms
+#&gt; 2 w/o caching 2 thread   10.8ms
+#&gt; 3 w/o caching 3 thread   7.21ms
+#&gt; 4 w/o caching 4 thread   5.83ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#&gt; [1] 294ms</code></pre>
+#&gt; [1] 297ms</code></pre>
 </div>
 </div>
 <div id="two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies" class="section level3">
@@ -2687,7 +2699,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;  21.114   0.012   5.344
+#&gt;  23.266   0.009   5.874
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -2708,7 +2720,7 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt; 144.015   0.052  36.021
+#&gt;  157.59    0.02   39.43
 opt_out$info # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value

@@ -24,7 +24,7 @@ joint_ms_lb_gr(
 \arguments{
 \item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
 
-\item{par}{parameter vector the lower bound is evaluated at.}
+\item{par}{parameter vector for where the lower bound is evaluated at.}
 
 \item{n_threads}{number of threads to use.}
 

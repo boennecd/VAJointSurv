@@ -182,8 +182,7 @@ section. The examples includes:
    [Two Markers and a Recurrent Event](#two-markers-and-a-recurrent-event)
    section. The section also includes an example of how to construct approximate
    profile likelihood based confidence intervals and how to obtain Wald type 
-   tests and confidence from the observed information matrix from the 
-   `joint_ms_hess` function.
+   tests and confidence intervals from the observed information matrix.
  - An example with two markers, the observation process, and a terminal event 
    is given in the 
    [Two Markers, the Observation Time Process, and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
@@ -1335,12 +1334,27 @@ do_comb <- function(est, se){
 
 par_fmt <- joint_ms_format(comp_obj, opt_out$par)
 par_fmt_SE <- joint_ms_format(comp_obj, SEs)
-do_comb(par_fmt[c("markers", "survival")], par_fmt_SE[c("markers", "survival")])
+est_n_se <- 
+  do_comb(par_fmt[c("markers", "survival")], par_fmt_SE[c("markers", "survival")])
+
+# show the result
+est_n_se$markers[[1]]
+fixef_marker[[1]]
+fixef_vary_marker[[1]]
+
+est_n_se$markers[[2]]
+fixef_marker[[2]]
+fixef_vary_marker[[2]]
+
+est_n_se$survival[[1]]
+fixef_surv
+fixef_vary_surv
+associations
 ```
 
 We can compute standard error estimates for the covariance matrices' 
 parameters but this requires an application of the delta method because of the 
-parameterizaiotn of the covariance matrices. 
+parameterization of the covariance matrices. 
 
 ### Two Markers, the Observation Time Process, and a Terminal Event
 

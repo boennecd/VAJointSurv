@@ -188,7 +188,7 @@ joint_ms_start_val <- function(
 #'
 #' @inheritParams joint_ms_ptr
 #' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
-#' @param par parameter vector the lower bound is evaluated at.
+#' @param par parameter vector for where the lower bound is evaluated at.
 #' @param n_threads number of threads to use.
 #'
 #' @export

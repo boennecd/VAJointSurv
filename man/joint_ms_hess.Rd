@@ -18,7 +18,7 @@ joint_ms_hess(
 \arguments{
 \item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
 
-\item{par}{parameter vector the lower bound is evaluated at.}
+\item{par}{parameter vector for where the lower bound is evaluated at.}
 
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}

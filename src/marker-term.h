@@ -91,6 +91,12 @@ private:
   /// bit flags for missing variables
   std::vector<std::uint32_t> missingness{std::vector<std::uint32_t>(n_obs_v)};
 
+  /// the unique values of missingness
+  std::unordered_set<std::uint32_t> missingness_unique;
+
+  /// is missingness_unique up to date?
+  bool missingness_updated{false};
+
   /// the offsets between the time-varying random effects for each marker
   std::vector<vajoint_uint> offsets_rng;
 
@@ -186,6 +192,7 @@ public:
     outcomes.col(idx)[obs_type] = value;
     // mark as observed
     missingness[idx] &= ~(1u << obs_type);
+    missingness_updated = false;
   }
 
   /// sets the fixed effect design matrix of a given type of outcome
@@ -206,10 +213,16 @@ public:
   void setup(double const *param, double *wk_mem){
     pre_comp_dat.clear();
     // TODO: compute the unique patterns once
-    for(std::uint32_t missingness_flag : missingness)
-      if(pre_comp_dat.find(missingness_flag) == pre_comp_dat.end())
-        pre_comp_dat.emplace(
-          missingness_flag, comp_dat{param, wk_mem, par_idx, missingness_flag});
+    if(!missingness_updated){
+      for(std::uint32_t missingness_flag : missingness)
+        missingness_unique.insert(missingness_flag);
+
+      missingness_updated = true;
+    }
+
+    for(std::uint32_t missingness_flag : missingness_unique)
+      pre_comp_dat.emplace(
+        missingness_flag, comp_dat{param, wk_mem, par_idx, missingness_flag});
   }
 
   /// computes the expected log conditional density of a given observation
