@@ -1603,7 +1603,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.587   0.000   0.668
+#>   3.091   0.012   0.802
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1623,7 +1623,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  17.028   0.012   4.263
+#>  15.365   0.000   3.843
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1636,7 +1636,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  73.835   0.008  18.468
+#>  70.223   0.003  17.560
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1842,11 +1842,25 @@ below.
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>   9.902   0.016   9.921
+#>   9.568   0.024   9.594
+dim(hess$hessian_all) # the full matrix!
+#> [1] 20029 20029
+
+# compare parts it with those from numerical differentiation from R
+n_comp <- 150L
+hess_num <- numDeriv::jacobian(
+  function(x){
+    par <- opt_out$par
+    par[1:n_comp] <- x
+    joint_ms_lb_gr(comp_obj, par)[1:n_comp]
+  }, head(opt_out$par, n_comp))
+
+# did we get the same?
+all.equal(hess_num, as.matrix(hess$hessian_all[1:n_comp, 1:n_comp]), 
+          check.attributes = FALSE)
+#> [1] TRUE
 
 # compute the covariance matrix from the approximate observed information matrix
-dim(hess$hessian_all) # the full matrix! 
-#> [1] 20029 20029
 # the part only for the model parameters accounting for the variational 
 # parameters
 dim(hess$hessian)
@@ -1854,11 +1868,8 @@ dim(hess$hessian)
 obs_mat <- -hess$hessian # the observed information matrix
 SEs <- sqrt(diag(solve(-obs_mat))) # approximate standard errors
 
-# confidence interval for the association parameters based on Wald 
-# approximations
+# Wald type confidence intervals for the association parameters
 idx_assoc <- comp_obj$indices$survival[[1]]$associations
-
-# the intervals 
 matrix(opt_out$par[idx_assoc] + outer(SEs[idx_assoc], c(-1, 1) * 1.96), 2,
        dimnames = list(c("alpha_1", "alpha_2"), 
                        sprintf("%.2f pct", c(2.5, 97.5))))

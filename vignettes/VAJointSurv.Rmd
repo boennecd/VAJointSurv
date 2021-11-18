@@ -1305,20 +1305,30 @@ and the full Hessian of all the parameters. This is illustrated below.
 ```{r wald_show, cache = 1}
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
+dim(hess$hessian_all) # the full matrix!
+
+# compare parts it with those from numerical differentiation from R
+n_comp <- 150L
+hess_num <- numDeriv::jacobian(
+  function(x){
+    par <- opt_out$par
+    par[1:n_comp] <- x
+    joint_ms_lb_gr(comp_obj, par)[1:n_comp]
+  }, head(opt_out$par, n_comp))
+
+# did we get the same?
+all.equal(hess_num, as.matrix(hess$hessian_all[1:n_comp, 1:n_comp]), 
+          check.attributes = FALSE)
 
 # compute the covariance matrix from the approximate observed information matrix
-dim(hess$hessian_all) # the full matrix! 
 # the part only for the model parameters accounting for the variational 
 # parameters
 dim(hess$hessian)
 obs_mat <- -hess$hessian # the observed information matrix
 SEs <- sqrt(diag(solve(-obs_mat))) # approximate standard errors
 
-# confidence interval for the association parameters based on Wald 
-# approximations
+# Wald type confidence intervals for the association parameters
 idx_assoc <- comp_obj$indices$survival[[1]]$associations
-
-# the intervals 
 matrix(opt_out$par[idx_assoc] + outer(SEs[idx_assoc], c(-1, 1) * 1.96), 2,
        dimnames = list(c("alpha_1", "alpha_2"), 
                        sprintf("%.2f pct", c(2.5, 97.5))))
