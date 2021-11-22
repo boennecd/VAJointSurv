@@ -39,91 +39,76 @@ with details about the implementation.
 
 We assume that there are
 ![L](https://render.githubusercontent.com/render/math?math=L "L")
-observed markers at each time point. We let ![\\vec
-Y\_{ij}](https://render.githubusercontent.com/render/math?math=%5Cvec%20Y_%7Bij%7D
-"\\vec Y_{ij}") denote the
+observed markers at each time point. We let
+![\\vec Y\_{ij}](https://render.githubusercontent.com/render/math?math=%5Cvec%20Y_%7Bij%7D "\vec Y_{ij}")
+denote the
 ![j](https://render.githubusercontent.com/render/math?math=j "j")th
 observed markers for individual
 ![i](https://render.githubusercontent.com/render/math?math=i "i") and
 let
-![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-"s_{ij}") be the observation time. The model for the markers is
+![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+be the observation time. The model for the markers is
 
-  
 ![\\begin{align\*}
-\\vec Y\_{ij}&= \\vec\\mu\_i(s\_{ij}, \\vec U\_i) + \\vec\\epsilon\_{ij}
-\\\\
+\\vec Y\_{ij}&= \\vec\\mu\_i(s\_{ij}, \\vec U\_i) + \\vec\\epsilon\_{ij} \\\\
 \\epsilon\_{ij} &\\sim N^{(L)}(\\vec 0, \\Sigma) \\\\
-\\mu\_{i1}(s, \\vec U\_i) &= \\vec x\_{i1}^\\top\\vec\\gamma\_1 + \\vec
-g\_1(s)^\\top\\vec\\beta\_1 + 
-\\vec m\_1(s)^\\top\\vec U\_{i1} \\\\
+\\mu\_{i1}(s, \\vec U\_i) &= \\vec x\_{i1}^\\top\\vec\\gamma\_1 + \\vec g\_1(s)^\\top\\vec\\beta\_1 + 
+  \\vec m\_1(s)^\\top\\vec U\_{i1} \\\\
 \\vdots &\\hphantom{=}\\vdots\\\\\\
-\\mu\_{iL}(s, \\vec U\_i) &= \\vec x\_{iL}^\\top\\vec\\gamma\_L + \\vec
-g\_L(s)^\\top\\vec\\beta\_L + 
-\\vec m\_L(s)^\\top\\vec U\_{iL} \\\\
-\\vec U\_i &= \\begin{pmatrix}
-\\vec U\_{i1} \\\\ \\vdots \\\\ \\vec U\_{iL}
-\\end{pmatrix}\\sim N^{(R)}(\\vec0, \\Psi) 
-\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0A%5Cvec%20Y_%7Bij%7D%26%3D%20%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%2B%20%5Cvec%5Cepsilon_%7Bij%7D%20%5C%5C%0A%5Cepsilon_%7Bij%7D%20%26%5Csim%20N%5E%7B%28L%29%7D%28%5Cvec%200%2C%20%5CSigma%29%20%5C%5C%0A%5Cmu_%7Bi1%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7Bi1%7D%5E%5Ctop%5Cvec%5Cgamma_1%20%2B%20%5Cvec%20g_1%28s%29%5E%5Ctop%5Cvec%5Cbeta_1%20%2B%20%0A%20%20%5Cvec%20m_1%28s%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%5C%5C%5C%0A%5Cmu_%7BiL%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7BiL%7D%5E%5Ctop%5Cvec%5Cgamma_L%20%2B%20%5Cvec%20g_L%28s%29%5E%5Ctop%5Cvec%5Cbeta_L%20%2B%20%0A%20%20%5Cvec%20m_L%28s%29%5E%5Ctop%5Cvec%20U_%7BiL%7D%20%5C%5C%0A%5Cvec%20U_i%20%20%26%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cvec%20U_%7BiL%7D%0A%20%20%5Cend%7Bpmatrix%7D%5Csim%20N%5E%7B%28R%29%7D%28%5Cvec0%2C%20%5CPsi%29%20%0A%5Cend%7Balign%2A%7D
-"\\begin{align*}
-\\vec Y_{ij}&= \\vec\\mu_i(s_{ij}, \\vec U_i) + \\vec\\epsilon_{ij} \\\\
-\\epsilon_{ij} &\\sim N^{(L)}(\\vec 0, \\Sigma) \\\\
-\\mu_{i1}(s, \\vec U_i) &= \\vec x_{i1}^\\top\\vec\\gamma_1 + \\vec g_1(s)^\\top\\vec\\beta_1 + 
-  \\vec m_1(s)^\\top\\vec U_{i1} \\\\
-\\vdots &\\hphantom{=}\\vdots\\\\\\
-\\mu_{iL}(s, \\vec U_i) &= \\vec x_{iL}^\\top\\vec\\gamma_L + \\vec g_L(s)^\\top\\vec\\beta_L + 
-  \\vec m_L(s)^\\top\\vec U_{iL} \\\\
-\\vec U_i  &= \\begin{pmatrix}
-    \\vec U_{i1} \\\\ \\vdots \\\\ \\vec U_{iL}
+\\mu\_{iL}(s, \\vec U\_i) &= \\vec x\_{iL}^\\top\\vec\\gamma\_L + \\vec g\_L(s)^\\top\\vec\\beta\_L + 
+  \\vec m\_L(s)^\\top\\vec U\_{iL} \\\\
+\\vec U\_i  &= \\begin{pmatrix}
+    \\vec U\_{i1} \\\\ \\vdots \\\\ \\vec U\_{iL}
   \\end{pmatrix}\\sim N^{(R)}(\\vec0, \\Psi) 
-\\end{align*}")  
+\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0A%5Cvec%20Y_%7Bij%7D%26%3D%20%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%2B%20%5Cvec%5Cepsilon_%7Bij%7D%20%5C%5C%0A%5Cepsilon_%7Bij%7D%20%26%5Csim%20N%5E%7B%28L%29%7D%28%5Cvec%200%2C%20%5CSigma%29%20%5C%5C%0A%5Cmu_%7Bi1%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7Bi1%7D%5E%5Ctop%5Cvec%5Cgamma_1%20%2B%20%5Cvec%20g_1%28s%29%5E%5Ctop%5Cvec%5Cbeta_1%20%2B%20%0A%20%20%5Cvec%20m_1%28s%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%5C%5C%5C%0A%5Cmu_%7BiL%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7BiL%7D%5E%5Ctop%5Cvec%5Cgamma_L%20%2B%20%5Cvec%20g_L%28s%29%5E%5Ctop%5Cvec%5Cbeta_L%20%2B%20%0A%20%20%5Cvec%20m_L%28s%29%5E%5Ctop%5Cvec%20U_%7BiL%7D%20%5C%5C%0A%5Cvec%20U_i%20%20%26%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cvec%20U_%7BiL%7D%0A%20%20%5Cend%7Bpmatrix%7D%5Csim%20N%5E%7B%28R%29%7D%28%5Cvec0%2C%20%5CPsi%29%20%0A%5Cend%7Balign%2A%7D "\begin{align*}
+\vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
+\epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
+\mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 + 
+  \vec m_1(s)^\top\vec U_{i1} \\
+\vdots &\hphantom{=}\vdots\\\
+\mu_{iL}(s, \vec U_i) &= \vec x_{iL}^\top\vec\gamma_L + \vec g_L(s)^\top\vec\beta_L + 
+  \vec m_L(s)^\top\vec U_{iL} \\
+\vec U_i  &= \begin{pmatrix}
+    \vec U_{i1} \\ \vdots \\ \vec U_{iL}
+  \end{pmatrix}\sim N^{(R)}(\vec0, \Psi) 
+\end{align*}")
 
 where
-![\\vec\\epsilon\_{ij}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cepsilon_%7Bij%7D
-"\\vec\\epsilon_{ij}") is an error term of the observation, ![\\vec
-U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%20U_i
-"\\vec U_i") is the
-![R](https://render.githubusercontent.com/render/math?math=R "R")
+![\\vec\\epsilon\_{ij}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cepsilon_%7Bij%7D "\vec\epsilon_{ij}")
+is an error term of the observation,
+![\\vec U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%20U_i "\vec U_i")
+is the ![R](https://render.githubusercontent.com/render/math?math=R "R")
 dimensional unobserved random effect for individual
 ![i](https://render.githubusercontent.com/render/math?math=i "i"), and
-the ![\\vec
-g\_k](https://render.githubusercontent.com/render/math?math=%5Cvec%20g_k
-"\\vec g_k")s and ![\\vec
-m\_k](https://render.githubusercontent.com/render/math?math=%5Cvec%20m_k
-"\\vec m_k")s are basis expansions. We can write the model more
-compactly by letting
+the
+![\\vec g\_k](https://render.githubusercontent.com/render/math?math=%5Cvec%20g_k "\vec g_k")s
+and
+![\\vec m\_k](https://render.githubusercontent.com/render/math?math=%5Cvec%20m_k "\vec m_k")s
+are basis expansions. We can write the model more compactly by letting
 
-  
 ![G(s) = \\begin{pmatrix} 
-\\vec g\_1(s)^\\top & 0^\\top & \\cdots & \\vec 0^\\top \\\\
-\\vec 0^\\top & \\vec g\_2(s)^\\top & \\ddots & \\vdots \\\\
-\\vdots & \\ddots & \\ddots & \\vec 0^\\top \\\\
-\\vec 0^\\top & \\cdots & \\vec 0^\\top & \\vec g\_L(s)^\\top
-\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=G%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7D%20%0A%20%20%5Cvec%20g_1%28s%29%5E%5Ctop%20%26%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_2%28s%29%5E%5Ctop%20%26%20%5Cddots%20%26%20%5Cvdots%20%5C%5C%0A%20%20%5Cvdots%20%26%20%5Cddots%20%26%20%5Cddots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_L%28s%29%5E%5Ctop%20%5Cend%7Bpmatrix%7D
-"G(s) = \\begin{pmatrix} 
-  \\vec g_1(s)^\\top & 0^\\top & \\cdots & \\vec 0^\\top \\\\
-  \\vec 0^\\top & \\vec g_2(s)^\\top & \\ddots & \\vdots \\\\
+  \\vec g\_1(s)^\\top & 0^\\top & \\cdots & \\vec 0^\\top \\\\
+  \\vec 0^\\top & \\vec g\_2(s)^\\top & \\ddots & \\vdots \\\\
   \\vdots & \\ddots & \\ddots & \\vec 0^\\top \\\\
-  \\vec 0^\\top & \\cdots & \\vec 0^\\top & \\vec g_L(s)^\\top \\end{pmatrix}")  
+  \\vec 0^\\top & \\cdots & \\vec 0^\\top & \\vec g\_L(s)^\\top \\end{pmatrix}](https://render.githubusercontent.com/render/math?math=G%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7D%20%0A%20%20%5Cvec%20g_1%28s%29%5E%5Ctop%20%26%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_2%28s%29%5E%5Ctop%20%26%20%5Cddots%20%26%20%5Cvdots%20%5C%5C%0A%20%20%5Cvdots%20%26%20%5Cddots%20%26%20%5Cddots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_L%28s%29%5E%5Ctop%20%5Cend%7Bpmatrix%7D "G(s) = \begin{pmatrix} 
+  \vec g_1(s)^\top & 0^\top & \cdots & \vec 0^\top \\
+  \vec 0^\top & \vec g_2(s)^\top & \ddots & \vdots \\
+  \vdots & \ddots & \ddots & \vec 0^\top \\
+  \vec 0^\top & \cdots & \vec 0^\top & \vec g_L(s)^\top \end{pmatrix}")
 
 and defining
-![M(s)](https://render.githubusercontent.com/render/math?math=M%28s%29
-"M(s)") and
+![M(s)](https://render.githubusercontent.com/render/math?math=M%28s%29 "M(s)")
+and
 ![X\_i](https://render.githubusercontent.com/render/math?math=X_i "X_i")
-similarly. Furthermore, let ![\\vec\\gamma =
-(\\vec\\gamma\_1^\\top,\\dots,\\vec\\gamma\_L^\\top)](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cgamma%20%3D%20%28%5Cvec%5Cgamma_1%5E%5Ctop%2C%5Cdots%2C%5Cvec%5Cgamma_L%5E%5Ctop%29
-"\\vec\\gamma = (\\vec\\gamma_1^\\top,\\dots,\\vec\\gamma_L^\\top)") and
-define
-![\\vec\\beta](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cbeta
-"\\vec\\beta") similarly. Then the conditional mean vector at time
-![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-"s_{ij}") is
+similarly. Furthermore, let
+![\\vec\\gamma = (\\vec\\gamma\_1^\\top,\\dots,\\vec\\gamma\_L^\\top)](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cgamma%20%3D%20%28%5Cvec%5Cgamma_1%5E%5Ctop%2C%5Cdots%2C%5Cvec%5Cgamma_L%5E%5Ctop%29 "\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)")
+and define
+![\\vec\\beta](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cbeta "\vec\beta")
+similarly. Then the conditional mean vector at time
+![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+is
 
-  
-![\\vec\\mu\_i(s\_{ij}, \\vec U\_i) = X\_i\\vec\\gamma +
-G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec
-U\_i.](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%3D%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20U_i.
-"\\vec\\mu_i(s_{ij}, \\vec U_i) = X_i\\vec\\gamma + G(s_{ij})\\vec\\beta + M(s_{ij})\\vec U_i.")  
+![\\vec\\mu\_i(s\_{ij}, \\vec U\_i) = X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec U\_i.](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%3D%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20U_i. "\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.")
 
 ### The Survival Outcomes
 
@@ -132,59 +117,58 @@ We assume that there are
 different types of survival outcomes. The conditional hazards of the
 survival outcomes are
 
-  
 ![\\begin{align\*}
 h\_{i1}(t\\mid \\vec U\_i, \\vec\\xi\_i) &= \\exp\\left( 
-\\vec z\_{i1}^\\top\\vec \\delta\_1 + 
-\\omega\_1^\\top \\vec b\_1(t) + 
-\\vec\\alpha\_1^\\top M(t)\\vec U\_i + \\xi\_{i1}
-\\right) \\\\
-\\vdots &\\hphantom{=}\\vdots \\\\
-h\_{iH}(t\\mid \\vec U\_i,\\vec \\xi\_i) &= \\exp\\left( 
-\\vec z\_{iL}^\\top\\vec \\delta\_H + 
-\\omega\_H^\\top\\vec b\_H(t) + 
-\\vec\\alpha\_H^\\top M(t)\\vec U\_i + \\xi\_{iH}
-\\right) \\\\
-\\vec\\xi\_i = \\begin{pmatrix}\\xi\_{i1} \\\\ \\vdots \\\\
-\\xi\_{iH}\\end{pmatrix}
-&\\sim N^{(H)}(\\vec 0, \\Xi).
-\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0Ah_%7Bi1%7D%28t%5Cmid%20%5Cvec%20U_i%2C%20%5Cvec%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%0A%20%20%5Cvec%20z_%7Bi1%7D%5E%5Ctop%5Cvec%20%5Cdelta_1%20%2B%20%0A%20%20%5Comega_1%5E%5Ctop%20%5Cvec%20b_1%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7Bi1%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%20%5C%5C%0Ah_%7BiH%7D%28t%5Cmid%20%5Cvec%20U_i%2C%5Cvec%20%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%20%0A%20%20%5Cvec%20z_%7BiL%7D%5E%5Ctop%5Cvec%20%5Cdelta_H%20%2B%20%0A%20%20%5Comega_H%5E%5Ctop%5Cvec%20b_H%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_H%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7BiH%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvec%5Cxi_i%20%3D%20%5Cbegin%7Bpmatrix%7D%5Cxi_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cxi_%7BiH%7D%5Cend%7Bpmatrix%7D%0A%20%20%26%5Csim%20N%5E%7B%28H%29%7D%28%5Cvec%200%2C%20%5CXi%29.%0A%5Cend%7Balign%2A%7D
-"\\begin{align*}
-h_{i1}(t\\mid \\vec U_i, \\vec\\xi_i) &= \\exp\\left( 
-  \\vec z_{i1}^\\top\\vec \\delta_1 + 
-  \\omega_1^\\top \\vec b_1(t) + 
-  \\vec\\alpha_1^\\top M(t)\\vec U_i + \\xi_{i1}
+  \\vec z\_{i1}^\\top\\vec \\delta\_1 + 
+  \\omega\_1^\\top \\vec b\_1(t) + 
+  \\vec\\alpha\_1^\\top M(t)\\vec U\_i + \\xi\_{i1}
   \\right) \\\\
 \\vdots &\\hphantom{=}\\vdots \\\\
-h_{iH}(t\\mid \\vec U_i,\\vec \\xi_i) &= \\exp\\left(  
-  \\vec z_{iL}^\\top\\vec \\delta_H + 
-  \\omega_H^\\top\\vec b_H(t) + 
-  \\vec\\alpha_H^\\top M(t)\\vec U_i + \\xi_{iH}
+h\_{iH}(t\\mid \\vec U\_i,\\vec \\xi\_i) &= \\exp\\left(  
+  \\vec z\_{iL}^\\top\\vec \\delta\_H + 
+  \\omega\_H^\\top\\vec b\_H(t) + 
+  \\vec\\alpha\_H^\\top M(t)\\vec U\_i + \\xi\_{iH}
   \\right) \\\\
-\\vec\\xi_i = \\begin{pmatrix}\\xi_{i1} \\\\ \\vdots \\\\ \\xi_{iH}\\end{pmatrix}
+\\vec\\xi\_i = \\begin{pmatrix}\\xi\_{i1} \\\\ \\vdots \\\\ \\xi\_{iH}\\end{pmatrix}
   &\\sim N^{(H)}(\\vec 0, \\Xi).
-\\end{align*}")  
+\\end{align\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Balign%2A%7D%0Ah_%7Bi1%7D%28t%5Cmid%20%5Cvec%20U_i%2C%20%5Cvec%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%0A%20%20%5Cvec%20z_%7Bi1%7D%5E%5Ctop%5Cvec%20%5Cdelta_1%20%2B%20%0A%20%20%5Comega_1%5E%5Ctop%20%5Cvec%20b_1%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7Bi1%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%20%5C%5C%0Ah_%7BiH%7D%28t%5Cmid%20%5Cvec%20U_i%2C%5Cvec%20%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%20%0A%20%20%5Cvec%20z_%7BiL%7D%5E%5Ctop%5Cvec%20%5Cdelta_H%20%2B%20%0A%20%20%5Comega_H%5E%5Ctop%5Cvec%20b_H%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_H%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7BiH%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvec%5Cxi_i%20%3D%20%5Cbegin%7Bpmatrix%7D%5Cxi_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cxi_%7BiH%7D%5Cend%7Bpmatrix%7D%0A%20%20%26%5Csim%20N%5E%7B%28H%29%7D%28%5Cvec%200%2C%20%5CXi%29.%0A%5Cend%7Balign%2A%7D "\begin{align*}
+h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left( 
+  \vec z_{i1}^\top\vec \delta_1 + 
+  \omega_1^\top \vec b_1(t) + 
+  \vec\alpha_1^\top M(t)\vec U_i + \xi_{i1}
+  \right) \\
+\vdots &\hphantom{=}\vdots \\
+h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(  
+  \vec z_{iL}^\top\vec \delta_H + 
+  \omega_H^\top\vec b_H(t) + 
+  \vec\alpha_H^\top M(t)\vec U_i + \xi_{iH}
+  \right) \\
+\vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
+  &\sim N^{(H)}(\vec 0, \Xi).
+\end{align*}")
 
 The
-![\\vec\\alpha](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha
-"\\vec\\alpha")s are association parameters which makes the markers and
-the survival outcomes marginally dependent. The
-![\\vec\\xi\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cxi_i
-"\\vec\\xi_i")s are frailty effects which makes the survival outcomes
-marginally dependent even if ![\\vec\\alpha =
-\\vec 0](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha%20%3D%20%5Cvec%200
-"\\vec\\alpha = \\vec 0").
+![\\vec\\alpha](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha "\vec\alpha")s
+are association parameters which makes the markers and the survival
+outcomes marginally dependent. The
+![\\vec\\xi\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cxi_i "\vec\xi_i")s
+are frailty effects which makes the survival outcomes marginally
+dependent even if
+![\\vec\\alpha = \\vec 0](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha%20%3D%20%5Cvec%200 "\vec\alpha = \vec 0").
+By default, these are not included as it is assumed that events are
+often terminal in which case identifying the frailty may be hard and
+evidence of a frailty is both evidence of non-proportional hazards and
+heterogeneity.
 
 The observation process, the
-![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-"s_{ij}")s, can be modeled as one of
+![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")s,
+can be modeled as one of
 ![H](https://render.githubusercontent.com/render/math?math=H "H")
 different types of survival process. This can be done by adding each
-![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-"s_{ij}") as a left-truncated outcome of the given type of process
-except for
-![s\_{i1}](https://render.githubusercontent.com/render/math?math=s_%7Bi1%7D
-"s_{i1}") which is not left-truncated.
+![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+as a left-truncated outcome of the given type of process except for
+![s\_{i1}](https://render.githubusercontent.com/render/math?math=s_%7Bi1%7D "s_{i1}")
+which is not left-truncated.
 
 #### More General Survival Sub-model
 
@@ -192,54 +176,44 @@ The conditional hazards shown above only allows the hazard to be
 associated with the population deviation for the mean marker through the
 current value
 
-  
 ![M(t)\\vec U\_i = \\begin{pmatrix}
-\\vec m\_1(t)^\\top\\vec U\_{i1} \\\\
-\\vdots \\\\
-\\vec m\_L(t)^\\top\\vec U\_{i1}
-\\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=M%28t%29%5Cvec%20U_i%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%20%20%5Cvdots%20%5C%5C%0A%20%20%20%20%5Cvec%20m_L%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%0A%20%20%5Cend%7Bpmatrix%7D.
-"M(t)\\vec U_i = \\begin{pmatrix}
-    \\vec m_1(t)^\\top\\vec U_{i1} \\\\
+    \\vec m\_1(t)^\\top\\vec U\_{i1} \\\\
     \\vdots \\\\
-    \\vec m_L(t)^\\top\\vec U_{i1}
-  \\end{pmatrix}.")  
+    \\vec m\_L(t)^\\top\\vec U\_{i1}
+  \\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=M%28t%29%5Cvec%20U_i%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%20%20%5Cvdots%20%5C%5C%0A%20%20%20%20%5Cvec%20m_L%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%0A%20%20%5Cend%7Bpmatrix%7D. "M(t)\vec U_i = \begin{pmatrix}
+    \vec m_1(t)^\top\vec U_{i1} \\
+    \vdots \\
+    \vec m_L(t)^\top\vec U_{i1}
+  \end{pmatrix}.")
 
 However, the researcher may be interested in using the cumulative value,
-![\\int^t \\vec m\_k(s)^\\top ds\\vec
-U\_{ik}](https://render.githubusercontent.com/render/math?math=%5Cint%5Et%20%5Cvec%20m_k%28s%29%5E%5Ctop%20ds%5Cvec%20U_%7Bik%7D
-"\\int^t \\vec m_k(s)^\\top ds\\vec U_{ik}"), the derivative,
-![\\partial\\vec m\_k(t)^\\top\\vec U\_{ik}/\\partial
-t](https://render.githubusercontent.com/render/math?math=%5Cpartial%5Cvec%20m_k%28t%29%5E%5Ctop%5Cvec%20U_%7Bik%7D%2F%5Cpartial%20t
-"\\partial\\vec m_k(t)^\\top\\vec U_{ik}/\\partial t"), or a combination
-of these and the current value. This is supported in the package through
-the `ders` argument of `surv_term`. As an example, if we let ![\\vec
-d\_k(t) = \\int^t \\vec m\_k(s)
-ds](https://render.githubusercontent.com/render/math?math=%5Cvec%20d_k%28t%29%20%3D%20%5Cint%5Et%20%5Cvec%20m_k%28s%29%20ds
-"\\vec d_k(t) = \\int^t \\vec m_k(s) ds"), ![\\vec r\_k(t) =
-\\partial\\vec m\_k(t)/\\partial
-t](https://render.githubusercontent.com/render/math?math=%5Cvec%20r_k%28t%29%20%3D%20%5Cpartial%5Cvec%20m_k%28t%29%2F%5Cpartial%20t
-"\\vec r_k(t) = \\partial\\vec m_k(t)/\\partial t"), and ![L
-= 3](https://render.githubusercontent.com/render/math?math=L%20%3D%203
-"L = 3") then it is possible to replace the ![\\vec\\alpha\_1^\\top
-M(t)\\vec
-U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i
-"\\vec\\alpha_1^\\top M(t)\\vec U_i") in the hazard with
+![\\int^t \\vec m\_k(s)^\\top ds\\vec U\_{ik}](https://render.githubusercontent.com/render/math?math=%5Cint%5Et%20%5Cvec%20m_k%28s%29%5E%5Ctop%20ds%5Cvec%20U_%7Bik%7D "\int^t \vec m_k(s)^\top ds\vec U_{ik}"),
+the derivative,
+![\\partial\\vec m\_k(t)^\\top\\vec U\_{ik}/\\partial t](https://render.githubusercontent.com/render/math?math=%5Cpartial%5Cvec%20m_k%28t%29%5E%5Ctop%5Cvec%20U_%7Bik%7D%2F%5Cpartial%20t "\partial\vec m_k(t)^\top\vec U_{ik}/\partial t"),
+or a combination of these and the current value. This is supported in
+the package through the `ders` argument of `surv_term`. As an example,
+if we let
+![\\vec d\_k(t) = \\int^t \\vec m\_k(s) ds](https://render.githubusercontent.com/render/math?math=%5Cvec%20d_k%28t%29%20%3D%20%5Cint%5Et%20%5Cvec%20m_k%28s%29%20ds "\vec d_k(t) = \int^t \vec m_k(s) ds"),
+![\\vec r\_k(t) = \\partial\\vec m\_k(t)/\\partial t](https://render.githubusercontent.com/render/math?math=%5Cvec%20r_k%28t%29%20%3D%20%5Cpartial%5Cvec%20m_k%28t%29%2F%5Cpartial%20t "\vec r_k(t) = \partial\vec m_k(t)/\partial t"),
+and
+![L = 3](https://render.githubusercontent.com/render/math?math=L%20%3D%203 "L = 3")
+then it is possible to replace the
+![\\vec\\alpha\_1^\\top M(t)\\vec U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i "\vec\alpha_1^\top M(t)\vec U_i")
+in the hazard with
 
-  
 ![\\vec\\alpha\_1^\\top\\begin{pmatrix}
-\\vec d\_1(t)^\\top \\vec U\_{i1} \\\\
-\\vec m\_1(t)^\\top \\vec U\_{i1} \\\\
-\\vec m\_2(t)^\\top \\vec U\_{i2} \\\\
-\\vec d\_3(t)^\\top \\vec U\_{i3} \\\\
-\\vec r\_3(t)^\\top \\vec U\_{i3} \\\\
-\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%20d_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_2%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi2%7D%20%5C%5C%0A%20%20%5Cvec%20d_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%20%20%5Cvec%20r_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D
-"\\vec\\alpha_1^\\top\\begin{pmatrix}
-  \\vec d_1(t)^\\top \\vec U_{i1} \\\\
-  \\vec m_1(t)^\\top \\vec U_{i1} \\\\
-  \\vec m_2(t)^\\top \\vec U_{i2} \\\\
-  \\vec d_3(t)^\\top \\vec U_{i3} \\\\
-  \\vec r_3(t)^\\top \\vec U_{i3} \\\\
-\\end{pmatrix}")  
+  \\vec d\_1(t)^\\top \\vec U\_{i1} \\\\
+  \\vec m\_1(t)^\\top \\vec U\_{i1} \\\\
+  \\vec m\_2(t)^\\top \\vec U\_{i2} \\\\
+  \\vec d\_3(t)^\\top \\vec U\_{i3} \\\\
+  \\vec r\_3(t)^\\top \\vec U\_{i3} \\\\
+\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha_1%5E%5Ctop%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%20d_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_2%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi2%7D%20%5C%5C%0A%20%20%5Cvec%20d_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%20%20%5Cvec%20r_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D "\vec\alpha_1^\top\begin{pmatrix}
+  \vec d_1(t)^\top \vec U_{i1} \\
+  \vec m_1(t)^\top \vec U_{i1} \\
+  \vec m_2(t)^\top \vec U_{i2} \\
+  \vec d_3(t)^\top \vec U_{i3} \\
+  \vec r_3(t)^\top \vec U_{i3} \\
+\end{pmatrix}")
 
 That is, a cumulative and current value for the first marker, only the
 current value for the second marker, and the cumulative and derivative
@@ -249,60 +223,62 @@ for the third marker.
 
 The package can handle
 
-  - Mixed type of basis expansions in
+-   Mixed type of basis expansions in
     ![G](https://render.githubusercontent.com/render/math?math=G "G"),
     ![M](https://render.githubusercontent.com/render/math?math=M "M"),
     and
-    ![b\_1,\\dots,b\_H](https://render.githubusercontent.com/render/math?math=b_1%2C%5Cdots%2Cb_H
-    "b_1,\\dots,b_H").
-  - A maximum ![L
-    = 31](https://render.githubusercontent.com/render/math?math=L%20%3D%2031
-    "L = 31") different markers, and an arbitrary number survival
-    outcome types,
+    ![b\_1,\\dots,b\_H](https://render.githubusercontent.com/render/math?math=b_1%2C%5Cdots%2Cb_H "b_1,\dots,b_H").
+-   A maximum
+    ![L = 31](https://render.githubusercontent.com/render/math?math=L%20%3D%2031 "L = 31")
+    different markers, and an arbitrary number survival outcome types,
     ![H](https://render.githubusercontent.com/render/math?math=H "H")
     (though, identification of parameters quickly becomes an issue).
-  - Only observing a subset of the
+-   Only observing a subset of the
     ![L](https://render.githubusercontent.com/render/math?math=L "L")
     markers at a given point in time
-    ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-    "s_{ij}") (i.e. some may be missing).
-  - Any number of observed markers and survival outcomes for each
+    ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+    (i.e. some may be missing).
+-   Any number of observed markers and survival outcomes for each
     individual.
-  - Left-truncation and right-censoring.
+-   Left-truncation and right-censoring.
 
 The following is not supported
 
-  - Interval-censoring and left-censoring are not supported although
+-   Interval-censoring and left-censoring are not supported although
     this is not a complicated extension.
-  - There cannot be multiple observed markers of the same type at each
+-   There cannot be multiple observed markers of the same type at each
     point
-    ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-    "s_{ij}") for each individual
+    ![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+    for each individual
     ![i](https://render.githubusercontent.com/render/math?math=i "i").
-  - There cannot be time-varying effects for a covariate. This is not
+-   There cannot be time-varying effects for a covariate. This is not
     too complicated to implement but not yet implemented.
-  - Competing events, and multi-state models are not supported.
+-   Competing events, and multi-state models are not supported.
 
 ## Examples
 
 We show a few examples of using this package and illustrate its API in
 this section. The examples includes:
 
-  - Only one marker in the [Univariate Marker
+-   Only one marker in the [Univariate Marker
     Example](#univariate-marker-example) section where we can compare
     with lme4. The section also includes some remarks about the
     implemented expansions.
-  - Two markers in the [Two Markers](#two-markers) section.
-  - A recurrent event in the [Recurrent Event](#recurrent-event)
+-   Two markers in the [Two Markers](#two-markers) section.
+-   A recurrent event in the [Recurrent Event](#recurrent-event)
     section. It is also shown how to change the quadrature rule that is
     used to approximate the approximate expected cumulative hazard.
-  - An example with two markers and a recurrent event is given in the
+-   An example with two markers and a recurrent event is given in the
     [Two Markers and a Recurrent
     Event](#two-markers-and-a-recurrent-event) section. The section also
     includes an example of how to construct approximate profile
     likelihood based confidence intervals and how to obtain Wald type
     tests and confidence intervals from the observed information matrix.
-  - An example with two markers, the observation process, and a terminal
+-   A similar example is provided but without the frailty in the [Two
+    Markers and a Recurrent Event Without
+    Frailty](#two-markers-and-a-recurrent-event-without-frailty)
+    section. Notice that this is the default with `surv_term`.
+-   An example with two markers, the observation process, and a terminal
     event is given in the [Two Markers, the Observation Time Process,
     and a Terminal
     Event](#two-markers-the-observation-time-process-and-a-terminal-event)
@@ -311,20 +287,52 @@ this section. The examples includes:
     modeled together or the dependence accounted for in some other way.
     Examples and comments regarding caching of the expansions are also
     provided.
-  - A similar example is provided in the [Two Markers, the Observation
+-   A similar example is provided in the [Two Markers, the Observation
     Time Process, a Terminal Event and Mixed
     Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
     section but where a mixture of the cumulative, the present value,
     and the derivative is used in the sub-survival models.
+
+We start first with some general remarks.
+
+### General Remarks
+
+There is not intercept by default in the splines. Usually, you almost
+always want one in the both the random effect and fixed effect part. The
+intercept in included by default in `formula` (unless you do
+`. ~ ... - 1` and there is not factor variable). Thus, you do not want
+an intercept in the `time_fixef` in both `marker_term` and `surv_term`.
+On the other hand, you do need yourself to include the intercept in the
+`time_rng` argument of `marker_term`. Thus, a typical call may look like
+
+``` r
+mark <- marker_term(
+  y ~ X1 + X2, # there is an intercept by default
+  # `intercept` is FALSE by default 
+  time_fixef = poly_term(time, degree = 3), 
+  # we need to add the intercept
+  time_rng = poly_term(time, degree = 1, intercept = TRUE))
+
+s_term <- surv_term(
+  Surv(tstop, event) ~ X1, # there is an intercept by default
+  # `intercept` is FALSE by default
+  time_fixef = poly_term(tstop, degree = 1))
+```
+
+You may run into computational issues if you have a very flexible random
+effect model. This is quite typical with mixed models in a frequentist
+setting also with other estimation methods. One outcome of a too
+flexible random effect model is slow convergence or a `NaN` output
+because some of the scale matrices do not have full rank.
 
 ### Univariate Marker Example
 
 We make a comparison below with one marker only with the lme4 package.
 We do this as we can check that
 
-  - We get almost the same (the lower bound can be equal to the log
+-   We get almost the same (the lower bound can be equal to the log
     marginal likelihood in this case).
-  - The lower bound is less than or equal to the log marginal
+-   The lower bound is less than or equal to the log marginal
     likelihood.
 
 lme4 should be used in this case as the linear model is tractable and
@@ -415,7 +423,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.817   0.004   0.822
+#>   0.885   0.000   0.904
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -431,12 +439,12 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.093   0.000   0.092
+#>   0.096   0.000   0.096
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.126   0.000   0.034
+#>   0.122   0.000   0.035
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -456,7 +464,11 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   7.831   0.004   1.961
+#>  10.972   0.040   2.765
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.3322
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -471,7 +483,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #>    user  system elapsed 
-#>  68.783   0.016  17.273
+#>  69.377   0.028  17.412
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -531,10 +543,7 @@ element. The latter element can be used to evaluate the basis, the
 derivatives of the basis if the `der` argument is greater than zero, or
 the integral
 
-  
-![\\vec d(u) = \\int\_l^u \\vec m(s)
-ds](https://render.githubusercontent.com/render/math?math=%5Cvec%20d%28u%29%20%3D%20%5Cint_l%5Eu%20%5Cvec%20m%28s%29%20ds
-"\\vec d(u) = \\int_l^u \\vec m(s) ds")  
+![\\vec d(u) = \\int\_l^u \\vec m(s) ds](https://render.githubusercontent.com/render/math?math=%5Cvec%20d%28u%29%20%3D%20%5Cint_l%5Eu%20%5Cvec%20m%28s%29%20ds "\vec d(u) = \int_l^u \vec m(s) ds")
 
 if the `der` argument is equal to minus one. The lower limit is passed
 with the `lower_limit` argument to the `eval` function. We illustrate
@@ -708,7 +717,7 @@ all.equal( t(n$eval(-1, der = -1, lower_limit = -3)), do_int(-1, f, -3), 1e-6)
 #> [1] TRUE
 ```
 
-Caution: the B-splines are only tested with `degree = 3`\!
+Caution: the B-splines are only tested with `degree = 3`!
 
 #### Log Transformations
 
@@ -919,7 +928,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.123   0.000   0.033
+#>   0.126   0.000   0.033
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -939,7 +948,12 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   1.797   0.000   0.450
+#>   1.825   0.000   0.459
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.2131
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -952,7 +966,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#>  98.604   0.016  24.712
+#>   98.40    0.04   24.69
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1175,7 +1189,8 @@ library(survival)
 library(VAJointSurv)
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
-  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
+  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)), 
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(),
                          survival_terms = surv_obj, max_threads = 4L)
@@ -1184,7 +1199,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.077   0.000   0.022
+#>   0.079   0.000   0.024
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1206,7 +1221,12 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   1.506   0.003   0.381
+#>   1.766   0.000   0.442
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.08489
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1233,14 +1253,11 @@ c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(vcov_surv))
 A quadrature rule is used to integrate the expected cumulative hazard.
 The user can pass any quadrature rule with
 ![n](https://render.githubusercontent.com/render/math?math=n "n") nodes
-and weights each denoted by ![(n\_i,
-w\_i)](https://render.githubusercontent.com/render/math?math=%28n_i%2C%20w_i%29
-"(n_i, w_i)") such that
+and weights each denoted by
+![(n\_i, w\_i)](https://render.githubusercontent.com/render/math?math=%28n_i%2C%20w_i%29 "(n_i, w_i)")
+such that
 
-  
-![\\int\_0^1f(x) dx \\approx \\sum\_{i = 1}^nw\_i
-f(n\_i).](https://render.githubusercontent.com/render/math?math=%5Cint_0%5E1f%28x%29%20dx%20%5Capprox%20%5Csum_%7Bi%20%3D%201%7D%5Enw_i%20f%28n_i%29.
-"\\int_0^1f(x) dx \\approx \\sum_{i = 1}^nw_i f(n_i).")  
+![\\int\_0^1f(x) dx \\approx \\sum\_{i = 1}^nw\_i f(n\_i).](https://render.githubusercontent.com/render/math?math=%5Cint_0%5E1f%28x%29%20dx%20%5Capprox%20%5Csum_%7Bi%20%3D%201%7D%5Enw_i%20f%28n_i%29. "\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).")
 
 By default Gauss–Legendre quadrature is used. A very simple alternative
 is to use the midpoint rule. This is illustrated below.
@@ -1594,7 +1611,8 @@ marker_2 <- marker_term(
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
   # we select a more flexible model for the baseline hazard
-  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE))
+  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE),
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = surv_obj, max_threads = 4L)
@@ -1603,7 +1621,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.618   0.000   0.683
+#>   2.370   0.007   0.621
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1623,7 +1641,12 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  16.340   0.012   4.092
+#>  14.684   0.000   3.675
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.174
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1636,7 +1659,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  74.549   0.028  18.649
+#>   69.08    0.00   17.27
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1842,7 +1865,7 @@ below.
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>  10.136   0.016  10.152
+#>   9.580   0.028   9.608
 dim(hess$hessian_all) # the full matrix!
 #> [1] 20029 20029
 
@@ -1948,6 +1971,192 @@ associations
 We can compute standard error estimates for the covariance matrices’
 parameters but this requires an application of the delta method because
 of the parameterization of the covariance matrices.
+
+### Two Markers and a Recurrent Event Without Frailty
+
+In this section, we estimate a model like before but without the
+frailty.
+
+``` r
+# set the frailty variance to ~0
+vcov_surv <- matrix(1e-6^2, 1)
+
+# plot the hazard with pointwise quantiles
+par(mar = c(5, 5, 1, 1))
+plot_surv(
+  time_fixef = b_term, 
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
+  x_range = c(0, 2), vcov_vary = vcov_vary, frailty_var = vcov_surv,
+  ps = c(.25, .5, .75), log_hazard_shift = fixef_surv[1], 
+  fixef_vary = fixef_vary_surv, associations = associations)
+```
+
+![](man/figures/README-no_frailty_recurrent_and_marker-1.png)<!-- -->
+
+``` r
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat(1000L)
+
+# we show a few properties of the data below
+NROW(dat$marker_data) # number of observed marker
+#> [1] 4480
+NROW(dat$surv_data) # number of survival outcomes
+#> [1] 2566
+sum(dat$surv_data$event) # number of observed events
+#> [1] 1571
+
+# the data for one individual
+subset(dat$marker_data, id == 1)
+#>       Y1     Y2     X1_1   time id
+#> 5     NA 4.3373 -0.23970 1.8877  1
+#> 4     NA 4.8558  0.70795 1.8869  1
+#> 3     NA 3.1915  0.13242 1.4047  1
+#> 2  1.399 1.7030 -0.08025 1.1467  1
+#> 1 -1.286 0.4379 -1.13038 0.3361  1
+subset(dat$surv_data, id == 1)
+#>   lf_trunc     y event     Z_1 id
+#> 2    1.206 1.330     1 -0.9706  1
+#> 3    1.330 2.000     0 -0.9706  1
+#> 1    0.000 1.206     1 -0.9706  1
+
+# distribution of observed events per individual
+proportions(table(table(dat$surv_data$id) - 1L))
+#> 
+#>     0     1     2     3     4     5     6     7     8     9 
+#> 0.317 0.279 0.184 0.102 0.057 0.029 0.010 0.007 0.004 0.011
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+marker_1 <- marker_term(
+    Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
+    time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2),
+                       intercept = TRUE))
+marker_2 <- marker_term(
+    Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
+    time_fixef = poly_term(time, degree = 2, raw = TRUE),
+    time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+surv_obj <- surv_term(
+  Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
+  # we select a more flexible model for the baseline hazard
+  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE))
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
+                         survival_terms = surv_obj, max_threads = 4L)
+rm(marker_1, marker_2, surv_obj)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+#>    user  system elapsed 
+#>   1.761   0.000   0.456
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+#> [1] -7423.569
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 28 + 2 * 14)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 28 + 2 * 14))
+#> [1] "Mean relative difference: 4.535e-08"
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    rel_eps = 1e-10))
+#>    user  system elapsed 
+#>  11.553   0.000   2.892
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.01602
+opt_out$info # convergence code (0 == 'OK')
+#> [1] 0
+print(-opt_out$value, digits = 8) # maximum lower bound value
+#> [1] -7093.4009
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]] 
+#> $fixef
+#> [1] -0.5361  1.0058
+#> 
+#> $fixef_vary
+#> [1]  1.439 -1.134 -2.067
+
+fixef_marker[[1]] # true values
+#> [1] -0.5  1.0
+fixef_vary_marker[[1]] # true values
+#> [1]  1.4 -1.2 -2.1
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+#> $fixef
+#> [1] 0.2043
+#> 
+#> $fixef_vary
+#> [1] 0.6436 0.6173
+fixef_marker[[2]] # true values
+#> [1] 0.25
+fixef_vary_marker[[2]] # true values
+#> [1] 0.50 0.67
+
+# the fixed effects for the survival outcome and the association parameters
+fmt_ests$survival[[1]]
+#> $fixef
+#> [1] -0.4367  0.2499
+#> 
+#> $fixef_vary
+#> [1]  0.426456 -0.006991  0.010092
+#> 
+#> $associations
+#> [1] -0.8853  0.7342
+fixef_surv
+#> [1] -0.50  0.25
+fixef_vary_surv
+#> [1] 0.5
+associations
+#> [1] -0.8  0.7
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+#>          [,1]     [,2]     [,3]     [,4]
+#> [1,]  0.30520  0.01911 -0.06209  0.02126
+#> [2,]  0.01911  0.08414 -0.03360 -0.02356
+#> [3,] -0.06209 -0.03360  0.30457  0.08502
+#> [4,]  0.02126 -0.02356  0.08502  0.14097
+vcov_vary # the true values
+#>       [,1]  [,2]  [,3]  [,4]
+#> [1,]  0.35  0.02 -0.05  0.01
+#> [2,]  0.02  0.12 -0.06 -0.01
+#> [3,] -0.05 -0.06  0.32  0.09
+#> [4,]  0.01 -0.01  0.09  0.12
+
+# the parameters for the error term covariance matrix
+fmt_ests$vcov$vcov_marker
+#>         [,1]    [,2]
+#> [1,] 0.36068 0.09824
+#> [2,] 0.09824 0.15530
+vcov_marker
+#>      [,1] [,2]
+#> [1,] 0.36 0.10
+#> [2,] 0.10 0.16
+
+# the parameters for the frailty covariance matrix
+fmt_ests$vcov$vcov_surv # NULL as there is not any
+#> NULL
+```
 
 ### Two Markers, the Observation Time Process, and a Terminal Event
 
@@ -2247,10 +2456,12 @@ marker_2 <- marker_term(
 library(survival)
 surv_terminal <- surv_term(
   Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
-  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)))
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
 surv_obs <- surv_term(
   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
-  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)))
+  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
@@ -2260,7 +2471,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>  21.915   0.004   5.505
+#>  20.554   0.007   5.163
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2281,7 +2492,12 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  100.25    0.04   25.08
+#>  98.320   0.007  24.586
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.2723
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2395,12 +2611,12 @@ if the same quadrature rule is used. This is done by setting the
 expensive basis expansions are only evaluated once which may decrees the
 computation time. The cons are
 
-  - We no longer use the CPU cache efficiently with present hardware.
+-   We no longer use the CPU cache efficiently with present hardware.
     Thus, you may not see great advantages of using many threads and the
     performance  
     may even be worse. This is more likely to be an issue with larger
     data set.
-  - It requires a lot more memory which may be an issue larger problems.
+-   It requires a lot more memory which may be an issue larger problems.
 
 We illustrate this by showing the computation time where we change the
 number of threads we use.
@@ -2420,14 +2636,14 @@ w_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression            median
 #>   <bch:expr>          <bch:tm>
-#> 1 w/ caching 1 thread   7.48ms
-#> 2 w/ caching 2 thread   3.92ms
-#> 3 w/ caching 3 thread   2.68ms
-#> 4 w/ caching 4 thread   2.15ms
+#> 1 w/ caching 1 thread   6.94ms
+#> 2 w/ caching 2 thread   3.78ms
+#> 3 w/ caching 3 thread   2.65ms
+#> 4 w/ caching 4 thread   2.29ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#> [1] 288ms
+#> [1] 329ms
 
 # w/o caching
 wo_caching <- bench::mark(
@@ -2443,14 +2659,14 @@ wo_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression             median
 #>   <bch:expr>           <bch:tm>
-#> 1 w/o caching 1 thread  20.09ms
-#> 2 w/o caching 2 thread  10.53ms
-#> 3 w/o caching 3 thread   7.04ms
-#> 4 w/o caching 4 thread   8.07ms
+#> 1 w/o caching 1 thread  18.33ms
+#> 2 w/o caching 2 thread   10.3ms
+#> 3 w/o caching 3 thread   7.01ms
+#> 4 w/o caching 4 thread   6.96ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#> [1] 402ms
+#> [1] 380ms
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
@@ -2768,11 +2984,11 @@ library(survival)
 surv_terminal <- surv_term(
   Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
   time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[1]])
+  ders = ders[[1]], with_frailty = TRUE)
 surv_obs <- surv_term(
   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
   time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[2]])
+  ders = ders[[2]], with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
@@ -2782,7 +2998,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>  21.356   0.008   5.402
+#>  20.770   0.000   5.242
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2803,7 +3019,12 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#> 147.123   0.016  36.799
+#> 144.184   0.044  36.059
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.81
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2912,31 +3133,29 @@ vcov_surv
 We provide a few technical details in this section. The concatenated
 coefficient is given by
 
-  
 ![\\vec\\theta = \\begin{pmatrix}
-\\vec\\gamma \\\\ \\vec\\beta\\\\
-\\vec\\omega\_1 \\\\ \\vec\\delta\_1 \\\\ \\vec\\alpha\_1 \\\\
-\\vdots \\\\
-\\vec\\omega\_H \\\\ \\vec\\delta\_H \\\\ \\vec\\alpha\_H \\\\
-\\text{vec}(\\Sigma) \\\\ \\text{vec}(\\Psi) \\\\ \\text{vec}(\\Xi)
-\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%5Cgamma%20%5C%5C%20%5Cvec%5Cbeta%5C%5C%0A%20%20%5Cvec%5Comega_1%20%5C%5C%20%5Cvec%5Cdelta_1%20%5C%5C%20%5Cvec%5Calpha_1%20%5C%5C%0A%20%20%5Cvdots%20%5C%5C%0A%20%20%5Cvec%5Comega_H%20%5C%5C%20%5Cvec%5Cdelta_H%20%5C%5C%20%5Cvec%5Calpha_H%20%5C%5C%0A%20%20%20%20%5Ctext%7Bvec%7D%28%5CSigma%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CPsi%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CXi%29%0A%5Cend%7Bpmatrix%7D
-"\\vec\\theta = \\begin{pmatrix}
   \\vec\\gamma \\\\ \\vec\\beta\\\\
-  \\vec\\omega_1 \\\\ \\vec\\delta_1 \\\\ \\vec\\alpha_1 \\\\
+  \\vec\\omega\_1 \\\\ \\vec\\delta\_1 \\\\ \\vec\\alpha\_1 \\\\
   \\vdots \\\\
-  \\vec\\omega_H \\\\ \\vec\\delta_H \\\\ \\vec\\alpha_H \\\\
+  \\vec\\omega\_H \\\\ \\vec\\delta\_H \\\\ \\vec\\alpha\_H \\\\
     \\text{vec}(\\Sigma) \\\\ \\text{vec}(\\Psi) \\\\ \\text{vec}(\\Xi)
-\\end{pmatrix}")  
+\\end{pmatrix}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%5Cgamma%20%5C%5C%20%5Cvec%5Cbeta%5C%5C%0A%20%20%5Cvec%5Comega_1%20%5C%5C%20%5Cvec%5Cdelta_1%20%5C%5C%20%5Cvec%5Calpha_1%20%5C%5C%0A%20%20%5Cvdots%20%5C%5C%0A%20%20%5Cvec%5Comega_H%20%5C%5C%20%5Cvec%5Cdelta_H%20%5C%5C%20%5Cvec%5Calpha_H%20%5C%5C%0A%20%20%20%20%5Ctext%7Bvec%7D%28%5CSigma%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CPsi%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CXi%29%0A%5Cend%7Bpmatrix%7D "\vec\theta = \begin{pmatrix}
+  \vec\gamma \\ \vec\beta\\
+  \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
+  \vdots \\
+  \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
+    \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
+\end{pmatrix}")
 
 where
-![\\text{vec}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Bvec%7D%28%5Ccdot%29
-"\\text{vec}(\\cdot)") is the vectorization function that stacks the
-column of a matrix on top of each other.
-![\\vec\\theta](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta
-"\\vec\\theta") is with the parameters from the variational
-approximation. We work with log Cholesky decompositions of the
-covariance matrices in practice. The `joint_ms_format` is a utility
-functions which returns a list with each of parameter separately.
+![\\text{vec}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Bvec%7D%28%5Ccdot%29 "\text{vec}(\cdot)")
+is the vectorization function that stacks the column of a matrix on top
+of each other.
+![\\vec\\theta](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta "\vec\theta")
+is with the parameters from the variational approximation. We work with
+log Cholesky decompositions of the covariance matrices in practice. The
+`joint_ms_format` is a utility functions which returns a list with each
+of parameter separately.
 
 There are different types of terms in the lower bound in the GVA. We
 cover the types below. The lower bound has many parameters even with a
@@ -2945,150 +3164,87 @@ bound using the [psqn package](https://github.com/boennecd/psqn).
 
 ## Kullback–Leibler Divergence Term
 
-In the GVA, we assume that the conditional distribution of ![(\\vec
-U\_i^\\top,
-\\vec\\xi\_i^\\top)^\\top](https://render.githubusercontent.com/render/math?math=%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop
-"(\\vec U_i^\\top, \\vec\\xi_i^\\top)^\\top") is a normal distribution
-with mean
-![\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Czeta_i
-"\\vec\\zeta_i") and covariance matrix
-![\\Omega\_i](https://render.githubusercontent.com/render/math?math=%5COmega_i
-"\\Omega_i"). One of the terms in the lower bound of the GVA is the
-Kullback–Leibler (KL) divergence term between the unconditional
-distribution of ![(\\vec U\_i^\\top,
-\\vec\\xi\_i^\\top)^\\top](https://render.githubusercontent.com/render/math?math=%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop
-"(\\vec U_i^\\top, \\vec\\xi_i^\\top)^\\top") and the assumed
-conditional distribution. This term is given by
+In the GVA, we assume that the conditional distribution of
+![(\\vec U\_i^\\top, \\vec\\xi\_i^\\top)^\\top](https://render.githubusercontent.com/render/math?math=%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop "(\vec U_i^\top, \vec\xi_i^\top)^\top")
+is a normal distribution with mean
+![\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Czeta_i "\vec\zeta_i")
+and covariance matrix
+![\\Omega\_i](https://render.githubusercontent.com/render/math?math=%5COmega_i "\Omega_i").
+One of the terms in the lower bound of the GVA is the Kullback–Leibler
+(KL) divergence term between the unconditional distribution of
+![(\\vec U\_i^\\top, \\vec\\xi\_i^\\top)^\\top](https://render.githubusercontent.com/render/math?math=%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop "(\vec U_i^\top, \vec\xi_i^\top)^\top")
+and the assumed conditional distribution. This term is given by
 
-  
 ![\\begin{multline\*}
-\\frac{1}{2}\\Big(\\log\\lvert\\Omega\_i\\rvert -
-\\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert
--\\vec\\zeta\_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta\_{i,1:R}-\\vec\\zeta\_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta\_{i,(-1:R)}
-\\\\- \\text{tr}\\Omega\_{i,1:R,1:R}\\Psi^{-1}-
-\\text{tr}\\Omega\_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R +
-H\\Big)\\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D%0A%5Cfrac%7B1%7D%7B2%7D%5CBig%28%5Clog%5Clvert%5COmega_i%5Crvert%20-%20%5Clog%5Clvert%5CPsi%5Crvert%20-%20%5Clog%5Clvert%5CXi%5Crvert%20-%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%5CPsi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D-%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%5CXi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%20%5C%5C-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5CPsi%5E%7B-1%7D-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%5CXi%5E%7B-1%7D%2B%20R%20%2B%20H%5CBig%29%5Cend%7Bmultline%2A%7D
-"\\begin{multline*}
-\\frac{1}{2}\\Big(\\log\\lvert\\Omega_i\\rvert - \\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert -\\vec\\zeta_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta_{i,1:R}-\\vec\\zeta_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta_{i,(-1:R)} \\\\- \\text{tr}\\Omega_{i,1:R,1:R}\\Psi^{-1}- \\text{tr}\\Omega_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R + H\\Big)\\end{multline*}")  
+\\frac{1}{2}\\Big(\\log\\lvert\\Omega\_i\\rvert - \\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert -\\vec\\zeta\_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta\_{i,1:R}-\\vec\\zeta\_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta\_{i,(-1:R)} \\\\- \\text{tr}\\Omega\_{i,1:R,1:R}\\Psi^{-1}- \\text{tr}\\Omega\_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R + H\\Big)\\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D%0A%5Cfrac%7B1%7D%7B2%7D%5CBig%28%5Clog%5Clvert%5COmega_i%5Crvert%20-%20%5Clog%5Clvert%5CPsi%5Crvert%20-%20%5Clog%5Clvert%5CXi%5Crvert%20-%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%5CPsi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D-%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%5CXi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%20%5C%5C-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5CPsi%5E%7B-1%7D-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%5CXi%5E%7B-1%7D%2B%20R%20%2B%20H%5CBig%29%5Cend%7Bmultline%2A%7D "\begin{multline*}
+\frac{1}{2}\Big(\log\lvert\Omega_i\rvert - \log\lvert\Psi\rvert - \log\lvert\Xi\rvert -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}-\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\- \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}- \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}+ R + H\Big)\end{multline*}")
 
 where
-![\\text{tr}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Btr%7D%28%5Ccdot%29
-"\\text{tr}(\\cdot)") returns the trace of a matrix. Thus, the
-derivatives w.r.t.
-![\\Omega\_i](https://render.githubusercontent.com/render/math?math=%5COmega_i
-"\\Omega_i"),
-![\\Psi](https://render.githubusercontent.com/render/math?math=%5CPsi
-"\\Psi"),
-![\\Xi](https://render.githubusercontent.com/render/math?math=%5CXi
-"\\Xi"),
-![\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Czeta_i
-"\\vec\\zeta_i") are respectively
+![\\text{tr}(\\cdot)](https://render.githubusercontent.com/render/math?math=%5Ctext%7Btr%7D%28%5Ccdot%29 "\text{tr}(\cdot)")
+returns the trace of a matrix. Thus, the derivatives w.r.t.
+![\\Omega\_i](https://render.githubusercontent.com/render/math?math=%5COmega_i "\Omega_i"),
+![\\Psi](https://render.githubusercontent.com/render/math?math=%5CPsi "\Psi"),
+![\\Xi](https://render.githubusercontent.com/render/math?math=%5CXi "\Xi"),
+![\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Czeta_i "\vec\zeta_i")
+are respectively
 
-  
-![\\frac{1}{2}\\left(\\Omega\_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0
-\\\\ 0 &
-\\Xi^{-1}\\end{pmatrix}\\right)](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5COmega_i%5E%7B-1%7D%20-%20%5Cbegin%7Bpmatrix%7D%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%200%20%26%20%5CXi%5E%7B-1%7D%5Cend%7Bpmatrix%7D%5Cright%29
-"\\frac{1}{2}\\left(\\Omega_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0 \\\\ 0 & \\Xi^{-1}\\end{pmatrix}\\right)")  
+![\\frac{1}{2}\\left(\\Omega\_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0 \\\\ 0 & \\Xi^{-1}\\end{pmatrix}\\right)](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5COmega_i%5E%7B-1%7D%20-%20%5Cbegin%7Bpmatrix%7D%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%200%20%26%20%5CXi%5E%7B-1%7D%5Cend%7Bpmatrix%7D%5Cright%29 "\frac{1}{2}\left(\Omega_i^{-1} - \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right)")
 
-  
-![\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta\_{i,1:R}\\vec\\zeta\_{i,1:R}^\\top
-+ \\Omega\_{i,1:R,1:R} -
-\\Psi)\\Psi^{-1}](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CPsi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%20%2B%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%20-%20%5CPsi%29%5CPsi%5E%7B-1%7D
-"\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta_{i,1:R}\\vec\\zeta_{i,1:R}^\\top + \\Omega_{i,1:R,1:R} - \\Psi)\\Psi^{-1}")  
+![\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta\_{i,1:R}\\vec\\zeta\_{i,1:R}^\\top + \\Omega\_{i,1:R,1:R} - \\Psi)\\Psi^{-1}](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CPsi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%20%2B%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%20-%20%5CPsi%29%5CPsi%5E%7B-1%7D "\frac{1}{2}\Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}")
 
-  
-![\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta\_{i,(-1:R)}\\vec\\zeta\_{i,(-1:R)}^\\top+
-\\Omega\_{i,(-1:R),(-1:R)} -
-\\Xi)\\Xi^{-1}.](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CXi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%2B%20%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%20-%20%5CXi%29%5CXi%5E%7B-1%7D.
-"\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta_{i,(-1:R)}\\vec\\zeta_{i,(-1:R)}^\\top+ \\Omega_{i,(-1:R),(-1:R)} - \\Xi)\\Xi^{-1}.")  
+![\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta\_{i,(-1:R)}\\vec\\zeta\_{i,(-1:R)}^\\top+ \\Omega\_{i,(-1:R),(-1:R)} - \\Xi)\\Xi^{-1}.](https://render.githubusercontent.com/render/math?math=%5Cfrac%7B1%7D%7B2%7D%5CXi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%2B%20%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%20-%20%5CXi%29%5CXi%5E%7B-1%7D. "\frac{1}{2}\Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top+ \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.")
 
-  
 ![-\\begin{pmatrix}
-\\Psi^{-1} & 0 \\\\
-0 & \\Xi^{-1} 
-\\end{pmatrix}\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=-%5Cbegin%7Bpmatrix%7D%0A%20%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%0A%20%200%20%26%20%5CXi%5E%7B-1%7D%20%0A%5Cend%7Bpmatrix%7D%5Cvec%5Czeta_i
-"-\\begin{pmatrix}
   \\Psi^{-1} & 0 \\\\
   0 & \\Xi^{-1} 
-\\end{pmatrix}\\vec\\zeta_i")  
+\\end{pmatrix}\\vec\\zeta\_i](https://render.githubusercontent.com/render/math?math=-%5Cbegin%7Bpmatrix%7D%0A%20%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%0A%20%200%20%26%20%5CXi%5E%7B-1%7D%20%0A%5Cend%7Bpmatrix%7D%5Cvec%5Czeta_i "-\begin{pmatrix}
+  \Psi^{-1} & 0 \\
+  0 & \Xi^{-1} 
+\end{pmatrix}\vec\zeta_i")
 
 ## Marker Terms
 
 The log conditional density term of observation
 ![j](https://render.githubusercontent.com/render/math?math=j "j") of
-individual ![i](https://render.githubusercontent.com/render/math?math=i
-"i") at time
-![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D
-"s_{ij}") is
+individual
+![i](https://render.githubusercontent.com/render/math?math=i "i") at
+time
+![s\_{ij}](https://render.githubusercontent.com/render/math?math=s_%7Bij%7D "s_{ij}")
+is
 
-  
-![\\int \\log\\left(\\phi^{(L)}\\left(\\vec y\_{ij}; X\_i\\vec\\gamma +
-G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec w,
-\\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta\_{i,1:R},
-\\Omega\_{i,1:R,1:R}\\right) d\\vec
-w](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Clog%5Cleft%28%5Cphi%5E%7B%28L%29%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%3B%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20w%2C%20%5CSigma%5Cright%29%5Cright%29%5Cphi%5E%7B%28R%29%7D%5Cleft%28%5Cvec%20w%3B%20%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%2C%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5Cright%29%20d%5Cvec%20w
-"\\int \\log\\left(\\phi^{(L)}\\left(\\vec y_{ij}; X_i\\vec\\gamma + G(s_{ij})\\vec\\beta + M(s_{ij})\\vec w, \\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta_{i,1:R}, \\Omega_{i,1:R,1:R}\\right) d\\vec w")  
+![\\int \\log\\left(\\phi^{(L)}\\left(\\vec y\_{ij}; X\_i\\vec\\gamma + G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec w, \\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta\_{i,1:R}, \\Omega\_{i,1:R,1:R}\\right) d\\vec w](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Clog%5Cleft%28%5Cphi%5E%7B%28L%29%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%3B%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20w%2C%20%5CSigma%5Cright%29%5Cright%29%5Cphi%5E%7B%28R%29%7D%5Cleft%28%5Cvec%20w%3B%20%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%2C%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5Cright%29%20d%5Cvec%20w "\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec w, \Sigma\right)\right)\phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w")
+
 which gives
 
-  
-![\\begin{multline\*}-\\frac{L}{2}\\log 2\\pi -\\frac {1}{2}
-\\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y\_{ij} -
-X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta -
-M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right)^\\top \\\\
-\\Sigma^{-1}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma -
-G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right) -
-\\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s\_{ij})\\Omega\_{i,1:R,1:R}M(s\_{ij})^\\top.
-\\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D-%5Cfrac%7BL%7D%7B2%7D%5Clog%202%5Cpi%20%20-%5Cfrac%20%7B1%7D%7B2%7D%20%5Clog%5Clvert%5CSigma%20%5Crvert%20-%20%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%5E%5Ctop%20%5C%5C%20%5CSigma%5E%7B-1%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%20-%20%5Cfrac%7B1%7D%7B2%7D%5Ctext%7Btr%7D%5CSigma%5E%7B-1%7DM%28s_%7Bij%7D%29%5COmega_%7Bi%2C1%3AR%2C1%3AR%7DM%28s_%7Bij%7D%29%5E%5Ctop.%20%5Cend%7Bmultline%2A%7D
-"\\begin{multline*}-\\frac{L}{2}\\log 2\\pi  -\\frac {1}{2} \\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y_{ij} - X_i\\vec\\gamma - G(s_{ij})\\vec\\beta - M(s_{ij})\\vec\\zeta_{i,1:R}\\right)^\\top \\\\ \\Sigma^{-1}\\left(\\vec y_{ij} - X_i\\vec\\gamma - G(s_{ij})\\vec\\beta - M(s_{ij})\\vec\\zeta_{i,1:R}\\right) - \\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s_{ij})\\Omega_{i,1:R,1:R}M(s_{ij})^\\top. \\end{multline*}")  
+![\\begin{multline\*}-\\frac{L}{2}\\log 2\\pi  -\\frac {1}{2} \\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right)^\\top \\\\ \\Sigma^{-1}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right) - \\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s\_{ij})\\Omega\_{i,1:R,1:R}M(s\_{ij})^\\top. \\end{multline\*}](https://render.githubusercontent.com/render/math?math=%5Cbegin%7Bmultline%2A%7D-%5Cfrac%7BL%7D%7B2%7D%5Clog%202%5Cpi%20%20-%5Cfrac%20%7B1%7D%7B2%7D%20%5Clog%5Clvert%5CSigma%20%5Crvert%20-%20%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%5E%5Ctop%20%5C%5C%20%5CSigma%5E%7B-1%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%20-%20%5Cfrac%7B1%7D%7B2%7D%5Ctext%7Btr%7D%5CSigma%5E%7B-1%7DM%28s_%7Bij%7D%29%5COmega_%7Bi%2C1%3AR%2C1%3AR%7DM%28s_%7Bij%7D%29%5E%5Ctop.%20%5Cend%7Bmultline%2A%7D "\begin{multline*}-\frac{L}{2}\log 2\pi  -\frac {1}{2} \log\lvert\Sigma \rvert - \frac{1}{2}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\ \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right) - \frac{1}{2}\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top. \end{multline*}")
 
 ## Survival Outcomes
 
-Let ![T\_{i1}, \\dots,
-T\_{iL}](https://render.githubusercontent.com/render/math?math=T_%7Bi1%7D%2C%20%5Cdots%2C%20T_%7BiL%7D
-"T_{i1}, \\dots, T_{iL}") be the minimum of the censoring time or the
-observed event time and ![D\_{i1}, \\dots,
-D\_{iL}](https://render.githubusercontent.com/render/math?math=D_%7Bi1%7D%2C%20%5Cdots%2C%20D_%7BiL%7D
-"D_{i1}, \\dots, D_{iL}") be event indicators. The the lower bound terms
-for the ![k](https://render.githubusercontent.com/render/math?math=k
-"k")th time to event is
+Let
+![T\_{i1}, \\dots, T\_{iL}](https://render.githubusercontent.com/render/math?math=T_%7Bi1%7D%2C%20%5Cdots%2C%20T_%7BiL%7D "T_{i1}, \dots, T_{iL}")
+be the minimum of the censoring time or the observed event time and
+![D\_{i1}, \\dots, D\_{iL}](https://render.githubusercontent.com/render/math?math=D_%7Bi1%7D%2C%20%5Cdots%2C%20D_%7BiL%7D "D_{i1}, \dots, D_{iL}")
+be event indicators. The the lower bound terms for the
+![k](https://render.githubusercontent.com/render/math?math=k "k")th time
+to event is
 
-  
-![\\int \\left(d\_{ik}\\log h\_{ik}(t\_{ik}\\mid \\vec w\_{1:R}, w\_{R +
-k})-\\int\_0^{t\_{ik}} h\_{ik}(s\\mid \\vec w\_{1:R}, w\_{R + k})ds
-\\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta\_i, \\Omega\_i)d\\vec
-w.](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Cleft%28d_%7Bik%7D%5Clog%20h_%7Bik%7D%28t_%7Bik%7D%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29-%5Cint_0%5E%7Bt_%7Bik%7D%7D%20%20h_%7Bik%7D%28s%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29ds%20%5Cright%29%5Cphi%5E%7B%28R%20%2B%20H%29%7D%28%5Cvec%20w%3B%20%5Cvec%5Czeta_i%2C%20%5COmega_i%29d%5Cvec%20w.
-"\\int \\left(d_{ik}\\log h_{ik}(t_{ik}\\mid \\vec w_{1:R}, w_{R + k})-\\int_0^{t_{ik}}  h_{ik}(s\\mid \\vec w_{1:R}, w_{R + k})ds \\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta_i, \\Omega_i)d\\vec w.")  
+![\\int \\left(d\_{ik}\\log h\_{ik}(t\_{ik}\\mid \\vec w\_{1:R}, w\_{R + k})-\\int\_0^{t\_{ik}}  h\_{ik}(s\\mid \\vec w\_{1:R}, w\_{R + k})ds \\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta\_i, \\Omega\_i)d\\vec w.](https://render.githubusercontent.com/render/math?math=%5Cint%20%5Cleft%28d_%7Bik%7D%5Clog%20h_%7Bik%7D%28t_%7Bik%7D%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29-%5Cint_0%5E%7Bt_%7Bik%7D%7D%20%20h_%7Bik%7D%28s%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29ds%20%5Cright%29%5Cphi%5E%7B%28R%20%2B%20H%29%7D%28%5Cvec%20w%3B%20%5Cvec%5Czeta_i%2C%20%5COmega_i%29d%5Cvec%20w. "\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.")
 
-Left-truncation is eaisly handled by replacing the zero in the lower
+Left-truncation is easily handled by replacing the zero in the lower
 limit by the left-truncation point. The log hazard term gives the
 following lower bound terms
 
-  
-![d\_{ik}\\left(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\omega\_k^\\top
-\\vec b\_k(t\_{ik}) + \\vec\\alpha\_k^\\top
-M(t\_{ik})\\vec\\zeta\_{i,1:R} + \\zeta\_{i,R +
-k}\\right).](https://render.githubusercontent.com/render/math?math=d_%7Bik%7D%5Cleft%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28t_%7Bik%7D%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28t_%7Bik%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%20%5Czeta_%7Bi%2CR%20%2B%20k%7D%5Cright%29.
-"d_{ik}\\left(\\vec z_{ik}^\\top\\vec\\delta_k + \\omega_k^\\top \\vec b_k(t_{ik}) +  \\vec\\alpha_k^\\top M(t_{ik})\\vec\\zeta_{i,1:R} + \\zeta_{i,R + k}\\right).")  
+![d\_{ik}\\left(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\omega\_k^\\top \\vec b\_k(t\_{ik}) +  \\vec\\alpha\_k^\\top M(t\_{ik})\\vec\\zeta\_{i,1:R} + \\zeta\_{i,R + k}\\right).](https://render.githubusercontent.com/render/math?math=d_%7Bik%7D%5Cleft%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28t_%7Bik%7D%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28t_%7Bik%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%20%5Czeta_%7Bi%2CR%20%2B%20k%7D%5Cright%29. "d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + \omega_k^\top \vec b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).")
 
 As for the expected cumulative hazard term, assume that we can
 interchange the order of integration. Then the lower bound term is
 
-  
-![-\\exp(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\zeta\_{R
-+k})\\int\_0^{t\_{ij}} \\exp\\left(\\omega\_k^\\top \\vec b\_k(s) +
-\\vec\\alpha\_k^\\top M(s)\\vec\\zeta\_{i,1:R} +\\frac{1}{2}
-(\\vec\\alpha\_k^\\top, 1) O\_{ik}(s)\\begin{pmatrix} \\vec\\alpha\_k
-\\\\ 1 \\end{pmatrix}\\right)
-ds](https://render.githubusercontent.com/render/math?math=-%5Cexp%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Czeta_%7BR%20%2Bk%7D%29%5Cint_0%5E%7Bt_%7Bij%7D%7D%20%5Cexp%5Cleft%28%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28s%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28s%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%5Cfrac%7B1%7D%7B2%7D%20%20%28%5Cvec%5Calpha_k%5E%5Ctop%2C%201%29%20O_%7Bik%7D%28s%29%5Cbegin%7Bpmatrix%7D%20%5Cvec%5Calpha_k%20%5C%5C%201%20%5Cend%7Bpmatrix%7D%5Cright%29%20ds
-"-\\exp(\\vec z_{ik}^\\top\\vec\\delta_k + \\zeta_{R +k})\\int_0^{t_{ij}} \\exp\\left(\\omega_k^\\top \\vec b_k(s) +  \\vec\\alpha_k^\\top M(s)\\vec\\zeta_{i,1:R} +\\frac{1}{2}  (\\vec\\alpha_k^\\top, 1) O_{ik}(s)\\begin{pmatrix} \\vec\\alpha_k \\\\ 1 \\end{pmatrix}\\right) ds")  
+![-\\exp(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\zeta\_{R +k})\\int\_0^{t\_{ij}} \\exp\\left(\\omega\_k^\\top \\vec b\_k(s) +  \\vec\\alpha\_k^\\top M(s)\\vec\\zeta\_{i,1:R} +\\frac{1}{2}  (\\vec\\alpha\_k^\\top, 1) O\_{ik}(s)\\begin{pmatrix} \\vec\\alpha\_k \\\\ 1 \\end{pmatrix}\\right) ds](https://render.githubusercontent.com/render/math?math=-%5Cexp%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Czeta_%7BR%20%2Bk%7D%29%5Cint_0%5E%7Bt_%7Bij%7D%7D%20%5Cexp%5Cleft%28%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28s%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28s%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%5Cfrac%7B1%7D%7B2%7D%20%20%28%5Cvec%5Calpha_k%5E%5Ctop%2C%201%29%20O_%7Bik%7D%28s%29%5Cbegin%7Bpmatrix%7D%20%5Cvec%5Calpha_k%20%5C%5C%201%20%5Cend%7Bpmatrix%7D%5Cright%29%20ds "-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds")
 
 where
 
-  
 ![O\_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
-\\Omega\_{(1:R, R + k), (1:R, R + k)}
-\\begin{pmatrix}M(s)^\\top & 0 \\\\ 0
-& 1\\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=O_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D.
-"O_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
-  \\Omega_{(1:R, R + k), (1:R, R + k)}
-    \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.")
+  \\Omega\_{(1:R, R + k), (1:R, R + k)}
+    \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=O_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D. "O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
+  \Omega_{(1:R, R + k), (1:R, R + k)}
+    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.")

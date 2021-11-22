@@ -106,7 +106,10 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
 The $\vec\alpha$s are association parameters which makes the markers and the 
 survival outcomes marginally dependent. The $\vec\xi_i$s are frailty effects 
 which makes the survival outcomes marginally dependent even if 
-$\vec\alpha = \vec 0$.
+$\vec\alpha = \vec 0$. By default, these are not included as it is assumed 
+that events are often terminal in which case identifying the frailty may be 
+hard and evidence of a frailty is both evidence of non-proportional hazards and
+heterogeneity.
 
 The observation process, the $s_{ij}$s, can be modeled as one of $H$ 
 different types of survival process. This can be done by adding each $s_{ij}$ 
@@ -183,6 +186,9 @@ section. The examples includes:
    section. The section also includes an example of how to construct approximate
    profile likelihood based confidence intervals and how to obtain Wald type 
    tests and confidence intervals from the observed information matrix.
+ - A similar example is provided but without the frailty in the 
+   [Two Markers and a Recurrent Event Without Frailty](#two-markers-and-a-recurrent-event-without-frailty)
+   section. Notice that this is the default with `surv_term`.
  - An example with two markers, the observation process, and a terminal event 
    is given in the 
    [Two Markers, the Observation Time Process, and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
@@ -194,6 +200,39 @@ section. The examples includes:
    [Two Markers, the Observation Time Process, a Terminal Event and Mixed Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
    section but where a mixture of the cumulative, the present value, and the 
    derivative is used in the sub-survival models.
+   
+We start first with some general remarks. 
+
+### General Remarks
+
+There is not intercept by default in the splines. 
+Usually, you almost always want one in the 
+both the random effect and fixed effect part. The intercept in included by 
+default in `formula` (unless you do `. ~ ... - 1` and there is not factor 
+variable). Thus, you do not want an intercept in the `time_fixef` in both 
+`marker_term` and `surv_term`. On the other hand, you do need yourself to 
+include the intercept in the `time_rng` argument of `marker_term`. Thus, 
+a typical call may look like
+
+```{r typical_call, eval = FALSE}
+mark <- marker_term(
+  y ~ X1 + X2, # there is an intercept by default
+  # `intercept` is FALSE by default 
+  time_fixef = poly_term(time, degree = 3), 
+  # we need to add the intercept
+  time_rng = poly_term(time, degree = 1, intercept = TRUE))
+
+s_term <- surv_term(
+  Surv(tstop, event) ~ X1, # there is an intercept by default
+  # `intercept` is FALSE by default
+  time_fixef = poly_term(tstop, degree = 1))
+```
+
+You may run into computational issues if you have a very flexible random effect 
+model. This is quite typical with mixed models in a frequentist setting also
+with other estimation methods. One outcome of a too flexible random effect model
+is slow convergence or a `NaN` output because some of the scale matrices do not 
+have full rank.
 
 ### Univariate Marker Example
 
@@ -313,6 +352,9 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 print(logLik(fit), digits = 8) # maximum likelihood from lme4
@@ -643,6 +685,10 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 
@@ -806,7 +852,8 @@ library(survival)
 library(VAJointSurv)
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
-  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)))
+  time_fixef = bs_term(y, knots = 1, Boundary.knots = c(0, 2)), 
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(),
                          survival_terms = surv_obj, max_threads = 4L)
@@ -832,6 +879,10 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 
@@ -1140,7 +1191,8 @@ marker_2 <- marker_term(
 surv_obj <- surv_term(
   Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
   # we select a more flexible model for the baseline hazard
-  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE))
+  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE),
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = surv_obj, max_threads = 4L)
@@ -1164,6 +1216,10 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 
@@ -1365,6 +1421,119 @@ associations
 We can compute standard error estimates for the covariance matrices' 
 parameters but this requires an application of the delta method because of the 
 parameterization of the covariance matrices. 
+
+### Two Markers and a Recurrent Event Without Frailty
+
+In this section, we estimate  a model like before but without the frailty. 
+
+```{r no_frailty_recurrent_and_marker, cache = 1}
+# set the frailty variance to ~0
+vcov_surv <- matrix(1e-6^2, 1)
+
+# plot the hazard with pointwise quantiles
+par(mar = c(5, 5, 1, 1))
+plot_surv(
+  time_fixef = b_term, 
+  time_rng = list(
+    ns_term(knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+    poly_term(degree = 1, raw = TRUE, intercept = TRUE)), 
+  x_range = c(0, 2), vcov_vary = vcov_vary, frailty_var = vcov_surv,
+  ps = c(.25, .5, .75), log_hazard_shift = fixef_surv[1], 
+  fixef_vary = fixef_vary_surv, associations = associations)
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat(1000L)
+
+# we show a few properties of the data below
+NROW(dat$marker_data) # number of observed marker
+NROW(dat$surv_data) # number of survival outcomes
+sum(dat$surv_data$event) # number of observed events
+
+# the data for one individual
+subset(dat$marker_data, id == 1)
+subset(dat$surv_data, id == 1)
+
+# distribution of observed events per individual
+proportions(table(table(dat$surv_data$id) - 1L))
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+marker_1 <- marker_term(
+    Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
+    time_fixef = ns_term(time, knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
+    time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 2),
+                       intercept = TRUE))
+marker_2 <- marker_term(
+    Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
+    time_fixef = poly_term(time, degree = 2, raw = TRUE),
+    time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+surv_obj <- surv_term(
+  Surv(lf_trunc, y, event) ~ Z_1, id = id, dat$surv_data,
+  # we select a more flexible model for the baseline hazard
+  time_fixef = poly_term(y, degree = 3L, raw = TRUE, use_log = TRUE))
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
+                         survival_terms = surv_obj, max_threads = 4L)
+rm(marker_1, marker_2, surv_obj)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj))
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 28 + 2 * 14)), 
+          head(joint_ms_lb_gr(comp_obj, start_val), 28 + 2 * 14))
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    rel_eps = 1e-10))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]] 
+
+fixef_marker[[1]] # true values
+fixef_vary_marker[[1]] # true values
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+fixef_marker[[2]] # true values
+fixef_vary_marker[[2]] # true values
+
+# the fixed effects for the survival outcome and the association parameters
+fmt_ests$survival[[1]]
+fixef_surv
+fixef_vary_surv
+associations
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+vcov_vary # the true values
+
+# the parameters for the error term covariance matrix
+fmt_ests$vcov$vcov_marker
+vcov_marker
+
+# the parameters for the frailty covariance matrix
+fmt_ests$vcov$vcov_surv # NULL as there is not any
+```
 
 ### Two Markers, the Observation Time Process, and a Terminal Event
 
@@ -1633,10 +1802,12 @@ marker_2 <- marker_term(
 library(survival)
 surv_terminal <- surv_term(
   Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
-  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)))
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
 surv_obs <- surv_term(
   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
-  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)))
+  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
@@ -1662,6 +1833,10 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 
@@ -2026,11 +2201,11 @@ library(survival)
 surv_terminal <- surv_term(
   Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
   time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[1]])
+  ders = ders[[1]], with_frailty = TRUE)
 surv_obs <- surv_term(
   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
   time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[2]])
+  ders = ders[[2]], with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
@@ -2056,6 +2231,10 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
+
+# check the gradient norm. We may need to reduce the convergence tolerance if 
+# this is not small. In can also be a sign of convergence issues
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 
@@ -2169,7 +2348,7 @@ the lower bound terms for the $k$th time to event is
 
 $$\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.$$
 
-Left-truncation is eaisly handled by replacing the zero in the lower limit by 
+Left-truncation is easily handled by replacing the zero in the lower limit by 
 the left-truncation point.
 The log hazard term gives the following lower bound terms
 

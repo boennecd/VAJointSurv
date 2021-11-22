@@ -15,6 +15,7 @@
 #' the survival outcome is linked to the markers. 0 implies present values,
 #' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
 #' value of the random effect for all markers.
+#' @param with_frailty \code{TRUE} if there should be a frailty term.
 #'
 #' @details
 #' The \code{time_fixef} should likely not include an intercept as this is
@@ -24,7 +25,7 @@
 #'
 #' @export
 surv_term <- function(formula, id, data, time_fixef, ders = NULL,
-                      with_frailty = TRUE){
+                      with_frailty = FALSE){
   # get the input data
   mf <- match.call(expand.dots = FALSE)
   m <- match(c("formula", "data"), names(mf), 0L)
