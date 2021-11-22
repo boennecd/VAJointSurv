@@ -31,13 +31,17 @@ public:
     vajoint_uint n_fix, n_variying;
     /// number of associations parameters for each marker
     std::vector<unsigned> n_associations;
+    /// is there a frailty term
+    bool with_frailty;
     vajoint_uint idx_fix = 0,
                  idx_varying = 0,
-                 idx_association = 0;
+                 idx_association = 0,
+                 frailty_offset = 0;
 
     surv(vajoint_uint const n_fix, vajoint_uint const n_variying,
-         const std::vector<unsigned> &n_associations):
-      n_fix(n_fix), n_variying(n_variying), n_associations{n_associations} { }
+         const std::vector<unsigned> &n_associations, bool const with_frailty):
+      n_fix(n_fix), n_variying(n_variying), n_associations{n_associations},
+      with_frailty{with_frailty} { }
   };
 
 private:
@@ -62,7 +66,8 @@ private:
                idx_va_vcov_triangular = 0,
 
                n_params_triangular_v = 0,
-               n_parms_w_va_triangular_v = 0;
+               n_parms_w_va_triangular_v = 0,
+               n_shared_surv_v = 0;
 
   void re_compute_indices(){
     /// fill in the indices from the markers and the shared effect
@@ -80,6 +85,7 @@ private:
     }
 
     /// fill in the indices from the survival outcomes
+    n_shared_surv_v = 0;
     for(auto &info : surv_info_v){
       info.idx_fix = idx;
       idx += info.n_fix;
@@ -88,6 +94,9 @@ private:
       info.idx_association = idx;
       for(unsigned n : info.n_associations)
         idx += n;
+      info.frailty_offset = n_shared_surv_v;
+      if(info.with_frailty)
+        ++n_shared_surv_v;
     }
 
     /// fill in the indices for the covariance matrices
@@ -98,13 +107,11 @@ private:
       idx_shared_effect = idx;
       idx += n_shared_effect * n_shared_effect;
       idx_shared_surv = idx;
-      idx += static_cast<vajoint_uint>(
-        surv_info_v.size() * surv_info_v.size()); // -Wconversion
+      idx += n_shared_surv_v * n_shared_surv_v;
       n_params_v = idx;
 
       idx_va_mean = idx;
-      vajoint_uint const va_dim = n_shared_effect + static_cast<vajoint_uint>(
-        surv_info_v.size());  // -Wconversion
+      vajoint_uint const va_dim{n_shared_effect + n_shared_surv_v};
       idx += va_dim;
       idx_va_vcov = idx;
       n_params_w_va_v = idx + va_dim * va_dim;
@@ -115,12 +122,11 @@ private:
     idx_shared_effect_triangular = idx;
     idx += dim_tri(n_shared_effect);
     idx_shared_surv_triangular = idx;
-    idx += dim_tri(surv_info_v.size());
+    idx += dim_tri(n_shared_surv_v);
     n_params_triangular_v = idx;
 
     idx_va_mean_triangular = idx;
-    vajoint_uint const va_dim = n_shared_effect +
-      static_cast<vajoint_uint>(surv_info_v.size());
+    vajoint_uint const va_dim{n_shared_effect + n_shared_surv_v};
     idx += va_dim;
     idx_va_vcov_triangular = idx;
     n_parms_w_va_triangular_v = idx + dim_tri(va_dim);
@@ -224,6 +230,11 @@ public:
     return surv_info_v[idx].idx_association;
   }
 
+  /// returns the offset for the frailty variable for the survival type
+  vajoint_uint frailty_offset(vajoint_uint const idx) const {
+    return surv_info_v[idx].frailty_offset;
+  }
+
   /// returns the index of the covarinace matrix for the frailties
   template<bool is_traingular = is_traingular_default>
   vajoint_uint vcov_surv() const {
@@ -267,7 +278,7 @@ public:
 
   /// returns the number of shared random effects for the survival outcomes
   vajoint_uint n_shared_surv() const {
-    return static_cast<vajoint_uint>(surv_info_v.size()); // -Wconversion
+    return n_shared_surv_v;
   }
 
   /**

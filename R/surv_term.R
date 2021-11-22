@@ -23,7 +23,8 @@
 #' @importFrom stats model.frame model.matrix model.response
 #'
 #' @export
-surv_term <- function(formula, id, data, time_fixef, ders = NULL){
+surv_term <- function(formula, id, data, time_fixef, ders = NULL,
+                      with_frailty = TRUE){
   # get the input data
   mf <- match.call(expand.dots = FALSE)
   m <- match(c("formula", "data"), names(mf), 0L)
@@ -44,14 +45,16 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL){
             any(y[, 3] == 0),
             any(y[, 3] == 1))
 
-  time_fixef <- eval(substitute(time_fixef), data[y[, 3] == 1, ])
+  time_fixef <- eval(substitute(time_fixef), data)
 
   # sanity checks
   stopifnot(NROW(Z) == length(id),
             is.matrix(Z),
             all(is.finite(Z)),
             all(is.finite(y)),
-            NROW(Z) == NROW(y))
+            NROW(Z) == NROW(y),
+            is.logical(with_frailty), length(with_frailty) == 1,
+            is.finite(with_frailty))
   is_valid_expansion(time_fixef)
 
   # check for a singular design matrix
@@ -67,7 +70,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL){
   id <- id[ord]
 
   structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
-                 ders = ders),
+                 ders = ders, with_frailty = with_frailty),
             class = "surv_term")
 }
 
@@ -80,7 +83,8 @@ surv_term_start_value <- function(object, quad_rule, va_var){
   # create the object to perform the optimization
   Z <- object$Z
   surv <- t(object$y)
-  comp <- ph_ll(time_fixef = object$time_fixef, Z = Z, surv = surv)
+  comp <- ph_ll(time_fixef = object$time_fixef, Z = Z, surv = surv,
+                object$with_frailty)
 
   # define the likelihood and gradient function. Then optimize
   ll <- function(par)

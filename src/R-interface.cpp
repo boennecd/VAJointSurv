@@ -257,7 +257,7 @@ public:
         (log_chol:: pd_mat::n_wmem(n_rng),
          log_chol::dpd_mat::n_wmem(n_rng),
          log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
-         log_chol::dpd_mat::n_wmem(par_idx.surv_info().size()),
+         log_chol::dpd_mat::n_wmem(par_idx.n_shared_surv()),
          kl_dat.n_wmem(),
          s_dat.n_wmem()[1])};
 
@@ -330,7 +330,7 @@ public:
        par_vec_gr + par_idx.vcov_marker<false>(), inter_mem_dub);
 
     log_chol::dpd_mat::get
-      (p + par_idx.vcov_surv<true>(), par_idx.surv_info().size(),
+      (p + par_idx.vcov_surv<true>(), par_idx.n_shared_surv(),
        gr + par_idx.vcov_surv<true>(),
        par_vec_gr + par_idx.vcov_surv<false>(), inter_mem_dub);
 
@@ -369,7 +369,7 @@ void lower_bound_caller::setup(double const *val, bool const comp_grad){
     par_vec.resize(par_idx->n_params<false>());
     vajoint_uint const n_wmem
     {many_max<vajoint_uint>
-      (log_chol::pd_mat::n_wmem(par_idx->surv_info().size()),
+      (log_chol::pd_mat::n_wmem(par_idx->marker_info().size()),
        log_chol::pd_mat::n_wmem(par_idx->n_shared_surv()),
        log_chol::pd_mat::n_wmem(par_idx->n_shared()),
        m_dat->n_wmem(),
@@ -489,6 +489,8 @@ public:
       s_id_vecs.emplace_back(Rcpp::as<Rcpp::IntegerVector>(surv["id"]));
       NumericMatrix y{Rcpp::as<NumericMatrix>(surv["y"])};
 
+      bool with_frailty{Rcpp::as<bool>(surv["with_frailty"])};
+
       // handle the integral/derivative argument to the basis expansions of the
       // markers
       ders.emplace_back();
@@ -512,7 +514,8 @@ public:
         (survival::obs_input{n_obs, &y[0], &y[y.nrow()], &y[2 * y.nrow()]});
       s_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
       par_idx.add_surv
-        ({n_fixef, bases_fix_surv.back()->n_basis(), n_associations});
+        ({n_fixef, bases_fix_surv.back()->n_basis(), n_associations,
+         with_frailty});
     }
 
     // construct the objects to compute the different terms of the lower bound
@@ -758,7 +761,7 @@ List joint_ms_parameter_indices(SEXP ptr){
 
   auto &params = obj->params();
   List m_out(params.marker_info().size()),
-             s_out(params.surv_info().size());
+       s_out(params.surv_info().size());
 
   // handle the fixed effects
   for(size_t i = 0; i < params.marker_info().size(); ++i){
@@ -802,7 +805,7 @@ List joint_ms_parameter_indices(SEXP ptr){
     (vcov_marker.begin(), vcov_marker.end(), params.vcov_marker<true>() + 1);
 
   vajoint_uint const n_vcov_surv
-    {static_cast<vajoint_uint>(dim_tri(params.surv_info().size()))};
+    {static_cast<vajoint_uint>(dim_tri(params.n_shared_surv()))};
   Rcpp::IntegerVector vcov_surv(n_vcov_surv);
   std::iota
     (vcov_surv.begin(), vcov_surv.end(), params.vcov_surv<true>() + 1);
@@ -965,10 +968,11 @@ class ph_model {
 
 public:
   ph_model(joint_bases::basisMixin const * expansion_in,
-           simple_mat<double> const &Z, simple_mat<double> const &surv):
+           simple_mat<double> const &Z, simple_mat<double> const &surv,
+           bool const with_frailty):
   expansion{expansion_in->clone()}, Z{Z}, surv{surv},
   cum_haz{*expansion, survival::bases_vector{}, Z.n_rows(),
-          std::vector<std::vector<int> >{}},
+          std::vector<std::vector<int> >{}, with_frailty},
   n_wmem_v{cum_haz.n_wmem()[0],
            std::max(cum_haz.n_wmem()[1],
                     expansion->n_wmem() + expansion->n_basis())}
@@ -1024,7 +1028,8 @@ public:
 
 // [[Rcpp::export(rng = false)]]
 List ph_ll
-  (List time_fixef, NumericMatrix Z, NumericMatrix surv){
+  (List time_fixef, NumericMatrix Z, NumericMatrix surv,
+   bool const with_frailty){
   profiler pp("ph_ll");
 
   auto expansion = basis_from_list(time_fixef);
@@ -1037,7 +1042,8 @@ List ph_ll
   if(Z_sm.n_cols() != surv_sm.n_cols())
     throw std::invalid_argument("Z_sm.n_cols() != surv_sm.n_cols()");
 
-  Rcpp::XPtr<ph_model> ptr(new ph_model(expansion.get(), Z_sm, surv_sm));
+  Rcpp::XPtr<ph_model> ptr
+    (new ph_model(expansion.get(), Z_sm, surv_sm, with_frailty));
   vajoint_uint const n_params = ptr->n_params();
 
   return List::create(Rcpp::_("n_params") = n_params,

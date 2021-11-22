@@ -49,8 +49,8 @@ joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bf
     .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers)
 }
 
-ph_ll <- function(time_fixef, Z, surv) {
-    .Call(`_VAJointSurv_ph_ll`, time_fixef, Z, surv)
+ph_ll <- function(time_fixef, Z, surv, with_frailty) {
+    .Call(`_VAJointSurv_ph_ll`, time_fixef, Z, surv, with_frailty)
 }
 
 ph_eval <- function(ptr, par, quad_rule, va_var) {

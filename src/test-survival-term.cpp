@@ -113,7 +113,250 @@ context("expected_cum_hazzard is correct") {
 
     // we get the correct value
     std::vector<std::vector<int> > ders{{0}, {0}, {0}};
-    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders);
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders, true);
+    std::vector<double> expansions(comp_obj.cache_mem_per_node() * n_nodes);
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double res = comp_obj(
+        {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
+        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
+        nullptr);
+
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
+
+      // with cached expansions
+      comp_obj.cache_expansions
+        (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
+         {ns, ws, n_nodes});
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
+         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
+         expansions.data());
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
+    }
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double res = comp_obj(
+        {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
+        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
+        nullptr);
+
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
+
+      // with cached expansions
+      comp_obj.cache_expansions
+        (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
+        {ns, ws, n_nodes});
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
+         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
+         expansions.data());
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
+    }
+
+    auto rewind_n_convert = [&]{
+      Number::tape->rewind();
+      cfaad::convertCollection(begin(delta), end(delta), ad_delta);
+      cfaad::convertCollection(begin(omega), end(omega), ad_omega);
+      cfaad::convertCollection(begin(alpha), end(alpha), ad_alpha);
+      cfaad::convertCollection(begin(zeta), end(zeta), ad_zeta);
+      cfaad::convertCollection(begin(Psi), end(Psi), ad_Psi);
+    };
+
+    // we get the correct gradient
+    {
+      rewind_n_convert();
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj(
+        {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+        ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
+      res.propagateToStart();
+      double const *g{gr1};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+
+      // with cached memory
+      rewind_n_convert();
+      comp_obj.cache_expansions
+        (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
+         {ns, ws, n_nodes});
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
+      res.propagateToStart();
+
+      g = gr1;
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+    {
+      rewind_n_convert();
+
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj(
+        {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+        ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
+      res.propagateToStart();
+      double const *g{gr2};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+
+      // with cached memory
+      rewind_n_convert();
+      comp_obj.cache_expansions
+        (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
+        {ns, ws, n_nodes});
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
+         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
+      res.propagateToStart();
+
+      g = gr2;
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+
+    // clean-up
+    wmem::clear_all();
+  }
+
+  test_that("expected_cum_hazzard gives the correct result without frailty"){
+    /*
+     raw_poly <- function(x, degree, intercept){
+     if(intercept)
+     drop(outer(x, 0:degree, `^`))
+     else
+     drop(outer(x, 1:degree, `^`))
+     }
+
+# parameters
+     Z <- c(1, -.5, .33)
+     delta <- c(.1, .2, -.3)
+     g <- function(x) raw_poly(x, 2, FALSE)
+     omega <- c(.2, -.33)
+     alpha <- c(.1, .4, -.2)
+     ms <- list(function(x) raw_poly(x, 1, TRUE),
+     function(x) raw_poly(x, 2, TRUE),
+     function(x) raw_poly(x, 1, TRUE))
+     zeta <- c(-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126)
+     set.seed(1)
+     dput(Psi <- drop(round(rWishart(1, 16, diag(.025, 7)), 3)))
+     stopifnot(all(eigen(Psi)$value > 0))
+
+     f <- function(args, lb, ub){
+     get_next <- function(n){
+     out <- head(args, n)
+     args <<- tail(args, -n)
+     out
+     }
+     delta <- get_next(length(delta))
+     omega <- get_next(length(omega))
+     alpha <- get_next(length(alpha))
+     zeta <- get_next(length(zeta))
+     Psi <- matrix(args, NROW(Psi))
+
+     integrand <- function(x){
+     M <- matrix(0, length(zeta), length(ms))
+     offset <- 0L
+     for(i in seq_along(ms)){
+     z <- ms[[i]](x)
+     M[offset + seq_along(z), i] <- z
+     offset <- offset + length(z)
+     }
+
+     M_alpha <- drop(M %*% alpha)
+
+     exp(delta %*% Z + g(x) %*% omega + M_alpha %*% zeta +
+     M_alpha %*% Psi %*% M_alpha / 2)
+     }
+
+     integrate(Vectorize(integrand), lb, ub, rel.tol = 1e-10)$value
+     }
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), 0, 2))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = 0, ub = 2))
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), 1, 3))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = 1, ub = 3))
+     */
+    constexpr double z[] {1, -.5, .33},
+                 delta[] {.1, .2, -.3},
+                 alpha[] {.1, .4, -.2},
+                 omega[] {.2, -.33},
+                  zeta[] {-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126},
+                   Psi[] {0.294, 0.109, -0.132, 0.049, -0.053, 0.037, -0.005, 0.109, 0.588, -0.158, -0.017, -0.279, -0.131, 0.057, -0.132, -0.158, 0.461, 0.132, 0.185, -0.01, 0.096, 0.049, -0.017, 0.132, 0.333, 0.047, 0.038, -0.02, -0.053, -0.279, 0.185, 0.047, 0.487, 0.067, -0.111, 0.037, -0.131, -0.01, 0.038, 0.067, 0.296, -0.029, -0.005, 0.057, 0.096, -0.02, -0.111, -0.029, 0.408},
+                   lb1   {0},
+                   ub1   {2},
+                   lb2   {1},
+                   ub2   {3},
+             true_val1   {1.73105231299269},
+             true_val2   {2.3109840405025},
+                   gr1[] {1.73105231304629, -0.865526156523145, 0.571247263306151, 1.67584880157848, 2.19632972414468, -0.850927744111685, 1.93017169982009, -0.300750091316611, 0.17310523130411, 0.16758488021254, 0.692420924871468, 0.670339520197242, 0.878531889847776, -0.346210462562529, -0.335169760085916, 0.00865526157080918, 0.00837924408487893, 0.0346210461511111, 0.033516976304557, 0.0439265942765341, -0.0173105228747201, -0.0167584798233712, 0.00837924408487893, 0.0109816486250253, 0.0335169757997189, 0.0439265947731833, 0.0653148037504997, -0.0167584879673576, -0.0219632973017557, 0.0346210461511111, 0.033516975962154, 0.138484185081858, 0.134067904006304, 0.175706378008521, -0.0692420909871097, -0.0670339520921989, 0.0335169763475226, 0.0439265947731833, 0.134067904006298, 0.175706377877782, 0.261259214964611, -0.0670339519582168, -0.0878531892634446, 0.0439265942765341, 0.0653148037504997, 0.17570637799714, 0.261259214691582, 0.416212065151412, -0.0878531893843168, -0.130629607312473, -0.0173105228747201, -0.0167584879673576, -0.0692420909871097, -0.0670339519599481, -0.0878531892251933, 0.0346210463200971, 0.0335169757955579, -0.0167584798233712, -0.0219632975268851, -0.0670339520921989, -0.0878531893687102, -0.130629607312473, 0.0335169757955579, 0.0439265944806003},
+                   gr2[] {2.3109840406161, -1.15549202030805, 0.762624733363528, 5.13260272940732, 12.2568257304768, -4.42747776636943, 19.8490538121894, -2.32280660662384, 0.231098404057677, 0.513260273014546, 0.924393616432615, 2.05304109436491, 4.90273029229812, -0.462196807817001, -1.02652054588619, 0.011554920225038, 0.0256630137300429, 0.0462196808742369, 0.102652054742906, 0.245136515009671, -0.0231098400671313, -0.0513260320969999, 0.0256630134945864, 0.0612841285833005, 0.102652054510316, 0.245136514238331, 0.615776956898666, -0.0513260274278542, -0.122568257224105, 0.0462196808742369, 0.102652054510316, 0.184878723179027, 0.410608218434666, 0.980546058358326, -0.092439361054317, -0.205304109267329, 0.102652054742906, 0.245136514238331, 0.410608218629096, 0.980546058391579, 2.46310782795637, -0.205304109037533, -0.490273030568781, 0.2451365150916, 0.615776956990654, 0.98054605863649, 2.46310782804596, 6.4045779750437, -0.490273029653842, -1.23155391409913, -0.0231098399533307, -0.0513260274278542, -0.0924393610674752, -0.205304109259124, -0.490273029653842, 0.0462196808149285, 0.102652055408985, -0.0513260312811916, -0.122568257224132, -0.205304109308448, -0.49027303035825, -1.23155391410031, 0.102652055404447, 0.245136514626631};
+
+    Number ad_delta[3],
+           ad_alpha[3],
+           ad_omega[2],
+            ad_zeta[7],
+             ad_Psi[49];
+
+    joint_bases::orth_poly g{2, false};
+
+    joint_bases::bases_vector bases_rng;
+    // raw poly of degree x with an intercept
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(2, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+
+    // we get the correct value
+    std::vector<std::vector<int> > ders{{0}, {0}, {0}};
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders, false);
     std::vector<double> expansions(comp_obj.cache_mem_per_node() * n_nodes);
     {
       auto req_mem = comp_obj.n_wmem();
@@ -360,7 +603,7 @@ context("expected_cum_hazzard is correct") {
 
     // we get the correct value
     std::vector<std::vector<int> > ders{{0}, {-1}, {1}};
-    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders);
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders, true);
     std::vector<double> expansions(comp_obj.cache_mem_per_node() * n_nodes);
     {
       auto req_mem = comp_obj.n_wmem();
@@ -690,7 +933,294 @@ context("survival_dat is correct") {
     par_idx.add_marker({2, 1, bases_rng[2]->n_basis()});
 
     for(unsigned i = 0; i < 2; ++i)
-      par_idx.add_surv({n_fixef[i], bases_fix[i]->n_basis(), {1, 1, 1}});
+      par_idx.add_surv({n_fixef[i], bases_fix[i]->n_basis(), {1, 1, 1}, true});
+
+    std::vector<simple_mat<double> > design_mats;
+    design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);
+    design_mats.emplace_back(Z2, n_fixef[1], n_obs[1]);
+
+    std::vector<std::vector<std::vector<int> > > ders
+      {{{0}, {0}, {0}}, {{0}, {0}, {0}}};
+    survival::survival_dat comp_obj(bases_fix, bases_rng, design_mats,
+                                    par_idx, surv_input, ders);
+
+    // basic checks
+    expect_true(comp_obj.n_terms(0) == n_obs[0]);
+    expect_true(comp_obj.n_terms(1) == n_obs[1]);
+    expect_true(comp_obj.n_outcomes() == 2);
+
+    // compute the lower bound
+    std::vector<double> par(par_idx.n_params_w_va(), 0);
+    std::copy(begin(delta1), end(delta1), begin(par) + par_idx.fixef_surv(0));
+    std::copy(begin(delta2), end(delta2), begin(par) + par_idx.fixef_surv(1));
+
+    std::copy(begin(omega1), end(omega1),
+              begin(par) + par_idx.fixef_vary_surv(0));
+    std::copy(begin(omega2), end(omega2),
+              begin(par) + par_idx.fixef_vary_surv(1));
+
+    std::copy(begin(alpha1), end(alpha1), begin(par) + par_idx.association(0));
+    std::copy(begin(alpha2), end(alpha2), begin(par) + par_idx.association(1));
+
+    std::copy(begin(zeta), end(zeta), par.begin() + par_idx.va_mean());
+    std::copy(begin(Psi), end(Psi), par.begin() + par_idx.va_vcov());
+
+    // we get the right value
+    {
+      auto req_wmem = comp_obj.n_wmem();
+      double res{};
+      for(vajoint_uint i = 0; i < 2; ++i)
+        for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
+          res += comp_obj
+            (par.data(), wmem::get_double_mem(req_wmem[0]), j, i,
+             wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
+
+      expect_true(pass_rel_err(res, true_val, 1e-6));
+    }
+    {
+      // with caching of the quadrature rule
+      comp_obj.set_cached_expansions({ns, ws, n_nodes});
+      auto req_wmem = comp_obj.n_wmem();
+      double res{};
+      for(vajoint_uint i = 0; i < 2; ++i)
+        for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
+          res += comp_obj
+          (par.data(), wmem::get_double_mem(req_wmem[0]), j, i,
+           wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
+
+      expect_true(pass_rel_err(res, true_val, 1e-6));
+
+      comp_obj.clear_cached_expansions();
+    }
+
+    // we get the right gradient
+    {
+      Number::tape->rewind();
+      std::vector<Number> ad_par(par.size());
+      cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
+
+      auto req_wmem = comp_obj.n_wmem();
+      Number res{0};
+      for(vajoint_uint i = 0; i < 2; ++i)
+        for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
+          res += comp_obj
+            (ad_par.data(), wmem::get_Number_mem(req_wmem[0]), j, i,
+             wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
+
+      expect_true(pass_rel_err(res.value(), true_val, 1e-6));
+      expect_true(
+        ad_par.size() == static_cast<size_t>(
+          std::distance(begin(true_grad), end(true_grad))));
+
+      res.propagateToStart();
+      for(size_t i = 0; i < ad_par.size(); ++i)
+        expect_true(pass_rel_err(ad_par[i].adjoint(), true_grad[i], 1e-6));
+    }
+
+    // works with caching
+    comp_obj.set_cached_expansions({ns, ws, n_nodes});
+
+    Number::tape->rewind();
+    std::vector<Number> ad_par(par.size());
+    cfaad::convertCollection(par.begin(), par.end(), ad_par.begin());
+
+    auto req_wmem = comp_obj.n_wmem();
+    Number res{0};
+    for(vajoint_uint i = 0; i < 2; ++i)
+      for(vajoint_uint j = 0; j < comp_obj.n_terms(i); ++j)
+        res += comp_obj
+        (ad_par.data(), wmem::get_Number_mem(req_wmem[0]), j, i,
+         wmem::get_double_mem(req_wmem[1]), {ns, ws, n_nodes});
+
+    expect_true(pass_rel_err(res.value(), true_val, 1e-6));
+    expect_true(
+      ad_par.size() == static_cast<size_t>(
+        std::distance(begin(true_grad), end(true_grad))));
+
+    res.propagateToStart();
+    for(size_t i = 0; i < ad_par.size(); ++i)
+      expect_true(pass_rel_err(ad_par[i].adjoint(), true_grad[i], 1e-6));
+
+    // clean up
+    wmem::clear_all();
+  }
+
+  test_that("survival_dat gives the correct result without one frailty"){
+    /*
+     raw_poly <- function(x, degree, intercept){
+     if(intercept)
+     drop(outer(x, 0:degree, `^`))
+     else
+     drop(outer(x, 1:degree, `^`))
+     }
+
+# parameters
+     Zs <- list(
+     matrix(c(1, -.5, .33, .4), 2),
+     matrix(c(1, -1, .33), 1))
+     delta1 <- c(.1, .33)
+     delta2 <- .55
+     gs <- list(function(x) raw_poly(x, 2, FALSE),
+     function(x) raw_poly(x, 1, FALSE))
+     omega1 <- c(.2, -.33)
+     omega2 <- c(.43)
+     alpha1 <- c(.1, .4, -.2)
+     alpha2 <- c(.11, -.2, .25)
+     ms <- list(function(x) raw_poly(x, 1, TRUE),
+     function(x) raw_poly(x, 2, TRUE),
+     function(x) raw_poly(x, 1, TRUE))
+     zeta <- c(-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.7)
+     set.seed(1)
+     dput(Psi <- drop(round(rWishart(1, 16, diag(.025, 8)), 3)))
+     stopifnot(all(eigen(Psi)$value > 0))
+
+     obs_info <- list(
+     list(type = 1, y = 1, lower = 0, upper = 1.33, idx = 1L),
+     list(type = 2, y = 0, lower = 0, upper = 2.1, idx = 1L),
+     list(type = 1, y = 0, lower = 1, upper = 2.5, idx = 2L),
+     list(type = 2, y = 1, lower = .67, upper = 1.8, idx = 2L),
+     list(type = 2, y = 1, lower = .25, upper = 1.1, idx = 3L))
+
+     f <- function(args){
+     get_next <- function(n){
+     out <- head(args, n)
+     args <<- tail(args, -n)
+     out
+     }
+     delta1 <- get_next(length(delta1))
+     omega1 <- get_next(length(omega1))
+     alpha1 <- get_next(length(alpha1))
+
+     delta2 <- get_next(length(delta2))
+     omega2 <- get_next(length(omega2))
+     alpha2 <- get_next(length(alpha2))
+
+     ds <- list(delta1, delta2)
+     os <- list(omega1, omega2)
+     as <- list(alpha1, alpha2)
+
+     zeta <- get_next(length(zeta))
+     Psi <- matrix(args, NROW(Psi))
+
+     out <- 0
+     for(i in seq_along(obs_info)){
+     info <- obs_info[[i]]
+     type <- info$type
+     idx <- info$idx
+     lower <- info$lower
+     upper <- info$upper
+     with_frailty <- type == 2L
+     rng_remove <- ifelse(with_frailty, TRUE, -length(zeta))
+     zeta_use <- zeta[rng_remove]
+     Psi_use <- Psi[rng_remove, rng_remove]
+
+     if(info$y == 1){
+     M <- matrix(0, length(zeta_use) - with_frailty, length(ms))
+     offset <- 0L
+     for(j in seq_along(ms)){
+     z <- ms[[j]](upper)
+     M[offset + seq_along(z), j] <- z
+     offset <- offset + length(z)
+     }
+# compute the approximate expected log hazard
+     out <- out - Zs[[type]][, idx] %*% ds[[type]] -
+     gs[[type]](upper) %*% os[[type]] -
+     as[[type]] %*% crossprod(M, zeta[seq_len(NROW(M))])
+
+     if(with_frailty)
+     out <- out - tail(zeta_use, 1)
+     }
+
+     integrand <- function(x){
+     M <- matrix(0, length(zeta_use), length(ms) + with_frailty)
+     offset <- 0L
+     for(i in seq_along(ms)){
+     z <- ms[[i]](x)
+     M[offset + seq_along(z), i] <- z
+     offset <- offset + length(z)
+     }
+     if(with_frailty)
+     M[length(zeta_use), length(ms) + 1L] <- 1
+
+     M_alpha <-
+     drop(if(with_frailty) M %*% c(as[[type]], 1) else  M %*% as[[type]])
+
+     exp(ds[[type]] %*% Zs[[type]][, idx] +
+     gs[[type]](x) %*% os[[type]] +
+     M_alpha %*% zeta_use +
+     M_alpha %*% Psi_use %*% M_alpha / 2)
+     }
+
+     out <- out + integrate(Vectorize(integrand), lower, upper,
+     rel.tol = 1e-10)$value
+     }
+
+     out
+     }
+
+     dput(f(c(delta1, omega1, alpha1, delta2, omega2, alpha2, zeta, Psi)))
+     dput(numDeriv::grad(
+     f, c(delta1, omega1, alpha1, delta2, omega2, alpha2, zeta, Psi)))
+     */
+    constexpr unsigned n_obs[] {2, 3},
+                     n_fixef[] {2, 1};
+
+    constexpr double delta1[] {.1, .33},
+                     delta2[] {.55},
+                     omega1[] {.2, -.33},
+                     omega2[] {.43},
+                     alpha1[] {.1, .4, -.2},
+                     alpha2[] {.11, -.2, .25},
+                       zeta[] {-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.7},
+                        Psi[] {0.294, 0.109, -0.132, 0.049, -0.053, 0.037, -0.005, -0.009, 0.109, 0.588, -0.158, -0.017, -0.279, -0.131, 0.057, 0.042, -0.132, -0.158, 0.461, 0.132, 0.185, -0.01, 0.096, -0.01, 0.049, -0.017, 0.132, 0.333, 0.047, 0.038, -0.02, -0.119, -0.053, -0.279, 0.185, 0.047, 0.487, 0.067, -0.111, -0.057, 0.037, -0.131, -0.01, 0.038, 0.067, 0.296, -0.029, -0.058, -0.005, 0.057, 0.096, -0.02, -0.111, -0.029, 0.408, 0.035, -0.009, 0.042, -0.01, -0.119, -0.057, -0.058, 0.035, 0.237},
+                       lbs1[] {0, 1},
+                       ubs1[] {1.33, 2.5},
+                     event1[] {1, 0},
+                       lbs2[] {0, .67, .25},
+                       ubs2[] {2.1, 1.8, 1.1},
+                     event2[] {0, 1, 1},
+                     true_val {24.1027955389656},
+                  true_grad[] {
+                    // the marker parameters
+                    0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    // the survival time outcomes
+                    0.796489628374787, 0.566166623999451, 2.5223152317401, 4.71799191288861, -1.97186637683011, 7.35876970167952, -0.986179849357635, 15.3055929373714, 24.8464912248746, 3.62972546408691, -33.6971706049407, 4.68619752253532,
+                    // marker term error covariance matrix
+                    0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    // the shared random effect covariance matrix
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    // the frailty term covariance matrix
+                    0,
+                    // the VA mean and covariance matrix
+                    2.49611713056971, 2.98534555593684, -3.40959306044233, -3.96037211827117, -5.40185647634367, 4.84402970668841, 5.70715975546779, 20.9282212086845, 0.153416379414407, 0.187127849697932, -0.19340787031736, -0.228165098909253, -0.320110096012648, 0.285861755211431, 0.342991107256495, 1.26105219974235, 0.18712784970759, 0.279850820419408, -0.228165099935113, -0.320110069448553, -0.484578164801837, 0.342991102230666, 0.497440989369615, 1.52605701051957, -0.19340787031736, -0.228165099935113, 0.693774661705644, 0.863115045206594, 1.33685667913844, -0.690810651350491, -0.847754894619718, -2.2928221136862, -0.228165098909253, -0.320110069448553, 0.863115045206594, 1.33685667778016, 2.30410257868686, -0.847754893473597, -1.28185731766474, -2.77464912109116, -0.320110096012648, -0.484578165537744, 1.33685667913844, 2.30410257797016, 4.2438822063881, -1.28185733104135, -2.14636736720533, -4.08952662559268, 0.285861755211431, 0.342991102230666, -0.690810651350491, -0.847754893473597, -1.28185733105706, 0.775309472472442, 0.944124159596086, 2.86602764648663, 0.342991113993493, 0.497440992953218, -0.847754892480988, -1.28185731766505, -2.14636736720539, 0.944124159596086, 1.40771490716505, 3.46831141291736, 1.26105217692924, 1.52605701051957, -2.29282211715996, -2.77464911908273,  -4.08952661838854, 2.86602764648663, 3.46831141291736, 11.4641106041719};
+
+    double Z1[] {1, -.5, .33, .4},
+           Z2[] {1, -1, .33};
+
+    joint_bases::bases_vector bases_fix;
+    // raw poly of degree x without an intercept
+    bases_fix.emplace_back(new joint_bases::orth_poly{2, false});
+    bases_fix.emplace_back(new joint_bases::orth_poly{1, false});
+
+    joint_bases::bases_vector bases_rng;
+    // raw poly of degree x with an intercept
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(2, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+
+    std::vector<survival::obs_input> surv_input;
+    surv_input.emplace_back
+      (survival::obs_input{n_obs[0], lbs1, ubs1, event1});
+    surv_input.emplace_back
+      (survival::obs_input{n_obs[1], lbs2, ubs2, event2});
+
+    subset_params par_idx;
+    par_idx.add_marker({1, 1, bases_rng[0]->n_basis()});
+    par_idx.add_marker({2, 2, bases_rng[1]->n_basis()});
+    par_idx.add_marker({2, 1, bases_rng[2]->n_basis()});
+
+    par_idx.add_surv({n_fixef[0], bases_fix[0]->n_basis(), {1, 1, 1}, false});
+    par_idx.add_surv({n_fixef[1], bases_fix[1]->n_basis(), {1, 1, 1}, true});
 
     std::vector<simple_mat<double> > design_mats;
     design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);

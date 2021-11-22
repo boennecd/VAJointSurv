@@ -92,9 +92,12 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 
   # compute the starting values for the survival outcomes. Set the covariance
   # matrix for the frailties to some low value
+  n_frailties <-
+    if(length(survival_terms) > 0)
+      sum(sapply(survival_terms, `[[`, "with_frailty")) else 0L
   def_frailty_var <- 1e-2
-  if(length(survival_terms) > 0){
-    Xi <- diag(def_frailty_var, length(survival_terms))
+  if(n_frailties > 0){
+    Xi <- diag(def_frailty_var, n_frailties)
     start_val[indices$vcovs$vcov_surv] <- .log_chol(Xi)
   }
 
@@ -108,8 +111,8 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   # fill in default values for the VA parameters
   va_dim <- indices$va_dim
   va_vcov_default <- diag(va_dim)
-  if(length(indices$survival) > 0)
-    diag(va_vcov_default)[va_dim:(va_dim - length(indices$survival) + 1L)] <-
+  if(n_frailties > 0)
+    diag(va_vcov_default)[va_dim:(va_dim - n_frailties + 1L)] <-
     def_frailty_var
 
   va_default <- c(numeric(va_dim), .log_chol(va_vcov_default))

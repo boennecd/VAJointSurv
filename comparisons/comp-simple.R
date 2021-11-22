@@ -151,6 +151,7 @@ VA_time <- system.time({
   iks <- head(quantile(dat$surv_data$y, length.out = 9)[-1], -1)
   surv_obj <- surv_term(
     Surv(y, event) ~ Z1 + X1, id = id, dat$surv_data,
+    with_frailty = FALSE,
     # to be comparable to other packages, we assume some more flexible than
     # the Weibull model for the baseline hazard
     time_fixef = ns_term(y, Boundary.knots = bks, knots = iks))
@@ -173,6 +174,7 @@ VA_time <- system.time({
   opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                           pre_method = 1L, cg_tol = .2, c2 = .1)
 })
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2)) # gradient norm
 VA_time # estimation time
 
 # check the results
@@ -193,8 +195,6 @@ vcov_vary
 fmt_par$vcov$vcov_marker
 vcov_marker
 
-fmt_par$vcov$vcov_surv # should be zero
-
 # starting values
 joint_ms_format(comp_obj, start_val)
 
@@ -202,7 +202,8 @@ joint_ms_format(comp_obj, start_val)
 # association parameter
 system.time(joint_pl <- joint_ms_profile(
   comp_obj, opt_out,
-  which_prof = comp_obj$indices$survival[[1]]$associations, delta = .05))
+  which_prof = comp_obj$indices$survival[[1]]$associations, delta = .05,
+  cg_tol = .2, c2 = .1))
 joint_pl$confs # the confidence interval
 
 # plot the log profile likelihood

@@ -415,7 +415,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.888   0.004   0.892
+#>   0.817   0.004   0.822
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -431,12 +431,12 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.094   0.000   0.094
+#>   0.093   0.000   0.092
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.125   0.000   0.034
+#>   0.126   0.000   0.034
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -456,7 +456,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   8.157   0.000   2.041
+#>   7.831   0.004   1.961
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -471,7 +471,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 5000L)))
 #>    user  system elapsed 
-#>  66.949   0.012  16.797
+#>  68.783   0.016  17.273
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8) # maximum lower bound value
@@ -919,7 +919,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.123   0.000   0.031
+#>   0.123   0.000   0.033
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -939,7 +939,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   1.806   0.000   0.453
+#>   1.797   0.000   0.450
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -952,7 +952,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#>   93.87    0.02   23.53
+#>  98.604   0.016  24.712
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1184,7 +1184,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.082   0.000   0.023
+#>   0.077   0.000   0.022
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1206,7 +1206,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   1.370   0.000   0.343
+#>   1.506   0.003   0.381
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1603,7 +1603,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   3.091   0.012   0.802
+#>   2.618   0.000   0.683
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1623,7 +1623,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  15.365   0.000   3.843
+#>  16.340   0.012   4.092
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1636,7 +1636,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  70.223   0.003  17.560
+#>  74.549   0.028  18.649
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1842,7 +1842,7 @@ below.
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>   9.568   0.024   9.594
+#>  10.136   0.016  10.152
 dim(hess$hessian_all) # the full matrix!
 #> [1] 20029 20029
 
@@ -2260,7 +2260,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   24.59    0.02    6.18
+#>  21.915   0.004   5.505
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2281,7 +2281,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#> 103.847   0.024  25.982
+#>  100.25    0.04   25.08
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2421,13 +2421,13 @@ w_caching[, c("expression", "median")]
 #>   expression            median
 #>   <bch:expr>          <bch:tm>
 #> 1 w/ caching 1 thread   7.48ms
-#> 2 w/ caching 2 thread    3.9ms
-#> 3 w/ caching 3 thread   2.71ms
-#> 4 w/ caching 4 thread   2.29ms
+#> 2 w/ caching 2 thread   3.92ms
+#> 3 w/ caching 3 thread   2.68ms
+#> 4 w/ caching 4 thread   2.15ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#> [1] 306ms
+#> [1] 288ms
 
 # w/o caching
 wo_caching <- bench::mark(
@@ -2443,14 +2443,14 @@ wo_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression             median
 #>   <bch:expr>           <bch:tm>
-#> 1 w/o caching 1 thread  19.63ms
-#> 2 w/o caching 2 thread   10.8ms
-#> 3 w/o caching 3 thread   7.21ms
-#> 4 w/o caching 4 thread   5.83ms
+#> 1 w/o caching 1 thread  20.09ms
+#> 2 w/o caching 2 thread  10.53ms
+#> 3 w/o caching 3 thread   7.04ms
+#> 4 w/o caching 4 thread   8.07ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#> [1] 297ms
+#> [1] 402ms
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
@@ -2782,7 +2782,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>  23.266   0.009   5.874
+#>  21.356   0.008   5.402
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2803,7 +2803,7 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>  157.59    0.02   39.43
+#> 147.123   0.016  36.799
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value

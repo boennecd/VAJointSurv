@@ -35,6 +35,8 @@ struct node_weight {
  *
  *    (( M(s)    0 ),
  *     (    0    1 ))
+ *
+ * M(s) = hat(M)(s) if there is no frailty
  */
 class expected_cum_hazzard {
   /// the base for the time-varying fixed effect
@@ -57,6 +59,8 @@ class expected_cum_hazzard {
   vajoint_uint n_fixef;
   /// the derivative/integral argument to pass to bases_rng
   std::vector<std::vector<int> > ders_v;
+  /// is there a frailty term?
+  bool with_frailty_v;
 
   /// the number of time-varying random effect basis function plus one
   vajoint_uint n_basis_rng_p1
@@ -102,9 +106,10 @@ class expected_cum_hazzard {
 public:
   expected_cum_hazzard
   (basisMixin const &b_in, bases_vector const &bases_rng,
-   vajoint_uint const n_fixef, std::vector<std::vector<int> > const &ders):
+   vajoint_uint const n_fixef, std::vector<std::vector<int> > const &ders,
+   bool const with_frailty):
   b(b_in.clone()), bases_rng(joint_bases::clone_bases(bases_rng)),
-  n_fixef(n_fixef), ders_v(ders) {
+  n_fixef(n_fixef), ders_v(ders), with_frailty_v{with_frailty} {
     if(ders.size() != bases_rng.size())
       throw std::invalid_argument(
           "ders size does not match the number of basis functions (" +
@@ -116,6 +121,8 @@ public:
   vajoint_uint rng_n_basis(size_t const idx) const {
     return rng_n_basis_v[idx];
   }
+
+  bool with_frailty() const { return with_frailty_v; }
 
   /**
    * evaluates the approximate expected cumulative hazard between
@@ -135,6 +142,10 @@ public:
     T * const association_M = wk_mem;
     wk_mem += n_basis_rng_p1;
     double * const dwk_mem_basis{dwk_mem + max_base_dim};
+
+    vajoint_uint const n_vars
+      {with_frailty() ? n_basis_rng_p1 : n_basis_rng_p1 - 1};
+
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i){
       T fixef_term;
 
@@ -188,11 +199,11 @@ public:
 
       // add the mean log hazard term
       auto mean_term = cfaad::dotProd
-        (association_M, association_M + n_basis_rng_p1, VA_mean);
+        (association_M, association_M + n_vars, VA_mean);
 
       // add the quadratic term
       auto quad_term = cfaad::quadFormSym
-        (VA_vcov, association_M, association_M + n_basis_rng_p1) / 2;
+        (VA_vcov, association_M, association_M + n_vars) / 2;
 
       // add the hazard term multiplied by the weight
       out += nws.ws[i] * exp(quad_term + mean_term + fixef_term);
@@ -341,7 +352,8 @@ public:
     cum_hazs.reserve(n_outcomes_v);
     for(vajoint_uint i = 0; i < n_outcomes_v; ++i)
       cum_hazs.emplace_back
-        (*bases_fix[i], bases_rng, design_mats[i].n_rows(), ders[i]);
+        (*bases_fix[i], bases_rng, design_mats[i].n_rows(), ders[i],
+         par_idx.surv_info()[i].with_frailty);
 
     // set the required working memory
     wmem_w = {0, 0};
@@ -526,34 +538,47 @@ public:
       }
 
       // the frailty term
-      out -= param[par_idx.va_mean() + n_shared + type];
+      if(haz.with_frailty())
+        out -=
+          param[par_idx.va_mean() + n_shared + par_idx.frailty_offset(type)];
     }
 
     // add the term from the approximate expected cumulative hazard
     T * const VA_mean{wk_mem};
     for(vajoint_uint i = 0; i < n_shared; ++i)
       VA_mean[i] = param[par_idx.va_mean() + i];
-    VA_mean[n_shared] = param[par_idx.va_mean() + n_shared + type];
+
+    if(haz.with_frailty())
+      VA_mean[n_shared] =
+        param[par_idx.va_mean() + n_shared + par_idx.frailty_offset(type)];
     wk_mem += n_shared_p1;
 
     T * const VA_vcov{wk_mem};
-    {
-      vajoint_uint const rng_dim{n_shared + par_idx.n_shared_surv()};
+    vajoint_uint const rng_dim{n_shared + par_idx.n_shared_surv()};
+
+    if(haz.with_frailty()){
       T const * const vcov_full{param + par_idx.va_vcov()};
       for(vajoint_uint j = 0; j < n_shared; ++j){
         for(vajoint_uint i = 0; i < n_shared; ++i)
           VA_vcov[i + j * n_shared_p1] = vcov_full[i + j * rng_dim];
 
         VA_vcov[n_shared + j * n_shared_p1] =
-          vcov_full[n_shared + type + j * rng_dim];
+          vcov_full[n_shared + par_idx.frailty_offset(type) + j * rng_dim];
       }
 
-      vajoint_uint const offset{n_shared + type};
+      vajoint_uint const offset{n_shared + par_idx.frailty_offset(type)};
       for(vajoint_uint i = 0; i < n_shared; ++i)
         VA_vcov[i + n_shared * n_shared_p1] = vcov_full[i + offset * rng_dim];
 
       VA_vcov[n_shared + n_shared * n_shared_p1] =
         vcov_full[offset + offset * rng_dim];
+
+    } else {
+      T const * const vcov_full{param + par_idx.va_vcov()};
+      for(vajoint_uint j = 0; j < n_shared; ++j)
+        for(vajoint_uint i = 0; i < n_shared; ++i)
+          VA_vcov[i + j * n_shared] = vcov_full[i + j * rng_dim];
+
     }
     wk_mem += n_shared_p1 * n_shared_p1;
 

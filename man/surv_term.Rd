@@ -4,7 +4,7 @@
 \alias{surv_term}
 \title{Creates Data for One Type of Survival Outcome}
 \usage{
-surv_term(formula, id, data, time_fixef, ders = NULL)
+surv_term(formula, id, data, time_fixef, ders = NULL, with_frailty = TRUE)
 }
 \arguments{
 \item{formula}{a two-sided \code{\link{formula}} with the survival outcome

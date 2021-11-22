@@ -51,8 +51,7 @@ std::vector<std::string> subset_params::param_names
       out[i + vcov_marker<true>()] = "vcov_marker" + std::to_string(i + 1);
   }
   {
-    vajoint_uint const dim_vcov_surv{
-      static_cast<vajoint_uint>(dim_tri(surv_info_v.size()))};
+    vajoint_uint const dim_vcov_surv{dim_tri(n_shared_surv_v)};
     for(vajoint_uint i = 0; i < dim_vcov_surv; ++i)
       out[i + vcov_surv<true>()] = "vcov_surv" + std::to_string(i + 1);
   }
@@ -81,9 +80,10 @@ std::vector<std::string> subset_params::va_param_names
   }
 
   for(vajoint_uint i = 0; i < surv_info().size(); ++i)
-    out[idx++] = "frailty" + std::to_string(i + 1);
+    if(surv_info()[i].with_frailty)
+      out[idx++] = "frailty" + std::to_string(i + 1);
 
-  vajoint_uint vcov_dim(n_shared() + surv_info().size());
+  vajoint_uint vcov_dim(n_shared() + n_shared_surv_v);
   vcov_dim = dim_tri(vcov_dim);
   for(vajoint_uint i = 0; i < vcov_dim; ++i)
     out[idx++] = "VA_vcov" + std::to_string(i + 1);
