@@ -188,7 +188,9 @@ section. The examples includes:
    tests and confidence intervals from the observed information matrix.
  - A similar example is provided but without the frailty in the 
    [Two Markers and a Recurrent Event Without Frailty](#two-markers-and-a-recurrent-event-without-frailty)
-   section. Notice that this is the default with `surv_term`.
+   section. Notice that this is the default with `surv_term`. It is also shown 
+   how one can get the variational parameters for each individual and change 
+   the starting values of the covariance matrices.
  - An example with two markers, the observation process, and a terminal event 
    is given in the 
    [Two Markers, the Observation Time Process, and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
@@ -1533,6 +1535,111 @@ vcov_marker
 
 # the parameters for the frailty covariance matrix
 fmt_ests$vcov$vcov_surv # NULL as there is not any
+```
+
+#### Using the Estimated Variational Parameters
+
+The `joint_ms_va_par` function can be used to extract the estimated variational 
+parameters for each individual. These can be used to get marginal estimates as 
+the variational approximation for each individual is an approximation of the 
+conditional distribution of the random effects given the observed data.
+
+```{r use_VA_par, fig.height=4, fig.width=8, cache = 1}
+# get the varational parameters
+va_par <- joint_ms_va_par(comp_obj, opt_out$par)
+
+# it is a list with the estimated variational parameters for each individual
+va_par[c("157", "345", "878")]
+
+# they can be used to approximate marginal measures such as the mean curve for 
+# the individual along with 95% pointwise confidence intervals as shown below 
+# for where the true curve is. You can skip the code below and go the plots after
+plot_mean_curve <- function(who){
+  # get the data for the individual
+  m_dat <- subset(dat$marker_data, id == who)
+  
+  # plot the estimated mean population curve with pointwise confidence intervals
+  par(mfcol = c(1, 2), bty = "l")
+  fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+  plot_marker(
+    time_fixef = ns_term(
+      knots = c(.5, 1.5), Boundary.knots = c(0, 2)),
+    time_rng = ns_term(
+      knots = numeric(), Boundary.knots = c(0, 2), intercept = TRUE), 
+    fixef_vary = fmt_ests$markers[[1]]$fixef_vary, x_range = c(0, 2), 
+    vcov_vary = fmt_ests$vcov$vcov_vary[1:2, 1:2], ylab = "Marker 1")
+  
+  # add the points for the individual
+  y_hat <- m_dat$Y1 - cbind(1, m_dat$X1_1) %*% fmt_ests$markers[[1]]$fixef
+  points(m_dat$time, y_hat, pch = 16)
+  
+  # plot the estimated mean curve with pointwise confidence intervals
+  va_par_who <- va_par[[who]]
+  xs <- seq(0, 2, length.out = 100)
+  mea <- g_funcs[[1]](xs) %*% fmt_ests$markers[[1]]$fixef_vary + 
+    m_funcs[[1]](xs) %*% va_par_who$mean[1:2]
+  lines(xs, mea, lty = 2)
+  se <- apply(m_funcs[[1]](xs), 1, function(x)
+    sqrt(x %*% va_par_who$vcov[1:2, 1:2] %*% x))
+  polygon(c(xs, rev(xs)), c(mea + 1.96 * se, rev(mea - 1.95 * se)), border = NA,
+          col = gray(0, .1))
+  
+  # plot the estimated mean population curve with pointwise confidence intervals
+  plot_marker(
+    time_fixef = poly_term(degree = 2, raw = TRUE),
+    time_rng = poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
+    fixef_vary = fmt_ests$markers[[2]]$fixef_vary, x_range = c(0, 2), 
+    vcov_vary = fmt_ests$vcov$vcov_vary[3:4, 3:4], ylab = "Marker 2")
+  
+  # add the points for the individual
+  y_hat <- m_dat$Y2 - fmt_ests$markers[[2]]$fixef
+  points(m_dat$time, y_hat, pch = 16)
+  
+  # plot the estimated mean curve with confidence intervals
+  xs <- seq(0, 2, length.out = 100)
+  mea <- g_funcs[[2]](xs) %*% fmt_ests$markers[[2]]$fixef_vary + 
+    m_funcs[[2]](xs) %*% va_par_who$mean[2:3]
+  lines(xs, mea, lty = 2)
+  se <- apply(m_funcs[[2]](xs), 1, function(x)
+    sqrt(x %*% va_par_who$vcov[3:4, 3:4] %*% x))
+  polygon(c(xs, rev(xs)), c(mea + 1.96 * se, rev(mea - 1.95 * se)), border = NA,
+          col = gray(0, .1))
+}
+
+# plot the curves for three individuals
+plot_mean_curve(157)
+plot_mean_curve(235)
+plot_mean_curve(878)
+```
+
+### Changing the Starting Values
+
+In some cases, the starting values for the covariance matrix may be very
+off and either cause slow convergence or problems during the optimization. In 
+such case, we can change the starting values with the `joint_ms_set_vcov` 
+function as shown below.
+
+```{r change_start_val, cache = 1}
+# we somehow knew this
+start_val <- joint_ms_set_vcov(comp_obj, vcov_vary = vcov_vary, 
+                               vcov_surv = matrix(nrow = 0, ncol = 0))
+
+# the variational parameters are also set
+va_par <- joint_ms_va_par(comp_obj, start_val)
+va_par[[500]]
+vcov_vary
+
+# optimize
+system.time(start_val <- joint_ms_start_val(comp_obj, par = start_val))
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
+                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    rel_eps = 1e-10))
+print(-opt_out$value, digits = 8) # maximum lower bound value
 ```
 
 ### Two Markers, the Observation Time Process, and a Terminal Event

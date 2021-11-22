@@ -4,7 +4,7 @@
 \alias{surv_term}
 \title{Creates Data for One Type of Survival Outcome}
 \usage{
-surv_term(formula, id, data, time_fixef, ders = NULL, with_frailty = TRUE)
+surv_term(formula, id, data, time_fixef, ders = NULL, with_frailty = FALSE)
 }
 \arguments{
 \item{formula}{a two-sided \code{\link{formula}} with the survival outcome
@@ -26,6 +26,8 @@ expansions.}
 the survival outcome is linked to the markers. 0 implies present values,
 -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
 value of the random effect for all markers.}
+
+\item{with_frailty}{\code{TRUE} if there should be a frailty term.}
 }
 \description{
 Creates Data for One Type of Survival Outcome

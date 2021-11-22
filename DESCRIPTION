@@ -42,7 +42,9 @@ Suggests:
     testthat (>= 3.0.0),
     xml2, 
     R.rsp
-Depends: survival
+Depends: 
+    R (>= 3.5.0),
+    survival
 VignetteBuilder: R.rsp
 SystemRequirements: C++17
 Config/testthat/edition: 3

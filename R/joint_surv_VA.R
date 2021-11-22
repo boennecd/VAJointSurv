@@ -77,6 +77,11 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   out <- list(param_names = param_names, ptr = ptr)
   indices <- joint_ms_parameter_indices(ptr)
 
+  # create a vector with the unique ids
+  ids <- c(lapply(markers, `[[`, "id"),
+           lapply(survival_terms, `[[`, "id"))
+  ids <- sort(unique(unlist(ids)))
+
   # compute starting values. Start with the markers
   start_val <- numeric(joint_ms_n_params(ptr))
   m_start_val <- lapply(markers, marker_term_start_value)
@@ -92,15 +97,7 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 
   # compute the starting values for the survival outcomes. Set the covariance
   # matrix for the frailties to some low value
-  n_frailties <-
-    if(length(survival_terms) > 0)
-      sum(sapply(survival_terms, `[[`, "with_frailty")) else 0L
   def_frailty_var <- 1e-2
-  if(n_frailties > 0){
-    Xi <- diag(def_frailty_var, n_frailties)
-    start_val[indices$vcovs$vcov_surv] <- .log_chol(Xi)
-  }
-
   s_start_val <- lapply(survival_terms, surv_term_start_value,
                         quad_rule = quad_rule, va_var = def_frailty_var)
   for(i in seq_along(survival_terms)){
@@ -108,22 +105,60 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
     start_val[indices$survival[[i]]$fixef_vary] <- s_start_val[[i]]$fixef_vary
   }
 
-  # fill in default values for the VA parameters
-  va_dim <- indices$va_dim
-  va_vcov_default <- diag(va_dim)
-  if(n_frailties > 0)
-    diag(va_vcov_default)[va_dim:(va_dim - n_frailties + 1L)] <-
-    def_frailty_var
-
-  va_default <- c(numeric(va_dim), .log_chol(va_vcov_default))
-  start_val[-(1:(indices$va_params_start - 1L))] <- va_default
-
-  structure(
+  out <- structure(
     list(param_names = param_names, indices = indices, ptr = ptr,
          start_val = start_val, max_threads = max_threads,
          quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr),
-         cache_expansions = cache_expansions),
+         cache_expansions = cache_expansions, ids = ids),
     class = "joint_ms")
+
+  # set the remaining covariance parameters
+  n_frailties <-
+    if(length(survival_terms) > 0)
+      sum(sapply(survival_terms, `[[`, "with_frailty")) else 0L
+  start_val <- joint_ms_set_vcov(out,
+                                 vcov_vary = diag(indices$va_dim - n_frailties),
+                                 vcov_surv = diag(def_frailty_var, n_frailties))
+  out$start_val <- start_val
+  out
+}
+
+
+#' Sets the Covariance Parameters
+#'
+#' @description
+#' Sets the covariance matrices to the passed values. The function also sets
+#' covariance matrices for the variational distributions to the same values.
+#'
+#' @inheritParams joint_ms_format
+#' @param vcov_vary the covariance matrix for the time-varying effects.
+#' @param vcov_surv the covariance matrix for the frailties.
+#'
+#' @export
+joint_ms_set_vcov <- function(
+  object, vcov_vary, vcov_surv, par = object$start_val){
+  stopifnot(inherits(object, "joint_ms"))
+  # insert the model parameter
+  indices <- object$indices
+  if(length(indices$vcovs$vcov_vary) > 0)
+    par[indices$vcovs$vcov_vary] <- .log_chol(vcov_vary)
+  if(length(indices$vcovs$vcov_surv) > 0)
+    par[indices$vcovs$vcov_surv] <- .log_chol(vcov_surv)
+
+  # fill in default values for the VA parameters
+  va_dim <- indices$va_dim
+  va_vcov <- matrix(0, va_dim, va_dim)
+  n_vary <- NCOL(vcov_vary)
+  if(n_vary > 0){
+    va_vcov[1:n_vary, 1:n_vary] <- vcov_vary
+    if(NCOL(vcov_surv) > 0)
+      va_vcov[-(1:n_vary), -(1:n_vary)] <- vcov_surv
+  } else
+    va_vcov <- vcov_surv
+
+  va_default <- c(numeric(va_dim), .log_chol(va_vcov))
+  par[-(1:(indices$va_params_start - 1L))] <- va_default
+  par
 }
 
 #' Quick Heuristic for the Starting Values
@@ -149,7 +184,7 @@ joint_ms_start_val <- function(
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
   opt_va <- opt_priv(
-    val = object$start_val, ptr = object$ptr, rel_eps = rel_eps,
+    val = par, ptr = object$ptr, rel_eps = rel_eps,
     max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
     quad_rule = quad_rule, cache_expansions = cache_expansions)
 
