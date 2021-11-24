@@ -35,7 +35,8 @@ Imports:
     SimSurvNMarker,
     psqn,
     Matrix,
-    methods
+    methods,
+    lme4
 Suggests: 
     rmarkdown,
     knitr,

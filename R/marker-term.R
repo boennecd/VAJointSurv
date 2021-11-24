@@ -77,21 +77,10 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
 }
 
 # computes the starting values for the fixed effect coefficients
-#' @importFrom stats lm.fit
-#' @importFrom utils head tail
 marker_term_start_value <- function(object){
   stopifnot(inherits(object, "marker_term"))
 
-  X <- t(object$X)
-  Z <- t(object$time_fixef$eval(object$time))
-  n_X <- NCOL(X)
-  XZ <- cbind(X, Z)
-  rm(X, Z)
-  gc()
-  y <- object$y
-  fit <- lm.fit(XZ, y)
-  coefs <- fit$coefficients
-
-  list(fixef = head(coefs, n_X), fixef_vary = tail(coefs, -n_X),
-       var = mean(fit$residuals^2))
+  n_X <- NROW(object$X)
+  n_Z <- NROW(object$time_fixef$eval(1))
+  list(fixef = numeric(n_X), fixef_vary = numeric(n_Z), var = 1)
 }

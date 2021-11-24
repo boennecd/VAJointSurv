@@ -361,16 +361,6 @@ opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
 print(logLik(fit), digits = 8) # maximum likelihood from lme4
 
-# find the maximum lower bound with lbfgs
-library(lbfgsb3c)
-system.time(lbfgs_res <- lbfgsb3c(
-  start_val, function(x) joint_ms_lb(comp_obj, x),
-  function(x) joint_ms_lb_gr(comp_obj, x), 
-  control = list(factr = 1e-8, maxit = 5000L)))
-lbfgs_res$convergence # convergence code (0 == 'OK')
-print(-lbfgs_res$value, digits = 8) # maximum lower bound value
-lbfgs_res$counts # may have hit maxit!
-
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
 rbind(lme4 = fixef(fit),
@@ -686,7 +676,8 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    rel_eps = 1e-12))
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues

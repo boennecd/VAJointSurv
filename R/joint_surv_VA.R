@@ -109,7 +109,8 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
     list(param_names = param_names, indices = indices, ptr = ptr,
          start_val = start_val, max_threads = max_threads,
          quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr),
-         cache_expansions = cache_expansions, ids = ids),
+         cache_expansions = cache_expansions, ids = ids,
+         markers = markers, survival_terms = survival_terms),
     class = "joint_ms")
 
   # set the remaining covariance parameters
@@ -168,6 +169,7 @@ joint_ms_set_vcov <- function(
 #' \code{\link{psqn}}.
 #'
 #' @importFrom psqn psqn
+#' @importFrom lme4 lmer VarCorr lmerControl
 #'
 #' @export
 joint_ms_start_val <- function(
@@ -182,6 +184,55 @@ joint_ms_start_val <- function(
   quad_rule <- set_n_check_quad_rule(quad_rule)
   check_n_threads(object, n_threads)
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
+
+  # set the marker parameters using lme4
+  vcov_marker <- .log_chol_inv(par[object$indices$vcovs$vcov_marker])
+  vcov_marker <- diag(NCOL(vcov_marker))
+  vcov_vary <- .log_chol_inv(par[object$indices$vcovs$vcov_vary])
+
+  offset <- 0L
+  for(i in seq_along(object$markers)){
+    mark <- object$markers[[i]]
+    n_fixef <- NROW(mark$X)
+    X_vary <- mark$time_fixef$eval(mark$time)
+    n_fixef_vary <- NROW(X_vary)
+    X_rng <- mark$time_rng$eval(mark$time)
+    y <- mark$y
+    id <- mark$id
+    lmer_fit <- lmer(
+      y ~ cbind(t(mark$X), t(X_vary)) - 1 + (t(X_rng) - 1 | id),
+      control = lmerControl(
+        optimizer = "nloptwrap", optCtrl = list(
+          xtol_abs = rel_eps, ftol_abs = rel_eps)))
+
+    # extract the parameters
+    par[object$indices$markers[[i]]$fixef] <-
+      lmer_fit@beta[seq_len(n_fixef)]
+    par[object$indices$markers[[i]]$fixef_vary] <-
+      lmer_fit@beta[seq_len(n_fixef_vary) + n_fixef]
+
+    vcov_est <- VarCorr(lmer_fit)
+    resid_var <- attr(vcov_est, "sc")^2
+    vcov_est <- vcov_est[["id"]]
+
+    vcov_marker[i, i] <- resid_var
+    vcov_indices <- offset + seq_len(NROW(X_rng))
+    vcov_vary[vcov_indices, vcov_indices] <- vcov_est
+    offset <- offset + NROW(X_rng)
+  }
+
+  # set the parameters
+  if(length(object$markers) > 0){
+    par[object$indices$vcovs$vcov_marker] <- .log_chol(vcov_marker)
+    par[object$indices$vcovs$vcov_vary] <- .log_chol(vcov_vary)
+
+    vcov_surv <- if(length(object$survival_terms) == 0)
+      matrix(nrow = 0, ncol = 0) else
+        .log_chol_inv(par[object$indices$vcovs$vcov_surv])
+
+    par <- joint_ms_set_vcov(object, vcov_vary = vcov_vary,
+                             vcov_surv = vcov_surv, par = par)
+  }
 
   opt_va <- opt_priv(
     val = par, ptr = object$ptr, rel_eps = rel_eps,
@@ -392,6 +443,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' @param level confidence level.
 #'
 #' @importFrom stats approx qchisq splinefun qnorm spline
+#' @importFrom utils head
 #'
 #' @export
 joint_ms_profile <- function(

@@ -16,6 +16,6 @@ joint_ms_set_vcov(object, vcov_vary, vcov_surv, par = object$start_val)
 \item{par}{parameter vector to be formatted.}
 }
 \description{
-Sets the covariance matrices to the passed value. The function also sets
-covariance matrices for the variational distributions to the same value.
+Sets the covariance matrices to the passed values. The function also sets
+covariance matrices for the variational distributions to the same values.
 }
