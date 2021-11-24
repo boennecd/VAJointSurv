@@ -843,7 +843,7 @@ NumericVector opt_priv
   (NumericVector val, SEXP ptr,
    double const rel_eps, unsigned const max_it, unsigned const n_threads,
    double const c1, double const c2, List quad_rule,
-   bool const cache_expansions){
+   bool const cache_expansions, double const gr_tol){
   profiler pp("opt_priv");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -856,7 +856,8 @@ NumericVector opt_priv
 
   NumericVector par = clone(val);
   obj->set_n_threads(n_threads);
-  double const res = obj->optim().optim_priv(&par[0], rel_eps, max_it, c1, c2);
+  double const res = obj->optim().
+    optim_priv(&par[0], rel_eps, max_it, c1, c2, gr_tol);
   par.attr("value") = res;
   wmem::rewind_all();
 
@@ -871,7 +872,8 @@ List joint_ms_opt_lb
    double const c2, bool const use_bfgs, unsigned const trace,
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
    unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask,
-   bool const cache_expansions, bool const only_markers){
+   bool const cache_expansions, bool const only_markers,
+   double const gr_tol){
   profiler pp("joint_ms_opt_lb");
 
   lower_bound_caller::optimze_survival = !only_markers;
@@ -898,7 +900,8 @@ List joint_ms_opt_lb
   obj->set_n_threads(n_threads);
   auto res = obj->optim().optim(&par[0], rel_eps, max_it, c1, c2,
                                 use_bfgs, trace, cg_tol, strong_wolfe, max_cg,
-                                static_cast<PSQN::precondition>(pre_method));
+                                static_cast<PSQN::precondition>(pre_method),
+                                gr_tol);
 
   NumericVector counts = NumericVector::create(
     res.n_eval, res.n_grad,  res.n_cg);

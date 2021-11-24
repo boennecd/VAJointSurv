@@ -20,7 +20,8 @@ joint_ms_opt(
   pre_method = 1L,
   quad_rule = object$quad_rule,
   mask = integer(),
-  cache_expansions = object$cache_expansions
+  cache_expansions = object$cache_expansions,
+  gr_tol = -1
 )
 }
 \arguments{
@@ -28,7 +29,7 @@ joint_ms_opt(
 
 \item{par}{starting value.}
 
-\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{n_threads}{number of threads to use.}
 

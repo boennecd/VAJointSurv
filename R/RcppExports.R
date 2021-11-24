@@ -41,12 +41,12 @@ joint_ms_n_params <- function(ptr) {
     .Call(`_VAJointSurv_joint_ms_n_params`, ptr)
 }
 
-opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions) {
-    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions)
+opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol) {
+    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol)
 }
 
-joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers) {
-    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers)
+joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol) {
+    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol)
 }
 
 ph_ll <- function(time_fixef, Z, surv, with_frailty) {

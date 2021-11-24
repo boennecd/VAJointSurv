@@ -165,7 +165,7 @@ joint_ms_set_vcov <- function(
 #' Quick Heuristic for the Starting Values
 #'
 #' @inheritParams joint_ms_opt
-#' @param rel_eps,c1,c2,max_it arguments to pass to the C++ version of
+#' @param rel_eps,c1,c2,max_it,gr_tol arguments to pass to the C++ version of
 #' \code{\link{psqn}}.
 #'
 #' @importFrom psqn psqn
@@ -178,7 +178,7 @@ joint_ms_start_val <- function(
   c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0, cg_tol = 0.5,
   strong_wolfe = TRUE, max_cg = 0, pre_method = 1,
   quad_rule = object$quad_rule, mask = integer(),
-  cache_expansions = object$cache_expansions){
+  cache_expansions = object$cache_expansions, gr_tol = -1){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
@@ -203,7 +203,8 @@ joint_ms_start_val <- function(
       y ~ cbind(t(mark$X), t(X_vary)) - 1 + (t(X_rng) - 1 | id),
       control = lmerControl(
         optimizer = "nloptwrap", optCtrl = list(
-          xtol_abs = rel_eps, ftol_abs = rel_eps)))
+          xtol_abs = rel_eps, ftol_abs = rel_eps),
+        check.nobs.vs.nRE = "warning"))
 
     # extract the parameters
     par[object$indices$markers[[i]]$fixef] <-
@@ -237,7 +238,8 @@ joint_ms_start_val <- function(
   opt_va <- opt_priv(
     val = par, ptr = object$ptr, rel_eps = rel_eps,
     max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-    quad_rule = quad_rule, cache_expansions = cache_expansions)
+    quad_rule = quad_rule, cache_expansions = cache_expansions,
+    gr_tol = gr_tol)
 
   if(anyNA(opt_va))
     stop("Failed to find starting values for the variational parameter")
@@ -259,7 +261,7 @@ joint_ms_start_val <- function(
                          max_cg = max_cg, pre_method = pre_method,
                          quad_rule = quad_rule, mask = mask,
                          cache_expansions = cache_expansions,
-                         only_markers = TRUE)
+                         only_markers = TRUE, gr_tol = gr_tol)
 
   if(!out$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
@@ -349,16 +351,15 @@ joint_ms_hess <- function(
 #'
 #' @inheritParams joint_ms_lb
 #' @param par starting value.
-#' @param rel_eps,max_it,c1,c2,use_bfgs,trace,cg_tol,strong_wolfe,max_cg,pre_method,mask
+#' @param rel_eps,max_it,c1,c2,use_bfgs,trace,cg_tol,strong_wolfe,max_cg,pre_method,mask,gr_tol
 #' arguments to pass to the C++ version of \code{\link{psqn}}.
 #' @export
-joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
-                         max_it = 1000L, n_threads = object$max_threads,
-                         c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0L,
-                         cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
-                         pre_method = 1L, quad_rule = object$quad_rule,
-                         mask = integer(),
-                         cache_expansions = object$cache_expansions){
+joint_ms_opt <- function(
+  object, par = object$start_val, rel_eps = 1e-8, max_it = 1000L,
+  n_threads = object$max_threads, c1 = 1e-4, c2 = .9, use_bfgs = TRUE,
+  trace = 0L, cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
+  pre_method = 1L, quad_rule = object$quad_rule, mask = integer(),
+  cache_expansions = object$cache_expansions, gr_tol = -1){
   stopifnot(inherits(object, "joint_ms"))
   quad_rule <- set_n_check_quad_rule(quad_rule)
   check_n_threads(object, n_threads)
@@ -371,7 +372,7 @@ joint_ms_opt <- function(object, par = object$start_val, rel_eps = 1e-8,
                          pre_method = pre_method, quad_rule = quad_rule,
                          mask = mask,
                          cache_expansions = cache_expansions,
-                         only_markers = FALSE)
+                         only_markers = FALSE, gr_tol = gr_tol)
   if(!fit$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                     fit$info))
@@ -451,7 +452,8 @@ joint_ms_profile <- function(
   rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
   max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
-  mask = integer(), cache_expansions = object$cache_expansions){
+  mask = integer(), cache_expansions = object$cache_expansions,
+  gr_tol = -1){
   stopifnot(is.integer(which_prof), length(which_prof) == 1L,
             which_prof >= 1L, which_prof <= length(opt_out$par),
             is.numeric(delta), is.finite(delta), length(delta) == 1,
@@ -497,7 +499,7 @@ joint_ms_profile <- function(
       n_threads = n_threads, c1 = c1, c2 = c2, use_bfgs = use_bfgs,
       trace = trace, cg_tol = cg_tol, strong_wolfe = strong_wolfe,
       max_cg = max_cg, pre_method = pre_method, quad_rule = quad_rule,
-      mask = mask, cache_expansions = cache_expansions)
+      mask = mask, cache_expansions = cache_expansions, gr_tol = gr_tol)
     if(!fit$convergence)
       stop(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                    fit$info))

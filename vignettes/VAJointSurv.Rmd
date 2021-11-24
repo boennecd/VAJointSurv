@@ -354,6 +354,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
+
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
@@ -677,10 +678,10 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 1L, cg_tol = .2, c2 = .1, 
-                                    rel_eps = 1e-12))
+                                    gr_tol = .1))
 
-# check the gradient norm. We may need to reduce the convergence tolerance if 
-# this is not small. In can also be a sign of convergence issues
+# we set gr_tol in the call so this is the convergence criterion for the 
+# gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1192,7 +1193,7 @@ comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
 rm(marker_1, marker_2, surv_obj)
 
 # get the starting values
-system.time(start_val <- joint_ms_start_val(comp_obj))
+system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1208,10 +1209,11 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    gr_tol = .1))
 
-# check the gradient norm. We may need to reduce the convergence tolerance if 
-# this is not small. In can also be a sign of convergence issues
+# we set gr_tol in the call so this is the convergence criterion for the 
+# gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -1913,7 +1915,7 @@ comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
 rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values
-system.time(start_val <- joint_ms_start_val(comp_obj))
+system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1930,10 +1932,11 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
-                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+                                    pre_method = 1L, cg_tol = .2, c2 = .1,
+                                    gr_tol = .1))
 
-# check the gradient norm. We may need to reduce the convergence tolerance if 
-# this is not small. In can also be a sign of convergence issues
+# we set gr_tol in the call so this is the convergence criterion for the 
+# gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
@@ -2311,7 +2314,7 @@ comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
 rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values
-system.time(start_val <- joint_ms_start_val(comp_obj))
+system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2328,10 +2331,11 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
-                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+                                    pre_method = 1L, cg_tol = .2, c2 = .1,
+                                    gr_tol = .1))
 
-# check the gradient norm. We may need to reduce the convergence tolerance if 
-# this is not small. In can also be a sign of convergence issues
+# we set gr_tol in the call so this is the convergence criterion for the 
+# gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value

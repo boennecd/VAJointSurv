@@ -25,7 +25,8 @@ joint_ms_profile(
   quad_rule = object$quad_rule,
   verbose = TRUE,
   mask = integer(),
-  cache_expansions = object$cache_expansions
+  cache_expansions = object$cache_expansions,
+  gr_tol = -1
 )
 }
 \arguments{
@@ -81,6 +82,8 @@ particularly with
 expansions that take longer to compute (like \code{\link{ns_term}} and
 \code{\link{bs_term}}). The computation time may be worse particularly if
 you use more threads as the CPU cache is not well utilized.}
+
+\item{gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 }
 \description{
 Approximate Likelihood Ratio based Confidence Intervals
