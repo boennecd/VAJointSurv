@@ -1611,7 +1611,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>   8.254   0.000   2.161
+#>   8.754   0.007   2.339
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1632,7 +1632,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>  15.552   0.004   3.892
+#>  15.207   0.001   3.805
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -1650,7 +1650,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  66.148   0.008  16.548
+#>  60.518   0.015  15.140
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1736,127 +1736,16 @@ vcov_surv
 #> [1,] 0.04
 ```
 
-#### Approximate Likelihood Ratio based Confidence Intervals
-
-Assuming that the lower bound is tight, we can construct approximate
-likelihood ratio based confidence intervals using the lower bound. We
-show how to do this below with the `mask` argument of `joint_ms_opt`.
-
-``` r
-# fixed input 
-level <- .95 # confidence level
-which_fix <- 14L
-# see the indices element for which element is fixed. It is an association 
-# parameter in this case
-comp_obj$indices$survival[[1]]$associations # confidence interval for 
-#> [1] 14 15
-
-# assumed plausible values of the parameter. The joint_ms_profile function
-# shown later finds these automatically
-params <- opt_out$par[which_fix]
-params <- seq(params - .5, params + .5, length.out = 15)
-
-# find the maximum lower bound values
-lbs_max <- sapply(params, function(x){
-  par <- opt_out$par
-  par[which_fix] <- x
-  res <- joint_ms_opt(comp_obj, par = par, max_it = 1000L, 
-                      pre_method = 1L, cg_tol = .2, c2 = .1, 
-                      # -1 needed in the psqn package (zero-based indices)
-                      mask = which_fix - 1L)
-  
-  # return the maximum lower bound if the method converged
-  if(!res$convergence)
-    stop("did not converge")
-  -res$value
-})
-```
-
-``` r
-# find the critical value and the approximate confidence interval
-z_vals <- sqrt(pmax(-opt_out$value - lbs_max, 0) * 2)
-z_vals <- ifelse(params < opt_out$par[which_fix], -1, 1) * z_vals
-
-alpha <- 1 - level
-pvs <- c(alpha / 2, 1 - alpha/2)
-conf_int <- setNames(approx(z_vals, params, xout = qnorm(pvs))$y,
-                     sprintf("%.2f pct.", 100 * pvs))
-conf_int # the approximate confidence interval
-#>  2.50 pct. 97.50 pct. 
-#>    -1.0786    -0.4066
-
-# plot the approximate log profile likelihood and highlight the critical value
-par(mar = c(5, 5, 1, 1))
-plot(params, lbs_max, pch = 16, bty = "l", xlab = "Association parameter", 
-     ylab = "Approximate log profile likelihood")
-grid()
-smooth_est <- smooth.spline(params, lbs_max)
-lines(predict(smooth_est, seq(min(params), max(params), length.out = 100)))
-
-# mark the confidence interval
-abline(h = -opt_out$value - qchisq(level, 1) / 2, lty = 2)
-abline(v = conf_int, lty = 2)
-```
-
-![](man/figures/README-res_manual_pl-1.png)<!-- -->
-
-The `joint_ms_profile` uses similar steps to the above to find
-approximate profile likelihood based confidence intervals. An example is
-shown below.
-
-``` r
-# construct the approximate likelihood ratio based confidence interval
-prof_conf <- joint_ms_profile(
-  comp_obj, opt_out = opt_out, which_prof = which_fix, delta = .25, 
-  level = level, 
-  max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1)
-#> 
-#> Finding the upper limit of the approximate profile likelihood curve
-#> LogLike: -7258.1525 at        -0.481187
-#> LogLike: -7261.6097 at        -0.231187
-#> LogLike: -7259.3839 at        -0.371718. Lb, target, ub: -7259.3839, -7258.9426, -7258.1525
-#> LogLike: -7258.8947 at        -0.410720. Lb, target, ub: -7259.3839, -7258.9426, -7258.8947
-#> 
-#> Finding the lower limit of the approximate profile likelihood curve
-#> LogLike: -7258.0504 at        -0.981187
-#> LogLike: -7260.7822 at        -1.231187
-#> LogLike: -7259.3159 at        -1.108709. Lb, target, ub: -7259.3159, -7258.9426, -7258.0504
-#> LogLike: -7258.8536 at        -1.067433. Lb, target, ub: -7259.3159, -7258.9426, -7258.8536
-#> LogLike: -7257.0218 at        -0.731187
-```
-
-``` r
-prof_conf$confs # the approximate confidence interval
-#>  2.50 pct. 97.50 pct. 
-#>    -1.0757    -0.4067
-
-# plot the approximate log profile likelihood and highlight the critical value
-par(mar = c(5, 5, 1, 1))
-
-with(prof_conf, {
-  plot(xs, p_log_Lik, pch = 16, bty = "l", 
-     xlab = "Association parameter", ylab = "Approximate log profile likelihood")
-  grid()
-  smooth_est <- smooth.spline(xs, p_log_Lik)
-  lines(predict(smooth_est, seq(min(xs), max(xs), length.out = 100)))
-  
-  abline(v = confs, lty = 2)
-})
-```
-
-![](man/figures/README-res_joint_ms_profile-1.png)<!-- -->
-
 #### Observed Information Matrix and Approximate Wald Intervals
 
-The package also supplies an approximation of the observed information
-matrix and the full Hessian of all the parameters. This is illustrated
-below.
+The package supplies an approximation of the observed information matrix
+and the full Hessian of all the parameters. This is illustrated below.
 
 ``` r
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>   7.662   0.008   7.670
+#>   7.972   0.028   8.000
 dim(hess$hessian_all) # the full matrix!
 #> [1] 20029 20029
 
@@ -1962,6 +1851,164 @@ associations
 We can compute standard error estimates for the covariance matrices’
 parameters but this requires an application of the delta method because
 of the parameterization of the covariance matrices.
+
+#### Approximate Likelihood Ratio based Confidence Intervals
+
+Assuming that the lower bound is tight, we can construct approximate
+likelihood ratio based confidence intervals using the lower bound. We
+show how to do this below with the `mask` argument of `joint_ms_opt`.
+
+``` r
+# fixed input 
+level <- .95 # confidence level
+which_fix <- 14L
+# see the indices element for which element is fixed. It is an association 
+# parameter in this case
+comp_obj$indices$survival[[1]]$associations # confidence interval for 
+#> [1] 14 15
+
+# assumed plausible values of the parameter. The joint_ms_profile function
+# shown later finds these automatically
+params <- opt_out$par[which_fix]
+params <- seq(params - .5, params + .5, length.out = 15)
+
+# find the maximum lower bound values
+lbs_max <- sapply(params, function(x){
+  par <- opt_out$par
+  par[which_fix] <- x
+  res <- joint_ms_opt(comp_obj, par = par, max_it = 1000L, 
+                      pre_method = 1L, cg_tol = .2, c2 = .1, 
+                      # -1 needed in the psqn package (zero-based indices)
+                      mask = which_fix - 1L)
+  
+  # return the maximum lower bound if the method converged
+  if(!res$convergence)
+    stop("did not converge")
+  -res$value
+})
+```
+
+``` r
+# find the critical value and the approximate confidence interval
+z_vals <- sqrt(pmax(-opt_out$value - lbs_max, 0) * 2)
+z_vals <- ifelse(params < opt_out$par[which_fix], -1, 1) * z_vals
+
+alpha <- 1 - level
+pvs <- c(alpha / 2, 1 - alpha/2)
+conf_int <- setNames(approx(z_vals, params, xout = qnorm(pvs))$y,
+                     sprintf("%.2f pct.", 100 * pvs))
+conf_int # the approximate confidence interval
+#>  2.50 pct. 97.50 pct. 
+#>    -1.0786    -0.4066
+
+# plot the approximate log profile likelihood and highlight the critical value
+par(mar = c(5, 5, 1, 1))
+plot(params, lbs_max, pch = 16, bty = "l", xlab = "Association parameter", 
+     ylab = "Approximate log profile likelihood")
+grid()
+smooth_est <- smooth.spline(params, lbs_max)
+lines(predict(smooth_est, seq(min(params), max(params), length.out = 100)))
+
+# mark the confidence interval
+abline(h = -opt_out$value - qchisq(level, 1) / 2, lty = 2)
+abline(v = conf_int, lty = 2)
+```
+
+![](man/figures/README-res_manual_pl-1.png)<!-- -->
+
+The `joint_ms_profile` uses similar steps to the above to find
+approximate profile likelihood based confidence intervals. An example is
+shown below.
+
+``` r
+# construct the approximate likelihood ratio based confidence interval
+system.time(
+  prof_conf <- joint_ms_profile(
+    comp_obj, opt_out = opt_out, which_prof = which_fix, delta = .25, 
+    level = level, 
+    max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1))
+#> 
+#> Finding the upper limit of the approximate profile likelihood curve
+#> LogLike: -7258.1525 at        -0.481187
+#> LogLike: -7261.6097 at        -0.231187
+#> LogLike: -7259.3839 at        -0.371718. Lb, target, ub: -7259.3839, -7258.9426, -7258.1525
+#> LogLike: -7258.8947 at        -0.410720. Lb, target, ub: -7259.3839, -7258.9426, -7258.8947
+#> 
+#> Finding the lower limit of the approximate profile likelihood curve
+#> LogLike: -7258.0504 at        -0.981187
+#> LogLike: -7260.7822 at        -1.231187
+#> LogLike: -7259.3159 at        -1.108709. Lb, target, ub: -7259.3159, -7258.9426, -7258.0504
+#> LogLike: -7258.8536 at        -1.067433. Lb, target, ub: -7259.3159, -7258.9426, -7258.8536
+#> LogLike: -7257.0218 at        -0.731187
+#>    user  system elapsed 
+#>   86.80    0.02   21.71
+```
+
+``` r
+prof_conf$confs # the approximate confidence interval
+#>  2.50 pct. 97.50 pct. 
+#>    -1.0757    -0.4067
+
+# plot the approximate log profile likelihood and highlight the critical value
+par(mar = c(5, 5, 1, 1))
+
+with(prof_conf, {
+  plot(xs, p_log_Lik, pch = 16, bty = "l", 
+     xlab = "Association parameter", ylab = "Approximate log profile likelihood")
+  grid()
+  smooth_est <- smooth.spline(xs, p_log_Lik)
+  lines(predict(smooth_est, seq(min(xs), max(xs), length.out = 100)))
+  
+  abline(v = confs, lty = 2)
+})
+```
+
+![](man/figures/README-res_joint_ms_profile-1.png)<!-- -->
+
+The Hessian can be used to possibly decrease the computation time by
+passing it to the `hess` argument as illustrated below. Starting values
+along the profile likelihood curve is then found using an approximate
+normal distribution.
+
+``` r
+# construct the approximate likelihood ratio based confidence interval
+system.time(
+  prof_conf_fast <- joint_ms_profile(
+    comp_obj, opt_out = opt_out, which_prof = which_fix, 
+    # we can use the standard error
+    delta = 2.5 * sqrt(diag(solve(hess$hessian)))[which_fix], 
+    level = level, 
+    max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1,
+    hess = hess))
+#> Computing the vector to find the starting values along the profile likelihood curve
+#> 
+#> Finding the upper limit of the approximate profile likelihood curve
+#> LogLike: -7260.3063 at        -0.307880
+#> LogLike: -7257.0218 at        -0.731187
+#> LogLike: -7257.8954 at        -0.511146. Lb, target, ub: -7260.3063, -7258.9426, -7257.8954
+#> LogLike: -7258.9287 at        -0.407780. Lb, target, ub: -7260.3063, -7258.9426, -7258.9287
+#> LogLike: -7259.0755 at        -0.395636. Lb, target, ub: -7259.0755, -7258.9426, -7258.9287
+#> 
+#> Finding the lower limit of the approximate profile likelihood curve
+#> LogLike: -7259.8365 at        -1.154495
+#> LogLike: -7257.0218 at        -0.731187
+#> LogLike: -7258.1122 at        -0.987957. Lb, target, ub: -7259.8365, -7258.9426, -7258.1122
+#> LogLike: -7258.9025 at        -1.073003. Lb, target, ub: -7259.8365, -7258.9426, -7258.9025
+#> LogLike: -7259.0350 at        -1.085493. Lb, target, ub: -7259.0350, -7258.9426, -7258.9025
+#> LogLike: -7257.0218 at        -0.731187
+#>    user  system elapsed 
+#>   63.70    0.96   25.19
+```
+
+``` r
+# we got the same
+prof_conf$confs 
+#>  2.50 pct. 97.50 pct. 
+#>    -1.0757    -0.4067
+prof_conf_fast$confs
+#>  2.50 pct. 97.50 pct. 
+#>    -1.0768    -0.4066
+```
 
 ### Two Markers and a Recurrent Event Without Frailty
 

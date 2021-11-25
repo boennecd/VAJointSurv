@@ -442,6 +442,9 @@ joint_ms_format <- function(object, par = object$start_val){
 #' @param max_step maximum number of steps to take in each direction when
 #' constructing the approximate profile likelihood curve.
 #' @param level confidence level.
+#' @param hess the Hessian from \code{\link{joint_ms_hess}}. It is used to get
+#' better starting values along the profile likelihood curve. Use \code{NULL}
+#' if it is not passed.
 #'
 #' @importFrom stats approx qchisq splinefun qnorm spline
 #' @importFrom utils head
@@ -453,14 +456,15 @@ joint_ms_profile <- function(
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
   max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
   mask = integer(), cache_expansions = object$cache_expansions,
-  gr_tol = -1){
+  gr_tol = -1, hess = NULL){
   stopifnot(is.integer(which_prof), length(which_prof) == 1L,
             which_prof >= 1L, which_prof <= length(opt_out$par),
             is.numeric(delta), is.finite(delta), length(delta) == 1,
             delta > 0,
             length(level) == 1, is.numeric(level), is.finite(level),
             level > 0, level < 1,
-            opt_out$convergence)
+            opt_out$convergence,
+            is.null(hess) || (is.list(hess) && !is.null(hess$hessian_all)))
 
   # setup
   mask <- unique(c(mask, which_prof - 1L))
@@ -507,6 +511,30 @@ joint_ms_profile <- function(
     format_fit(x, dir = dir, fit = fit, lb = lb, ub = ub)
   }
 
+  # objects needed for to get the starting value when the Hessian is passed.
+  # Relies on an approximate normal distribution where we work with the
+  # precision matrix rather than the covariance matrix
+  if(!is.null(hess)){
+    if(verbose)
+      message("Computing the vector to find the starting values along the profile likelihood curve")
+
+    cond_mean_factor <- -solve(
+      hess$hessian_all[-which_prof, -which_prof],
+      hess$hessian_all[-which_prof, which_prof])
+    cond_mean_factor <- drop(as.matrix(cond_mean_factor))
+  }
+
+  # gets the starting value
+  get_start_val <- function(step_size, closest_par){
+    if(is.null(hess))
+      return(closest_par)
+
+    # use approximate normal distribution
+    out <- par
+    out[-which_prof] <- out[-which_prof] + cond_mean_factor * step_size
+    out
+  }
+
   # find the points along the approximate profile likelihood curve
   get_points <- function(dir){
     dir <- sign(dir)
@@ -535,8 +563,10 @@ joint_ms_profile <- function(
     update_closest_par(tmp)
 
     while(prev > crit_value && (step <- step + 1L) <= max_step){
-      out[[step]] <- fit_model(par[which_prof] + dir *  2^(step - 1) * delta,
-                               dir = dir, par = closest_par)
+      step_size <- dir * 2^(step - 1) * delta
+      out[[step]] <- fit_model(
+        par[which_prof] + step_size, dir = dir,
+        par = get_start_val(step_size = step_size, closest_par = closest_par))
       if(out[[step]]$value > prev){
         warning("The lower bound did not decrease. Either the input is not an optimum or the precision needs to be increased")
         did_fail <- TRUE
@@ -574,8 +604,10 @@ joint_ms_profile <- function(
       else
         next_val <- 8 / 9 * next_val + lb$x / 9
 
-      out[[step]] <- fit_model(next_val, dir = dir, par = closest_par, lb = lb,
-                               ub = ub)
+      step_size <- next_val - par[which_prof]
+      out[[step]] <- fit_model(
+        next_val, dir = dir, lb = lb, ub = ub,
+        get_start_val(step_size = step_size, closest_par = closest_par))
 
       if(out[[step]]$value > ub$value || out[[step]]$value < lb$value){
         warning("Log likelihood does not seem monotonic. Likely the precision needs to be increased")

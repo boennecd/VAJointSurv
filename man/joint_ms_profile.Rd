@@ -26,7 +26,8 @@ joint_ms_profile(
   verbose = TRUE,
   mask = integer(),
   cache_expansions = object$cache_expansions,
-  gr_tol = -1
+  gr_tol = -1,
+  hess = NULL
 )
 }
 \arguments{
@@ -84,6 +85,10 @@ expansions that take longer to compute (like \code{\link{ns_term}} and
 you use more threads as the CPU cache is not well utilized.}
 
 \item{gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+
+\item{hess}{the Hessian from \code{\link{joint_ms_hess}}. It is used to get
+better starting values along the profile likelihood curve. Use \code{NULL}
+if it is not passed.}
 }
 \description{
 Approximate Likelihood Ratio based Confidence Intervals
