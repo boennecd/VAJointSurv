@@ -134,11 +134,17 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 #' @inheritParams joint_ms_format
 #' @param vcov_vary the covariance matrix for the time-varying effects.
 #' @param vcov_surv the covariance matrix for the frailties.
+#' @param va_mean a matrix with the number of rows equal to the number of
+#' random effects per observation and the number of columns is the number
+#' of observations. The order for the observations needs to be the same as the
+#' \code{id} element of \code{object}.
 #'
 #' @export
 joint_ms_set_vcov <- function(
-  object, vcov_vary, vcov_surv, par = object$start_val){
+  object, vcov_vary, vcov_surv, par = object$start_val, va_mean = NULL){
   stopifnot(inherits(object, "joint_ms"))
+  stopifnot(is.null(va_mean) || (is.matrix(va_mean) && all(is.finite(va_mean))))
+
   # insert the model parameter
   indices <- object$indices
   if(length(indices$vcovs$vcov_vary) > 0)
@@ -157,7 +163,14 @@ joint_ms_set_vcov <- function(
   } else
     va_vcov <- vcov_surv
 
-  va_default <- c(numeric(va_dim), .log_chol(va_vcov))
+  if(is.null(va_mean))
+    va_mean <- matrix(0, va_dim, length(object$ids))
+  else
+    stopifnot(all(dim(va_mean) == c(va_dim, length(object$ids))))
+
+  va_default <- tapply(va_mean, rep(1:NCOL(va_mean), each = NROW(va_mean)),
+                       c, .log_chol(va_vcov))
+  va_default <- unlist(va_default)
   par[-(1:(indices$va_params_start - 1L))] <- va_default
   par
 }
@@ -189,6 +202,12 @@ joint_ms_start_val <- function(
   vcov_marker <- .log_chol_inv(par[object$indices$vcovs$vcov_marker])
   vcov_marker <- diag(NCOL(vcov_marker))
   vcov_vary <- .log_chol_inv(par[object$indices$vcovs$vcov_vary])
+  vcov_surv <- if(length(object$survival_terms) == 0)
+    matrix(nrow = 0, ncol = 0) else
+      .log_chol_inv(par[object$indices$vcovs$vcov_surv])
+
+  n_rng <- NCOL(vcov_vary) + NCOL(vcov_surv)
+  blups <- matrix(0, n_rng, length(object$ids))
 
   offset <- 0L
   for(i in seq_along(object$markers)){
@@ -219,6 +238,12 @@ joint_ms_start_val <- function(
     vcov_marker[i, i] <- resid_var
     vcov_indices <- offset + seq_len(NROW(X_rng))
     vcov_vary[vcov_indices, vcov_indices] <- vcov_est
+
+    blups_i <- coef(lmer_fit)[["id"]][, 1:NCOL(vcov_est)]
+    id_match <- match(rownames(blups_i), object$ids)
+    stopifnot(all(is.finite(id_match)))
+    blups[vcov_indices, id_match] <- t(blups_i)
+
     offset <- offset + NROW(X_rng)
   }
 
@@ -227,34 +252,14 @@ joint_ms_start_val <- function(
     par[object$indices$vcovs$vcov_marker] <- .log_chol(vcov_marker)
     par[object$indices$vcovs$vcov_vary] <- .log_chol(vcov_vary)
 
-    vcov_surv <- if(length(object$survival_terms) == 0)
-      matrix(nrow = 0, ncol = 0) else
-        .log_chol_inv(par[object$indices$vcovs$vcov_surv])
-
     par <- joint_ms_set_vcov(object, vcov_vary = vcov_vary,
-                             vcov_surv = vcov_surv, par = par)
+                             vcov_surv = vcov_surv, par = par,
+                             va_mean = blups)
   }
 
-  opt_va <- opt_priv(
-    val = par, ptr = object$ptr, rel_eps = rel_eps,
-    max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-    quad_rule = quad_rule, cache_expansions = cache_expansions,
-    gr_tol = gr_tol)
-
-  if(anyNA(opt_va))
-    stop("Failed to find starting values for the variational parameter")
-
-  if(length(object$indices$markers) == 0 ||
-      length(object$indices$survival) == 0){
-    attr(opt_va, "value") <-joint_ms_lb(
-      object = object, par = opt_va, n_threads = n_threads,
-      quad_rule = quad_rule, cache_expansions = cache_expansions)
-
-    return(opt_va)
-  }
-
-  # improve the fit for the marker part of the model
-  out <- joint_ms_opt_lb(val = opt_va, ptr = object$ptr, rel_eps = rel_eps,
+  # improve the fit for the marker part of the model. This should mainly set
+  # the variational parameters
+  out <- joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,
                          max_it = max_it, n_threads = n_threads, c1 = c1,
                          c2 = c2, use_bfgs = use_bfgs, trace = trace,
                          cg_tol = cg_tol, strong_wolfe = strong_wolfe,
@@ -266,6 +271,18 @@ joint_ms_start_val <- function(
   if(!out$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                     out$info))
+
+  if(NCOL(vcov_surv)){
+    # to set the parameters for the frailties
+    opt_va <- opt_priv(
+      val = out$par, ptr = object$ptr, rel_eps = rel_eps,
+      max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+      quad_rule = quad_rule, cache_expansions = cache_expansions,
+      gr_tol = gr_tol)
+
+    if(all(is.finite(opt_va)))
+      out$par <- opt_va
+  }
 
   out <- out$par
   attr(out, "value") <-joint_ms_lb(

@@ -1954,7 +1954,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
           tolerance = 1e-6)
 
 # find the maximum lower bound estimate
-system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
+system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L,
                                     pre_method = 1L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 

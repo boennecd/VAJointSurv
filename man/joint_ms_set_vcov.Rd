@@ -4,7 +4,13 @@
 \alias{joint_ms_set_vcov}
 \title{Sets the Covariance Parameters}
 \usage{
-joint_ms_set_vcov(object, vcov_vary, vcov_surv, par = object$start_val)
+joint_ms_set_vcov(
+  object,
+  vcov_vary,
+  vcov_surv,
+  par = object$start_val,
+  va_mean = NULL
+)
 }
 \arguments{
 \item{object}{a joint_ms object from \code{\link{joint_ms_ptr}}.}
@@ -14,6 +20,11 @@ joint_ms_set_vcov(object, vcov_vary, vcov_surv, par = object$start_val)
 \item{vcov_surv}{the covariance matrix for the frailties.}
 
 \item{par}{parameter vector to be formatted.}
+
+\item{va_mean}{a matrix with the number of rows equal to the number of
+random effects per observation and the number of columns is the number
+of observations. The order for the observations needs to be the same as the
+\code{id} element of \code{object}.}
 }
 \description{
 Sets the covariance matrices to the passed values. The function also sets
