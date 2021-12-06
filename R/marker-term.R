@@ -32,12 +32,12 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
 
   if(missing(data))
     data <- parent.frame()
-  id <- eval(substitute(id), data)
+  id <- eval(substitute(id), data, parent.frame())
   X <- model.matrix(mt, mf)
   y <- model.response(mf, "numeric")
 
-  time_fixef <- eval(substitute(time_fixef), data)
-  time_rng <- eval(substitute(time_rng), data)
+  time_fixef <- eval(substitute(time_fixef), data, parent.frame())
+  time_rng <- eval(substitute(time_rng), data, parent.frame())
 
   # sanity checks
   stopifnot(NROW(X) == length(id),

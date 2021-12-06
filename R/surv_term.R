@@ -34,7 +34,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   mf <- eval(mf, parent.frame())
   mt <- attr(mf, "terms")
 
-  id <- eval(substitute(id), data)
+  id <- eval(substitute(id), data, parent.frame())
   Z <- model.matrix(mt, mf)
   y <- model.response(mf)
 
@@ -46,7 +46,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
             any(y[, 3] == 0),
             any(y[, 3] == 1))
 
-  time_fixef <- eval(substitute(time_fixef), data)
+  time_fixef <- eval(substitute(time_fixef), data, parent.frame())
 
   # sanity checks
   stopifnot(NROW(Z) == length(id),
