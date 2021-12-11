@@ -17,7 +17,7 @@ joint_ms_start_val(
   cg_tol = 0.5,
   strong_wolfe = TRUE,
   max_cg = 0,
-  pre_method = 1,
+  pre_method = 3L,
   quad_rule = object$quad_rule,
   mask = integer(),
   cache_expansions = object$cache_expansions,

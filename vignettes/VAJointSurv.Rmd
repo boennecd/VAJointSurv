@@ -677,7 +677,7 @@ all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 
 # we set gr_tol in the call so this is the convergence criterion for the 
@@ -873,7 +873,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1))
+                                    pre_method = 3L, cg_tol = .2, c2 = .1))
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -1211,7 +1211,7 @@ all.equal(numDeriv::grad(f, head(start_val, 29 + 2 * 20)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 
 # we set gr_tol in the call so this is the convergence criterion for the 
@@ -1357,7 +1357,7 @@ lbs_max <- sapply(params, function(x){
   par <- opt_out$par
   par[which_fix] <- x
   res <- joint_ms_opt(comp_obj, par = par, max_it = 1000L, 
-                      pre_method = 1L, cg_tol = .2, c2 = .1, 
+                      pre_method = 3L, cg_tol = .2, c2 = .1, 
                       # -1 needed in the psqn package (zero-based indices)
                       mask = which_fix - 1L)
   
@@ -1401,7 +1401,7 @@ system.time(
   prof_conf <- joint_ms_profile(
     comp_obj, opt_out = opt_out, which_prof = which_fix, delta = .25, 
     level = level, 
-    max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1))
+    max_it = 1000L, pre_method = 3L, cg_tol = .2, c2 = .1))
 ```
 
 ```{r res_joint_ms_profile}
@@ -1433,7 +1433,7 @@ system.time(
     # we can use the standard error
     delta = 2.5 * sqrt(diag(solve(hess$hessian)))[which_fix], 
     level = level, 
-    max_it = 1000L, pre_method = 1L, cg_tol = .2, c2 = .1,
+    max_it = 1000L, pre_method = 3L, cg_tol = .2, c2 = .1,
     hess = hess))
 ```
 
@@ -1515,15 +1515,15 @@ all.equal(numDeriv::grad(f, head(start_val, 28 + 2 * 14)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
-                                    pre_method = 1L, cg_tol = .2, c2 = .1, 
+                                    pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     rel_eps = 1e-10))
-opt_out$counts
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
 opt_out$info # convergence code (0 == 'OK')
 print(-opt_out$value, digits = 8) # maximum lower bound value
+opt_out$counts
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
@@ -1929,7 +1929,7 @@ all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L,
-                                    pre_method = 1L, cg_tol = .2, c2 = .1,
+                                    pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 
 # we set gr_tol in the call so this is the convergence criterion for the 
@@ -2329,7 +2329,7 @@ all.equal(numDeriv::grad(f, head(start_val, 39 + 2 * 27)),
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
-                                    pre_method = 1L, cg_tol = .2, c2 = .1,
+                                    pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 
 # we set gr_tol in the call so this is the convergence criterion for the 

@@ -174,7 +174,7 @@ VA_time <- system.time({
 
   # find the maximum lower bound
   opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
-                          pre_method = 1L, cg_tol = .2, c2 = .1,
+                          pre_method = 3L, cg_tol = .2, c2 = .1,
                           rel_eps = 1e-12)
 })
 VA_time # estimation time

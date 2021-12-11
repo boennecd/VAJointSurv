@@ -21,7 +21,7 @@ joint_ms_profile(
   cg_tol = 0.5,
   strong_wolfe = TRUE,
   max_cg = 0L,
-  pre_method = 1L,
+  pre_method = 3L,
   quad_rule = object$quad_rule,
   verbose = TRUE,
   mask = integer(),

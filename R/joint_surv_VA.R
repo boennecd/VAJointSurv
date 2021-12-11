@@ -189,7 +189,7 @@ joint_ms_start_val <- function(
   object, par = object$start_val,
   rel_eps = 1e-8,  max_it = 1000L, n_threads = object$max_threads,
   c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0, cg_tol = 0.5,
-  strong_wolfe = TRUE, max_cg = 0, pre_method = 1,
+  strong_wolfe = TRUE, max_cg = 0, pre_method = 3L,
   quad_rule = object$quad_rule, mask = integer(),
   cache_expansions = object$cache_expansions, gr_tol = -1){
   stopifnot(inherits(object, "joint_ms"))
@@ -375,7 +375,7 @@ joint_ms_opt <- function(
   object, par = object$start_val, rel_eps = 1e-8, max_it = 1000L,
   n_threads = object$max_threads, c1 = 1e-4, c2 = .9, use_bfgs = TRUE,
   trace = 0L, cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
-  pre_method = 1L, quad_rule = object$quad_rule, mask = integer(),
+  pre_method = 3L, quad_rule = object$quad_rule, mask = integer(),
   cache_expansions = object$cache_expansions, gr_tol = -1){
   stopifnot(inherits(object, "joint_ms"))
   quad_rule <- set_n_check_quad_rule(quad_rule)
@@ -471,7 +471,7 @@ joint_ms_profile <- function(
   object, opt_out, which_prof, delta, level = .95, max_step = 15L,
   rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,
   c2 = 0.9, use_bfgs = TRUE, trace = 0L, cg_tol = 0.5, strong_wolfe = TRUE,
-  max_cg = 0L, pre_method = 1L, quad_rule = object$quad_rule, verbose = TRUE,
+  max_cg = 0L, pre_method = 3L, quad_rule = object$quad_rule, verbose = TRUE,
   mask = integer(), cache_expansions = object$cache_expansions,
   gr_tol = -1, hess = NULL){
   stopifnot(is.integer(which_prof), length(which_prof) == 1L,
