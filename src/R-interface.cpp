@@ -1,4 +1,3 @@
-#define PSQN_USE_EIGEN
 #include "arma-eigen-wrap.h"
 #include "marker-term.h"
 #include "psqn.h"

@@ -182,6 +182,7 @@ sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2)) # gradient norm
 
 # check the results
 opt_out$convergence # did it converge?
+opt_out$counts
 fmt_par <- joint_ms_format(comp_obj, opt_out$par)
 
 fmt_par$markers
