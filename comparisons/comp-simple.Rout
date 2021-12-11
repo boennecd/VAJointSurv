@@ -203,23 +203,23 @@ Loading required package: survival
 +                           pre_method = 3L, cg_tol = .2, c2 = .1)
 + })
 > sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2)) # gradient norm
-[1] 0.07723
+[1] 0.5131
 > VA_time # estimation time
    user  system elapsed 
-  2.170   0.003   0.669 
+  2.181   0.015   0.675 
 > 
 > # check the results
 > opt_out$convergence # did it converge?
 [1] TRUE
 > opt_out$counts
 function gradient     n_cg 
-     497      348      741 
+     507      355      725 
 > fmt_par <- joint_ms_format(comp_obj, opt_out$par)
 > 
 > fmt_par$markers
 [[1]]
 [[1]]$fixef
-[1] -0.5092  0.9821
+[1] -0.5091  0.9821
 
 [[1]]$fixef_vary
 [1]  1.481 -0.299
@@ -233,10 +233,10 @@ function gradient     n_cg
 > fmt_par$survival
 [[1]]
 [[1]]$fixef
-[1] -2.14326  0.40256  0.03139
+[1] -2.14321  0.40255  0.03139
 
 [[1]]$fixef_vary
-[1] 0.6143 0.8913 1.7866 0.5358
+[1] 0.6142 0.8911 1.7865 0.5359
 
 [[1]]$associations
 [1] -0.1898
@@ -308,22 +308,22 @@ $vcov$vcov_vary
 +   cg_tol = .2, c2 = .1))
 
 Finding the upper limit of the approximate profile likelihood curve
-LogLike: -2522.1395 at        -0.139756
-LogLike: -2519.9563 at        -0.189756
-LogLike: -2521.3000 at        -0.150654. Lb, target, ub: -2522.1395, -2521.8771, -2521.3000
-LogLike: -2521.8166 at        -0.143591. Lb, target, ub: -2522.1395, -2521.8771, -2521.8166
+LogLike: -2522.1967 at        -0.139754
+LogLike: -2519.9564 at        -0.189754
+LogLike: -2521.2351 at        -0.151651. Lb, target, ub: -2522.1967, -2521.8771, -2521.2351
+LogLike: -2521.7863 at        -0.144042. Lb, target, ub: -2522.1967, -2521.8771, -2521.7863
 
 Finding the lower limit of the approximate profile likelihood curve
-LogLike: -2522.0454 at        -0.239756
-LogLike: -2519.9563 at        -0.189756
-LogLike: -2521.3645 at        -0.230619. Lb, target, ub: -2522.0454, -2521.8771, -2521.3645
-LogLike: -2521.8215 at        -0.236951. Lb, target, ub: -2522.0454, -2521.8771, -2521.8215
-LogLike: -2519.9563 at        -0.189756
+LogLike: -2522.0457 at        -0.239754
+LogLike: -2519.9564 at        -0.189754
+LogLike: -2521.3646 at        -0.230612. Lb, target, ub: -2522.0457, -2521.8771, -2521.3646
+LogLike: -2521.8204 at        -0.236945. Lb, target, ub: -2522.0457, -2521.8771, -2521.8204
+LogLike: -2519.9564 at        -0.189754
    user  system elapsed 
-  6.142   0.019   1.545 
+  7.831   0.004   1.969 
 > joint_pl$confs # the confidence interval
  2.50 pct. 97.50 pct. 
-   -0.2377    -0.1429 
+   -0.2377    -0.1431 
 > 
 > # plot the log profile likelihood
 > with(joint_pl, {
@@ -338,7 +338,7 @@ LogLike: -2519.9563 at        -0.189756
 > # get the observed information matrix instead
 > system.time(joint_obs_mat <- joint_ms_hess(comp_obj, opt_out$par))
    user  system elapsed 
-  0.521   0.000   0.521 
+  0.516   0.004   0.519 
 > joint_obs_mat <- -joint_obs_mat$hessian
 > joint_vcov <- solve(-joint_obs_mat)
 > 
@@ -388,10 +388,10 @@ rstan_options(auto_write = TRUE)
 > 
 > JMbayes_time # estimation time
    user  system elapsed 
-110.713   0.112 110.824 
+107.479   0.088 107.567 
 > JMbayes_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  165.7 
+  159.4 
 > 
 > # compare estimates
 > summary(JMbayes_fit)
@@ -440,7 +440,7 @@ iterations: 20000
 adapt: 3000 
 burn-in: 3000 
 thinning: 10 
-time: 1.8 min
+time: 1.7 min
 > 
 > association
 [1] -0.2
@@ -553,10 +553,10 @@ The following objects are masked from ‘package:JMbayes’:
 > 
 > JM_time # the estimation time
    user  system elapsed 
-104.028   2.308 106.345 
+103.325   2.336 105.662 
 > JM_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-    159 
+  156.5 
 > 
 > # the estimates
 > summary(JM_fit)
@@ -640,10 +640,10 @@ EM algorithm has converged!
 > 
 > joineRML_time # the estimation time
    user  system elapsed 
-  28.98    0.16   29.14 
+ 27.615   0.204  27.820 
 > joineRML_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  43.56 
+  41.21 
 > 
 > # look at the estimates
 > summary(joineRML_fit)
@@ -703,8 +703,8 @@ X1       0.0332      NA      NA      NA
 gamma_1 -0.1860      NA      NA      NA
 
 Algorithm Summary:
-    Total computational time: 29.1 secs 
-    EM algorithm computational time: 27.9 secs 
+    Total computational time: 27.8 secs 
+    EM algorithm computational time: 26.6 secs 
     Convergence status: converged
     Convergence criterion: sas 
     Final Monte Carlo sample size: 426 
@@ -766,13 +766,13 @@ Algorithm Summary:
             fixef_marker.(Intercept) fixef_marker.X1 fixef_vary_marker.time
 JMbayes                      -0.5153          0.9805                  1.512
 JM                           -0.5095          0.9821                  1.481
-VAJointSurv                  -0.5092          0.9821                  1.481
+VAJointSurv                  -0.5091          0.9821                  1.481
 joineRML                     -0.4938          0.9806                  1.530
 Truth                        -0.5000          1.0000                  1.400
             fixef_vary_marker.I(time^2) fixef_surv.Z1 fixef_surv.X1   assoc
 JMbayes                         -0.3000        0.4086        0.2107 -0.1836
 JM                              -0.2991        0.4043        0.2161 -0.1895
-VAJointSurv                     -0.2990        0.4026        0.2177 -0.1898
+VAJointSurv                     -0.2990        0.4025        0.2177 -0.1898
 joineRML                        -0.2979        0.4015        0.2156 -0.1860
 Truth                           -0.3000        0.4000        0.2000 -0.2000
             err_std.sigma vcov_vary_diag.(Intercept) vcov_vary_diag.time
@@ -797,7 +797,7 @@ Truth              0.5000                      1.000              0.5000
               Value    2.5%   97.5%
 JMbayes     -0.1836 -0.2293 -0.1377
 JM          -0.1895 -0.2368 -0.1422
-VAJointSurv -0.1898 -0.2377 -0.1429
+VAJointSurv -0.1898 -0.2377 -0.1431
 joineRML    -0.1860      NA      NA
 truth       -0.2000      NA      NA
 > 
@@ -841,18 +841,18 @@ T.alpha       -5.716e-04  5.827e-04
 mark1_fixef1         2.706e-03   -5.786e-05         5.635e-04         2.406e-05
 mark1_fixef2        -5.786e-05    2.785e-03        -1.659e-05        -4.349e-06
 mark1_fixef_vary1    5.635e-04   -1.659e-05         2.893e-03        -1.022e-04
-mark1_fixef_vary2    2.406e-05   -4.349e-06        -1.022e-04         2.882e-05
-surv1_fixef2         5.358e-06   -2.706e-06        -1.109e-04        -2.184e-07
+mark1_fixef_vary2    2.406e-05   -4.349e-06        -1.022e-04         2.883e-05
+surv1_fixef2         5.357e-06   -2.706e-06        -1.109e-04        -2.186e-07
 surv1_fixef3         1.429e-05   -5.777e-04         1.426e-05         1.576e-06
-surv1_assoc1_1      -9.548e-06    2.044e-06         1.591e-04         5.644e-06
+surv1_assoc1_1      -9.549e-06    2.044e-06         1.591e-04         5.644e-06
                   surv1_fixef2 surv1_fixef3 surv1_assoc1_1
-mark1_fixef1         5.358e-06    1.429e-05     -9.548e-06
+mark1_fixef1         5.357e-06    1.429e-05     -9.549e-06
 mark1_fixef2        -2.706e-06   -5.777e-04      2.044e-06
 mark1_fixef_vary1   -1.109e-04    1.426e-05      1.591e-04
-mark1_fixef_vary2   -2.184e-07    1.576e-06      5.644e-06
+mark1_fixef_vary2   -2.186e-07    1.576e-06      5.644e-06
 surv1_fixef2         1.086e-02   -8.779e-04     -3.617e-04
-surv1_fixef3        -8.779e-04    3.725e-03     -3.057e-06
-surv1_assoc1_1      -3.617e-04   -3.057e-06      5.851e-04
+surv1_fixef3        -8.779e-04    3.725e-03     -3.062e-06
+surv1_assoc1_1      -3.617e-04   -3.062e-06      5.851e-04
 > 
 > # account for the different parameterizations (i.e. transform one)
 > # TODO: very hard coded
@@ -881,15 +881,15 @@ T.X1           4.158e-03 -5.716e-04
 T.alpha       -5.716e-04  5.827e-04
 > VA_vcov
            [,1]       [,2]       [,3]       [,4]       [,5]       [,6]
-[1,]  2.706e-03 -5.786e-05  5.635e-04  2.406e-05  5.358e-06  1.269e-05
+[1,]  2.706e-03 -5.786e-05  5.635e-04  2.406e-05  5.357e-06  1.269e-05
 [2,] -5.786e-05  2.785e-03 -1.659e-05 -4.349e-06 -2.706e-06 -5.116e-05
 [3,]  5.635e-04 -1.659e-05  2.893e-03 -1.022e-04 -1.109e-04 -1.452e-04
-[4,]  2.406e-05 -4.349e-06 -1.022e-04  2.882e-05 -2.184e-07 -4.792e-06
-[5,]  5.358e-06 -2.706e-06 -1.109e-04 -2.184e-07  1.086e-02 -5.232e-04
+[4,]  2.406e-05 -4.349e-06 -1.022e-04  2.883e-05 -2.186e-07 -4.792e-06
+[5,]  5.357e-06 -2.706e-06 -1.109e-04 -2.186e-07  1.086e-02 -5.232e-04
 [6,]  1.269e-05 -5.116e-05 -1.452e-04 -4.792e-06 -5.232e-04  4.175e-03
-[7,] -9.548e-06  2.044e-06  1.591e-04  5.644e-06 -3.617e-04 -5.773e-04
+[7,] -9.549e-06  2.044e-06  1.591e-04  5.644e-06 -3.617e-04 -5.773e-04
            [,7]
-[1,] -9.548e-06
+[1,] -9.549e-06
 [2,]  2.044e-06
 [3,]  1.591e-04
 [4,]  5.644e-06
@@ -898,7 +898,7 @@ T.alpha       -5.716e-04  5.827e-04
 [7,]  5.851e-04
 > 
 > norm(JM_vcov - VA_vcov, "F") / norm(JM_vcov, "F") # relative diff
-[1] 0.001941
+[1] 0.001943
 > 
 > # compare the standard errors (the X1 should not match because of different
 > # parameterizations)
@@ -914,10 +914,10 @@ VAJointSurv       0.05202 0.05278 0.05379    0.005369 0.1042 0.06462 0.02419
 +       VAJointSurv = VA_time,
 +       joineRML = joineRML_time)[, 1:3]
             user.self sys.self elapsed
-JMbayes        110.71    0.112 110.824
-JM             104.03    2.308 106.345
-VAJointSurv      2.17    0.003   0.669
-joineRML        28.98    0.160  29.144
+JMbayes       107.479    0.088 107.567
+JM            103.325    2.336 105.662
+VAJointSurv     2.181    0.015   0.675
+joineRML       27.615    0.204  27.820
 > 
 > sessionInfo()
 R version 4.1.2 (2021-11-01)
@@ -979,4 +979,4 @@ loaded via a namespace (and not attached):
 > 
 > proc.time()
    user  system elapsed 
-255.772   2.721 252.273 
+251.990   2.751 247.266 
