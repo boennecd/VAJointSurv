@@ -23,13 +23,6 @@ The package can be installed from Github by calling:
 remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
 ```
 
-The package currently requires the development version of the psqn
-package. Thus, you need to install it, e.g. by calling
-
-``` r
-remotes::install_github("boennecd/psqn", build_vignettes = TRUE)
-```
-
 ## The Model
 
 We will start by covering the model, then cover some examples, and end
