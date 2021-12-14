@@ -257,6 +257,14 @@ joint_ms_start_val <- function(
                              va_mean = blups)
   }
 
+  # optimizes the VA parameters
+  do_opt_priv <- function(x)
+    opt_priv(
+      val = x, ptr = object$ptr, rel_eps = rel_eps,
+      max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+      quad_rule = quad_rule, cache_expansions = cache_expansions,
+      gr_tol = gr_tol)
+
   # optimizes the marker parameters
   opt_marker_par <- function(x){
     res <- joint_ms_opt_lb(val = x, ptr = object$ptr, rel_eps = rel_eps,
@@ -267,6 +275,8 @@ joint_ms_start_val <- function(
                            quad_rule = quad_rule, mask = mask,
                            cache_expansions = cache_expansions,
                            only_markers = TRUE, gr_tol = gr_tol)
+
+    res$par <- do_opt_priv(res$par)
 
     structure(
       res$par,
@@ -281,12 +291,7 @@ joint_ms_start_val <- function(
     return(res)
 
   # this might help
-  opt_va <- opt_priv(
-    val = par, ptr = object$ptr, rel_eps = rel_eps,
-    max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-    quad_rule = quad_rule, cache_expansions = cache_expansions,
-    gr_tol = gr_tol)
-  opt_marker_par(opt_va)
+  opt_marker_par(do_opt_priv(par))
 }
 
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound
