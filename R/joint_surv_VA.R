@@ -257,39 +257,36 @@ joint_ms_start_val <- function(
                              va_mean = blups)
   }
 
-  # improve the fit for the marker part of the model. This should mainly set
-  # the variational parameters
-  out <- joint_ms_opt_lb(val = par, ptr = object$ptr, rel_eps = rel_eps,
-                         max_it = max_it, n_threads = n_threads, c1 = c1,
-                         c2 = c2, use_bfgs = use_bfgs, trace = trace,
-                         cg_tol = cg_tol, strong_wolfe = strong_wolfe,
-                         max_cg = max_cg, pre_method = pre_method,
-                         quad_rule = quad_rule, mask = mask,
-                         cache_expansions = cache_expansions,
-                         only_markers = TRUE, gr_tol = gr_tol)
+  # optimizes the marker parameters
+  opt_marker_par <- function(x){
+    res <- joint_ms_opt_lb(val = x, ptr = object$ptr, rel_eps = rel_eps,
+                           max_it = max_it, n_threads = n_threads, c1 = c1,
+                           c2 = c2, use_bfgs = use_bfgs, trace = trace,
+                           cg_tol = cg_tol, strong_wolfe = strong_wolfe,
+                           max_cg = max_cg, pre_method = pre_method,
+                           quad_rule = quad_rule, mask = mask,
+                           cache_expansions = cache_expansions,
+                           only_markers = TRUE, gr_tol = gr_tol)
 
-  if(!out$convergence)
-    warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
-                    out$info))
-
-  if(NCOL(vcov_surv)){
-    # to set the parameters for the frailties
-    opt_va <- opt_priv(
-      val = out$par, ptr = object$ptr, rel_eps = rel_eps,
-      max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
-      quad_rule = quad_rule, cache_expansions = cache_expansions,
-      gr_tol = gr_tol)
-
-    if(all(is.finite(opt_va)))
-      out$par <- opt_va
+    structure(
+      res$par,
+      value = joint_ms_lb(
+        object = object, par = res$par, n_threads = n_threads,
+        quad_rule = quad_rule, cache_expansions = cache_expansions),
+      conv = res$conv)
   }
 
-  out <- out$par
-  attr(out, "value") <-joint_ms_lb(
-    object = object, par = out, n_threads = n_threads, quad_rule = quad_rule,
-    cache_expansions = cache_expansions)
+  res <- opt_marker_par(par)
+  if(is.finite(attr(res, "value")) && attr(res, "conv"))
+    return(res)
 
-  out
+  # this might help
+  opt_va <- opt_priv(
+    val = par, ptr = object$ptr, rel_eps = rel_eps,
+    max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
+    quad_rule = quad_rule, cache_expansions = cache_expansions,
+    gr_tol = gr_tol)
+  opt_marker_par(opt_va)
 }
 
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound

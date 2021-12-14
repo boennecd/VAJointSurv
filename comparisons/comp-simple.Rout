@@ -206,7 +206,7 @@ Loading required package: survival
 [1] 0.5131
 > VA_time # estimation time
    user  system elapsed 
-  2.181   0.015   0.675 
+  2.257   0.003   0.691 
 > 
 > # check the results
 > opt_out$convergence # did it converge?
@@ -320,7 +320,7 @@ LogLike: -2521.3646 at        -0.230612. Lb, target, ub: -2522.0457, -2521.8771,
 LogLike: -2521.8204 at        -0.236945. Lb, target, ub: -2522.0457, -2521.8771, -2521.8204
 LogLike: -2519.9564 at        -0.189754
    user  system elapsed 
-  7.831   0.004   1.969 
+  7.895   0.012   1.980 
 > joint_pl$confs # the confidence interval
  2.50 pct. 97.50 pct. 
    -0.2377    -0.1431 
@@ -338,7 +338,7 @@ LogLike: -2519.9564 at        -0.189754
 > # get the observed information matrix instead
 > system.time(joint_obs_mat <- joint_ms_hess(comp_obj, opt_out$par))
    user  system elapsed 
-  0.516   0.004   0.519 
+  0.516   0.000   0.516 
 > joint_obs_mat <- -joint_obs_mat$hessian
 > joint_vcov <- solve(-joint_obs_mat)
 > 
@@ -388,10 +388,10 @@ rstan_options(auto_write = TRUE)
 > 
 > JMbayes_time # estimation time
    user  system elapsed 
-107.479   0.088 107.567 
+112.183   0.087 112.273 
 > JMbayes_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  159.4 
+  162.5 
 > 
 > # compare estimates
 > summary(JMbayes_fit)
@@ -440,7 +440,7 @@ iterations: 20000
 adapt: 3000 
 burn-in: 3000 
 thinning: 10 
-time: 1.7 min
+time: 1.8 min
 > 
 > association
 [1] -0.2
@@ -553,10 +553,10 @@ The following objects are masked from ‘package:JMbayes’:
 > 
 > JM_time # the estimation time
    user  system elapsed 
-103.325   2.336 105.662 
+103.135   2.072 105.205 
 > JM_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  156.5 
+  152.3 
 > 
 > # the estimates
 > summary(JM_fit)
@@ -640,10 +640,10 @@ EM algorithm has converged!
 > 
 > joineRML_time # the estimation time
    user  system elapsed 
- 27.615   0.204  27.820 
+ 29.145   0.139  29.284 
 > joineRML_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  41.21 
+  42.38 
 > 
 > # look at the estimates
 > summary(joineRML_fit)
@@ -703,8 +703,8 @@ X1       0.0332      NA      NA      NA
 gamma_1 -0.1860      NA      NA      NA
 
 Algorithm Summary:
-    Total computational time: 27.8 secs 
-    EM algorithm computational time: 26.6 secs 
+    Total computational time: 29.3 secs 
+    EM algorithm computational time: 28.1 secs 
     Convergence status: converged
     Convergence criterion: sas 
     Final Monte Carlo sample size: 426 
@@ -914,10 +914,10 @@ VAJointSurv       0.05202 0.05278 0.05379    0.005369 0.1042 0.06462 0.02419
 +       VAJointSurv = VA_time,
 +       joineRML = joineRML_time)[, 1:3]
             user.self sys.self elapsed
-JMbayes       107.479    0.088 107.567
-JM            103.325    2.336 105.662
-VAJointSurv     2.181    0.015   0.675
-joineRML       27.615    0.204  27.820
+JMbayes       112.183    0.087 112.273
+JM            103.135    2.072 105.205
+VAJointSurv     2.257    0.003   0.691
+joineRML       29.145    0.139  29.284
 > 
 > sessionInfo()
 R version 4.1.2 (2021-11-01)
@@ -979,4 +979,4 @@ loaded via a namespace (and not attached):
 > 
 > proc.time()
    user  system elapsed 
-251.990   2.751 247.266 
+258.212   2.443 253.176 
