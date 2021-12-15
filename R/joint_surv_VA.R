@@ -258,12 +258,36 @@ joint_ms_start_val <- function(
   }
 
   # optimizes the VA parameters
-  do_opt_priv <- function(x)
-    opt_priv(
+  do_opt_priv <- function(x){
+    res <- opt_priv(
       val = x, ptr = object$ptr, rel_eps = rel_eps,
       max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
       quad_rule = quad_rule, cache_expansions = cache_expansions,
       gr_tol = gr_tol)
+
+    # this may lead to semi-definite covariance matrices. We ad-hock adjust
+    # these which may help
+    va_dim <- object$indices$va_dim
+    n_va_params <- object$indices$n_va_params
+    va_params_start <- object$indices$va_params_start
+    n_ids <- (length(x) - va_params_start + 1L) / n_va_params
+
+    new_va_par <- tapply(
+      res[-(1:(va_params_start - 1L))],
+      rep(1:n_ids, each = n_va_params), \(va_pars){
+        va_cov <- .log_chol_inv(va_pars[-(1:va_dim)])
+        eg <- eigen(va_cov)
+        threshold <- 1e6
+        if(max(eg$values) < threshold * min(eg$values))
+          return(va_pars)
+
+        eg$values <- pmax(eg$values, max(eg$values) / threshold)
+        va_cov <- tcrossprod(eg$vectors %*% diag(eg$values), eg$vectors)
+        return(c(va_pars[1:va_dim], .log_chol(va_cov)))
+      })
+
+    c(res[1:(va_params_start - 1L)], unlist(new_va_par))
+  }
 
   # optimizes the marker parameters
   opt_marker_par <- function(x){
