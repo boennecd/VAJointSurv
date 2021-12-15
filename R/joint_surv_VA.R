@@ -274,7 +274,7 @@ joint_ms_start_val <- function(
 
     new_va_par <- tapply(
       res[-(1:(va_params_start - 1L))],
-      rep(1:n_ids, each = n_va_params), \(va_pars){
+      rep(1:n_ids, each = n_va_params), function(va_pars){
         va_cov <- .log_chol_inv(va_pars[-(1:va_dim)])
         eg <- eigen(va_cov)
         threshold <- 1e6
