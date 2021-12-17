@@ -300,7 +300,8 @@ joint_ms_start_val <- function(
                            cache_expansions = cache_expansions,
                            only_markers = TRUE, gr_tol = gr_tol)
 
-    res$par <- do_opt_priv(res$par)
+    if(NCOL(vcov_surv))
+      res$par <- do_opt_priv(res$par)
 
     structure(
       res$par,

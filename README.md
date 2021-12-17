@@ -419,7 +419,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.870   0.004   0.874
+#>   0.872   0.000   0.872
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -435,16 +435,16 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.016   0.000   0.017
+#>   0.014   0.000   0.015
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.822   0.008   1.536
+#>   2.067   0.011   0.925
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
-#> [1] -9161.7795
+#> [1] -9161.7803
 
 # check that the gradient is correct
 f <- function(x){
@@ -454,22 +454,22 @@ f <- function(x){
 
 all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)), 
           head(joint_ms_lb_gr(comp_obj, start_val), 12 + 2 * 9))
-#> [1] "Mean relative difference: 1.468e-05"
+#> [1] "Mean relative difference: 6.563e-06"
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   0.023   0.000   0.009
+#>   0.889   0.000   0.223
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
-#> [1] 1.329
+#> [1] 0.665
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
-#> [1] -9161.7794
+#> [1] -9161.7763
 print(logLik(fit), digits = 8) # maximum likelihood from lme4
 #> 'log Lik.' -9161.7723 (df=12)
 
@@ -480,7 +480,7 @@ rbind(lme4 = fixef(fit),
       Actual = c(fixef_marker, fixef_vary_marker))
 #>              (Intercept)    X1 g_func(time)1 g_func(time)2 g_func(time)3
 #> lme4             -0.5206 1.007         1.372        -1.104        -2.089
-#> This package     -0.5207 1.007         1.372        -1.104        -2.089
+#> This package     -0.5206 1.007         1.372        -1.104        -2.089
 #> Actual           -0.5000 1.000         1.400        -1.200        -2.100
 
 # then the random effect covariance matrix
@@ -493,9 +493,9 @@ vcov_est # lme4
 #> m_func(time)3      -0.04534      -0.26821       0.29652
 fmt_ests$vcov$vcov_vary # this package
 #>          [,1]     [,2]     [,3]
-#> [1,]  0.16701  0.09526 -0.04658
-#> [2,]  0.09526  0.29553 -0.26763
-#> [3,] -0.04658 -0.26763  0.29554
+#> [1,]  0.16578  0.09519 -0.04554
+#> [2,]  0.09519  0.29598 -0.26831
+#> [3,] -0.04554 -0.26831  0.29718
 vcov_vary # the actual values
 #>       [,1]  [,2]  [,3]
 #> [1,]  0.18  0.05 -0.05
@@ -507,7 +507,7 @@ c(lme4 = attr(VarCorr(fit), "sc")^2,
   `This package` = fmt_ests$vcov$vcov_marker, 
   Actual = vcov_marker)
 #>         lme4 This package       Actual 
-#>       0.3667       0.3665       0.3600
+#>       0.3667       0.3664       0.3600
 ```
 
 #### Note on Basis Expansions
@@ -910,7 +910,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.527   0.000   0.888
+#>   1.996   0.003   0.596
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -924,26 +924,26 @@ f <- function(x){
 
 all.equal(numDeriv::grad(f, head(start_val, 22 + 2 * 14)), 
           head(joint_ms_lb_gr(comp_obj, start_val), 22 + 2 * 14))
-#> [1] "Mean relative difference: 4.38e-05"
+#> [1] "Mean relative difference: 5.618e-05"
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>   0.355   0.000   0.089
+#>   0.314   0.000   0.080
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
-#> [1] 0.09959
+#> [1] 0.09769
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
 #> [1] -5729.7904
 opt_out$counts
 #> function gradient     n_cg 
-#>       40       30       53
+#>       42       30       41
 
 # find the maximum lower bound with lbfgs
 library(lbfgsb3c)
@@ -952,13 +952,13 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#>  32.840   0.008   8.272
+#>  43.931   0.008  11.041
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 0
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
 #> [1] -5729.7903
 lbfgs_res$counts # may have hit maxit!
-#> [1] 3828 3828
+#> [1] 5064 5064
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
@@ -967,20 +967,16 @@ fmt_ests_lbfgs <- joint_ms_format(comp_obj, lbfgs_res$par)
 # the parameters for the first marker
 fmt_ests$markers[[1]] 
 #> $fixef
-#>                 
-#> -0.4967  1.0249 
+#> [1] -0.4967  1.0249
 #> 
 #> $fixef_vary
-#>                      
-#>  1.544 -1.237 -2.114
+#> [1]  1.544 -1.237 -2.114
 fmt_ests_lbfgs$markers[[1]] # with lbfgs
 #> $fixef
-#>                 
-#> -0.4966  1.0249 
+#> [1] -0.4966  1.0249
 #> 
 #> $fixef_vary
-#>                      
-#>  1.544 -1.238 -2.114
+#> [1]  1.544 -1.238 -2.114
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  1.0
@@ -990,20 +986,16 @@ fixef_vary_marker[[1]] # true values
 # the parameters for the second marker
 fmt_ests$markers[[2]]
 #> $fixef
-#>        
-#> 0.2552 
+#> [1] 0.2552
 #> 
 #> $fixef_vary
-#>               
-#> 0.5381 0.6592
+#> [1] 0.5381 0.6592
 fmt_ests_lbfgs$markers[[2]] # with lbfgs
 #> $fixef
-#>        
-#> 0.2552 
+#> [1] 0.2552
 #> 
 #> $fixef_vary
-#>               
-#> 0.5382 0.6591
+#> [1] 0.5382 0.6591
 fixef_marker[[2]] # true values
 #> [1] 0.25
 fixef_vary_marker[[2]] # true values
@@ -1011,17 +1003,17 @@ fixef_vary_marker[[2]] # true values
 
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
-#>           [,1]     [,2]      [,3]     [,4]
-#> [1,]  0.415506  0.02347 -0.006164 0.000456
-#> [2,]  0.023466  0.19181 -0.087439 0.016713
-#> [3,] -0.006164 -0.08744  0.331599 0.068897
-#> [4,]  0.000456  0.01671  0.068897 0.094811
+#>            [,1]     [,2]      [,3]      [,4]
+#> [1,]  0.4155040  0.02347 -0.006174 0.0004588
+#> [2,]  0.0234666  0.19181 -0.087433 0.0167084
+#> [3,] -0.0061743 -0.08743  0.331594 0.0688998
+#> [4,]  0.0004588  0.01671  0.068900 0.0948096
 fmt_ests_lbfgs$vcov$vcov_vary # with lbfgs
-#>           [,1]     [,2]      [,3]     [,4]
-#> [1,]  0.415551  0.02345 -0.006134 0.000416
-#> [2,]  0.023451  0.19154 -0.087514 0.016750
-#> [3,] -0.006134 -0.08751  0.331640 0.068857
-#> [4,]  0.000416  0.01675  0.068857 0.094867
+#>            [,1]     [,2]      [,3]      [,4]
+#> [1,]  0.4155512  0.02345 -0.006135 0.0004166
+#> [2,]  0.0234543  0.19150 -0.087508 0.0167449
+#> [3,] -0.0061348 -0.08751  0.331640 0.0688572
+#> [4,]  0.0004166  0.01674  0.068857 0.0948669
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.02 -0.05  0.01
@@ -1193,7 +1185,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.262   0.000   0.177
+#>   0.243   0.000   0.160
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1215,7 +1207,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 3L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   0.797   0.000   0.199
+#>   0.857   0.000   0.218
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -1618,7 +1610,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>   4.277   0.004   1.338
+#>   3.813   0.000   1.212
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1639,7 +1631,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>  15.259   0.000   3.817
+#>  15.714   0.003   3.933
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -1660,7 +1652,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>  66.547   0.008  16.640
+#>   66.50    0.02   16.63
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1762,7 +1754,7 @@ and the full Hessian of all the parameters. This is illustrated below.
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>   7.867   0.024   7.892
+#>   7.895   0.028   7.924
 dim(hess$hessian_all) # the full matrix!
 #> [1] 20029 20029
 
@@ -1958,7 +1950,7 @@ system.time(
 #> LogLike: -7258.8526 at        -1.067687. Lb, target, ub: -7259.3106, -7258.9425, -7258.8526
 #> LogLike: -7257.0218 at        -0.730273
 #>    user  system elapsed 
-#>  84.458   0.048  21.135
+#>  88.322   0.024  22.090
 ```
 
 ``` r
@@ -2014,7 +2006,7 @@ system.time(
 #> LogLike: -7259.0339 at        -1.085155. Lb, target, ub: -7259.0339, -7258.9425, -7258.9185
 #> LogLike: -7257.0218 at        -0.730273
 #>    user  system elapsed 
-#>  77.719   1.088  28.901
+#>  73.706   1.144  27.662
 ```
 
 ``` r
@@ -2107,11 +2099,11 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.782   0.000   0.951
+#>   2.579   0.000   0.742
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
-#> [1] -7423.5686
+#> [1] -7423.5688
 
 # check that the gradient is correct
 f <- function(x){
@@ -2121,26 +2113,26 @@ f <- function(x){
 
 all.equal(numDeriv::grad(f, head(start_val, 28 + 2 * 14)), 
           head(joint_ms_lb_gr(comp_obj, start_val), 28 + 2 * 14))
-#> [1] "Mean relative difference: 8.433e-08"
+#> [1] "Mean relative difference: 6.211e-08"
 
 # find the maximum lower bound estimate
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     rel_eps = 1e-10))
 #>    user  system elapsed 
-#>   9.046   0.012   2.268
+#>   9.974   0.000   2.497
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
-#> [1] 0.03003
+#> [1] 0.02052
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
 print(-opt_out$value, digits = 8) # maximum lower bound value
 #> [1] -7093.4009
 opt_out$counts
 #> function gradient     n_cg 
-#>      360      273      689
+#>      404      302      675
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
@@ -2148,12 +2140,10 @@ fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
 # the parameters for the first marker
 fmt_ests$markers[[1]] 
 #> $fixef
-#>                 
-#> -0.5361  1.0058 
+#> [1] -0.5361  1.0058
 #> 
 #> $fixef_vary
-#>                      
-#>  1.439 -1.134 -2.067
+#> [1]  1.439 -1.134 -2.067
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  1.0
@@ -2163,12 +2153,10 @@ fixef_vary_marker[[1]] # true values
 # the parameters for the second marker
 fmt_ests$markers[[2]]
 #> $fixef
-#>        
-#> 0.2043 
+#> [1] 0.2043
 #> 
 #> $fixef_vary
-#>               
-#> 0.6436 0.6173
+#> [1] 0.6436 0.6173
 fixef_marker[[2]] # true values
 #> [1] 0.25
 fixef_vary_marker[[2]] # true values
@@ -2177,16 +2165,13 @@ fixef_vary_marker[[2]] # true values
 # the fixed effects for the survival outcome and the association parameters
 fmt_ests$survival[[1]]
 #> $fixef
-#>                 
-#> -0.4367  0.2499 
+#> [1] -0.4367  0.2499
 #> 
 #> $fixef_vary
-#>                               
-#>  0.426430 -0.007038  0.010080 
+#> [1]  0.426448 -0.007011  0.010087
 #> 
 #> $associations
-#>                 
-#> -0.8853  0.7342
+#> [1] -0.8853  0.7342
 fixef_surv
 #> [1] -0.50  0.25
 fixef_vary_surv
@@ -2197,10 +2182,10 @@ associations
 # the parameters for covariance matrix of the random effects
 fmt_ests$vcov$vcov_vary
 #>          [,1]     [,2]     [,3]     [,4]
-#> [1,]  0.30517  0.01911 -0.06209  0.02126
-#> [2,]  0.01911  0.08412 -0.03359 -0.02358
-#> [3,] -0.06209 -0.03359  0.30456  0.08503
-#> [4,]  0.02126 -0.02358  0.08503  0.14096
+#> [1,]  0.30520  0.01911 -0.06209  0.02126
+#> [2,]  0.01911  0.08416 -0.03360 -0.02355
+#> [3,] -0.06209 -0.03360  0.30456  0.08503
+#> [4,]  0.02126 -0.02355  0.08503  0.14097
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.02 -0.05  0.01
@@ -2211,8 +2196,8 @@ vcov_vary # the true values
 # the parameters for the error term covariance matrix
 fmt_ests$vcov$vcov_marker
 #>         [,1]    [,2]
-#> [1,] 0.36069 0.09825
-#> [2,] 0.09825 0.15530
+#> [1,] 0.36068 0.09824
+#> [2,] 0.09824 0.15530
 vcov_marker
 #>      [,1] [,2]
 #> [1,] 0.36 0.10
@@ -2239,41 +2224,38 @@ va_par <- joint_ms_va_par(comp_obj, opt_out$par)
 va_par[c("157", "345", "878")]
 #> $`157`
 #> $`157`$mean
-#>     1571     1572     1573     1574 
-#> -0.47329 -0.03001  0.85788  0.37734 
+#> [1] -0.47333 -0.02992  0.85784  0.37737
 #> 
 #> $`157`$vcov
-#>          [,1]       [,2]      [,3]       [,4]
-#> [1,]  0.19630 -0.0094502 -0.011044  0.0255815
-#> [2,] -0.00945  0.0673667  0.003982  0.0006086
-#> [3,] -0.01104  0.0039818  0.098733 -0.0459720
-#> [4,]  0.02558  0.0006086 -0.045972  0.0412342
+#>           [,1]       [,2]      [,3]       [,4]
+#> [1,]  0.196325 -0.0094636 -0.011033  0.0255751
+#> [2,] -0.009464  0.0674062  0.003957  0.0006269
+#> [3,] -0.011033  0.0039570  0.098740 -0.0459766
+#> [4,]  0.025575  0.0006269 -0.045977  0.0412375
 #> 
 #> 
 #> $`345`
 #> $`345`$mean
-#>     3451     3452     3453     3454 
-#> -0.03226 -0.11444  0.92849  0.42210 
+#> [1] -0.03226 -0.11443  0.92850  0.42210
 #> 
 #> $`345`$vcov
 #>           [,1]      [,2]      [,3]      [,4]
-#> [1,]  0.184675  0.015109 -0.005131  0.032540
-#> [2,]  0.015109  0.072368 -0.001706  0.001427
-#> [3,] -0.005131 -0.001706  0.038311 -0.029646
-#> [4,]  0.032540  0.001427 -0.029646  0.064865
+#> [1,]  0.184690  0.015114 -0.005131  0.032541
+#> [2,]  0.015114  0.072407 -0.001721  0.001451
+#> [3,] -0.005131 -0.001721  0.038315 -0.029652
+#> [4,]  0.032541  0.001451 -0.029652  0.064874
 #> 
 #> 
 #> $`878`
 #> $`878`$mean
-#>    8781    8782    8783    8784 
-#> 0.23916 0.03409 0.25500 0.14914 
+#> [1] 0.23917 0.03412 0.25500 0.14915
 #> 
 #> $`878`$vcov
 #>           [,1]       [,2]      [,3]       [,4]
-#> [1,]  0.189747  2.004e-02 -0.004533  1.121e-02
-#> [2,]  0.020041  7.354e-02 -0.004638 -6.396e-05
-#> [3,] -0.004533 -4.638e-03  0.055987 -2.593e-02
-#> [4,]  0.011207 -6.396e-05 -0.025931  4.041e-02
+#> [1,]  0.189760  2.004e-02 -0.004531  1.121e-02
+#> [2,]  0.020041  7.358e-02 -0.004654 -4.778e-05
+#> [3,] -0.004531 -4.654e-03  0.055993 -2.594e-02
+#> [4,]  0.011205 -4.778e-05 -0.025936  4.042e-02
 
 # they can be used to approximate marginal measures such as the mean curve for 
 # the individual along with 95% pointwise confidence intervals as shown below 
@@ -2661,7 +2643,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  25.514   0.012   6.644
+#>  28.843   0.012   7.487
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2683,7 +2665,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#> 364.546   0.116  91.170
+#>  374.80    0.10   93.73
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -2840,14 +2822,14 @@ w_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression            median
 #>   <bch:expr>          <bch:tm>
-#> 1 w/ caching 1 thread   7.43ms
-#> 2 w/ caching 2 thread   3.89ms
-#> 3 w/ caching 3 thread   2.67ms
-#> 4 w/ caching 4 thread   2.08ms
+#> 1 w/ caching 1 thread   6.97ms
+#> 2 w/ caching 2 thread   3.77ms
+#> 3 w/ caching 3 thread   2.59ms
+#> 4 w/ caching 4 thread   2.33ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#> [1] 280ms
+#> [1] 335ms
 
 # w/o caching
 wo_caching <- bench::mark(
@@ -2863,14 +2845,14 @@ wo_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression             median
 #>   <bch:expr>           <bch:tm>
-#> 1 w/o caching 1 thread  20.42ms
-#> 2 w/o caching 2 thread  10.79ms
-#> 3 w/o caching 3 thread   7.16ms
-#> 4 w/o caching 4 thread   5.65ms
+#> 1 w/o caching 1 thread  19.14ms
+#> 2 w/o caching 2 thread   10.1ms
+#> 3 w/o caching 3 thread   7.01ms
+#> 4 w/o caching 4 thread   5.51ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#> [1] 277ms
+#> [1] 288ms
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
@@ -3204,7 +3186,7 @@ system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
 #> Model failed to converge with max|grad| = 0.00249365 (tol = 0.002, component 1)
 #>    user  system elapsed 
-#>  19.035   0.008   5.035
+#>  18.759   0.012   4.962
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -3226,7 +3208,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#> 196.122   0.028  49.041
+#> 200.637   0.052  50.177
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
