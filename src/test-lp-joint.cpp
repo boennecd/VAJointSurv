@@ -183,4 +183,31 @@ context("testing lp_joint functions") {
     for(vajoint_uint i = 0; i < k * k; ++i)
       expect_true(pass_rel_err(res[i], M[i]));
   }
+
+  test_that("copy_block_upper_tri works as expected"){
+    /*
+     n <- 3L
+     k <- 4L
+     set.seed(1)
+     A <- round(drop(rWishart(1, n, diag(n))), 2)
+     B <- round(drop(rWishart(1, k, diag(k))), 2)
+     truth <- matrix(0, n + k, n + k)
+     truth[1:n, 1:n] <- A
+     truth[1:k + n, 1:k + n] <- B
+     dput(A[upper.tri(A, TRUE)])
+     dput(B[upper.tri(B, TRUE)])
+     dput(truth[upper.tri(truth, TRUE)])
+     */
+
+    constexpr size_t na{3}, nb{4}, n_all{na + nb},
+                dim_res{(n_all * (n_all + 1)) / 2};
+    constexpr double A[]{0.94, 1.24, 5.38, -0.9, -1.75, 0.96},
+                     B[]{2.99, -1.38, 2.07, -3.83, 3.12, 6.21, 1.63, 0.23, -1.05, 2.6},
+                 truth[]{0.94, 1.24, 5.38, -0.9, -1.75, 0.96, 0, 0, 0, 2.99, 0, 0, 0, -1.38, 2.07, 0, 0, 0, -3.83, 3.12, 6.21, 0, 0, 0, 1.63, 0.23, -1.05, 2.6};
+
+    double res[dim_res];
+    lp_joint::copy_block_upper_tri(res, A, B, na, nb);
+    for(size_t i = 0; i < dim_res; ++i)
+      expect_true(res[i] == truth[i]);
+  }
 }

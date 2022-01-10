@@ -72,15 +72,84 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
     x
   })
 
-  ptr <- .joint_ms_ptr(markers, survival_terms, max_threads = max_threads)
+  # we need to to alter the start times and add new observations for the delayed
+  # entries. First we extract the new entries
+  survival_terms_org <- survival_terms
+  survival_terms <- lapply(survival_terms, function(x){
+    idx_delayed <- which(x$delayed)
+
+    if(length(idx_delayed) > 0){
+      y_delayed <- cbind(0, x$y[idx_delayed, "start"], 0)
+      x$y[idx_delayed, "start"] <- 0
+    }
+    else
+      y_delayed <- matrix(0, 0L, 3L)
+
+    id_delayed <- x$id[idx_delayed]
+    Z_delayed <- x$Z[, idx_delayed, drop = FALSE]
+
+    x$delayed_data <- list(y = y_delayed, id = id_delayed, Z = Z_delayed)
+    x
+  })
+
+  # extract all the ids and the ids which needs a new id for their corresponding
+  # term with the delayed entries
+  ids <- c(lapply(markers, `[[`, "id"),
+               lapply(survival_terms, `[[`, "id"))
+  ids <- sort(unique(unlist(ids)))
+
+  ids_w_delayed_entries <- lapply(
+    survival_terms, function(x) x$delayed_data$id)
+  ids_w_delayed_entries <- sort(unique(unlist(ids_w_delayed_entries)))
+
+  # generate the new ids
+  new_ids_delayed <- ids_w_delayed_entries
+  while(any(has_match <- new_ids_delayed %in% ids))
+    new_ids_delayed <- sample.int(.Machine$integer.max, sum(has_match))
+  new_ids_delayed <- sort(new_ids_delayed)
+  if(is.null(new_ids_delayed))
+    # happens if there are no survival terms
+    new_ids_delayed <- integer()
+
+  # we have to alter the ids in the delayed data in survival_terms and combine
+  # the result
+  survival_terms <- lapply(survival_terms, function(x){
+    delayed_data <- x$delayed_data
+    x$delayed_data <- NULL
+
+    if(length(delayed_data$id) < 1)
+      return(x)
+
+    delayed_data$id <-
+      new_ids_delayed[match(delayed_data$id, ids_w_delayed_entries)]
+    stopifnot(all(is.finite(delayed_data$id)))
+
+    # combine the data
+    x$Z <- cbind(x$Z, delayed_data$Z)
+    x$y <- rbind(x$y, delayed_data$y)
+    x$id <- c(x$id, delayed_data$id)
+
+    # reorder the data
+    ord <- order(x$id)
+    x$Z <- x$Z[, ord]
+    x$y <- x$y[ord, ]
+    x$id <- x$id[ord]
+
+    x
+  })
+
+  # create the C++ object
+  ptr <- .joint_ms_ptr(
+    markers, survival_terms, max_threads = max_threads,
+    ids_delayed = new_ids_delayed)
   param_names <- joint_ms_parameter_names(ptr)
   out <- list(param_names = param_names, ptr = ptr)
   indices <- joint_ms_parameter_indices(ptr)
 
   # create a vector with the unique ids
-  ids <- c(lapply(markers, `[[`, "id"),
+  ids_all <- c(lapply(markers, `[[`, "id"),
            lapply(survival_terms, `[[`, "id"))
-  ids <- sort(unique(unlist(ids)))
+  ids_all <- sort(unique(unlist(ids_all)))
 
   # compute starting values. Start with the markers
   start_val <- numeric(joint_ms_n_params(ptr))
@@ -98,8 +167,10 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   # compute the starting values for the survival outcomes. Set the covariance
   # matrix for the frailties to some low value
   def_frailty_var <- 1e-2
-  s_start_val <- lapply(survival_terms, surv_term_start_value,
-                        quad_rule = quad_rule, va_var = def_frailty_var)
+  s_start_val <- lapply(
+    # important that we pass the original survival_terms here
+    survival_terms_org, surv_term_start_value,
+    quad_rule = quad_rule, va_var = def_frailty_var)
   for(i in seq_along(survival_terms)){
     start_val[indices$survival[[i]]$fixef] <- s_start_val[[i]]$fixef
     start_val[indices$survival[[i]]$fixef_vary] <- s_start_val[[i]]$fixef_vary
@@ -110,7 +181,8 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
          start_val = start_val, max_threads = max_threads,
          quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr),
          cache_expansions = cache_expansions, ids = ids,
-         markers = markers, survival_terms = survival_terms),
+         ids_all = ids_all, markers = markers, survival_terms = survival_terms,
+         survival_terms_org = survival_terms_org),
     class = "joint_ms")
 
   # set the remaining covariance parameters

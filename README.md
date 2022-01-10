@@ -23,6 +23,13 @@ The package can be installed from Github by calling:
 remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
 ```
 
+The package currently requires the development version of psqn. You can
+install the development version by calling:
+
+``` r
+remotes::install_github("boennecd/psqn", build_vignettes = TRUE)
+```
+
 ## The Model
 
 We will start by covering the model, then cover some examples, and end
@@ -144,7 +151,7 @@ The
 ![\\vec\\alpha](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha "\vec\alpha")s
 are association parameters which makes the markers and the survival
 outcomes marginally dependent. The
-![\\vec\\xi\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%5Cxi_i "\vec\xi_i")s
+![\\exp\\xi\_{ih}](https://render.githubusercontent.com/render/math?math=%5Cexp%5Cxi_%7Bih%7D "\exp\xi_{ih}")s
 are frailty effects which makes the survival outcomes marginally
 dependent even if
 ![\\vec\\alpha = \\vec 0](https://render.githubusercontent.com/render/math?math=%5Cvec%5Calpha%20%3D%20%5Cvec%200 "\vec\alpha = \vec 0").
@@ -284,6 +291,10 @@ this section. The examples includes:
     Examples and comments regarding caching of the expansions are also
     provided.
 -   A similar example is provided in the [Two Markers, the Observation
+    Time Process, and a Terminal Event with Delayed
+    Entry](#two-markers-the-observation-time-process-and-a-terminal-event-with-delayed-entry)
+    section but where there is delayed entry.
+-   A similar example is provided in the [Two Markers, the Observation
     Time Process, a Terminal Event and Mixed
     Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
     section but where a mixture of the cumulative, the present value,
@@ -419,7 +430,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #>    user  system elapsed 
-#>   0.872   0.000   0.872
+#>   0.844   0.016   0.876
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -435,12 +446,12 @@ system.time(comp_obj <- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #>    user  system elapsed 
-#>   0.014   0.000   0.015
+#>   0.017   0.000   0.017
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.067   0.011   0.925
+#>   2.181   0.016   0.951
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -460,7 +471,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   0.889   0.000   0.223
+#>    0.99    0.00    0.25
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -910,7 +921,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   1.996   0.003   0.596
+#>   2.561   0.000   0.737
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -931,7 +942,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>   0.314   0.000   0.080
+#>   0.338   0.000   0.086
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -952,7 +963,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #>    user  system elapsed 
-#>  43.931   0.008  11.041
+#>  45.225   0.008  11.369
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 0
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1185,7 +1196,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   0.243   0.000   0.160
+#>   0.251   0.000   0.163
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1207,7 +1218,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 3L, cg_tol = .2, c2 = .1))
 #>    user  system elapsed 
-#>   0.857   0.000   0.218
+#>   0.796   0.000   0.202
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -1610,7 +1621,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>   3.813   0.000   1.212
+#>   3.997   0.004   1.269
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -1631,7 +1642,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>  15.714   0.003   3.933
+#>  15.555   0.008   3.895
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -1652,7 +1663,7 @@ system.time(lbfgs_res <- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #>    user  system elapsed 
-#>   66.50    0.02   16.63
+#>  66.440   0.016  16.618
 lbfgs_res$convergence # convergence code (0 == 'OK')
 #> [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1754,7 +1765,7 @@ and the full Hessian of all the parameters. This is illustrated below.
 # compute the Hessian
 system.time(hess <- joint_ms_hess(comp_obj, par = opt_out$par))
 #>    user  system elapsed 
-#>   7.895   0.028   7.924
+#>   7.461   0.028   7.488
 dim(hess$hessian_all) # the full matrix!
 #> [1] 20029 20029
 
@@ -1950,7 +1961,7 @@ system.time(
 #> LogLike: -7258.8526 at        -1.067687. Lb, target, ub: -7259.3106, -7258.9425, -7258.8526
 #> LogLike: -7257.0218 at        -0.730273
 #>    user  system elapsed 
-#>  88.322   0.024  22.090
+#>  92.270   0.036  23.081
 ```
 
 ``` r
@@ -2006,7 +2017,7 @@ system.time(
 #> LogLike: -7259.0339 at        -1.085155. Lb, target, ub: -7259.0339, -7258.9425, -7258.9185
 #> LogLike: -7257.0218 at        -0.730273
 #>    user  system elapsed 
-#>  73.706   1.144  27.662
+#>  73.319   1.084  27.477
 ```
 
 ``` r
@@ -2099,7 +2110,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj))
 #>    user  system elapsed 
-#>   2.579   0.000   0.742
+#>   2.610   0.004   0.753
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2120,7 +2131,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     rel_eps = 1e-10))
 #>    user  system elapsed 
-#>   9.974   0.000   2.497
+#>  10.511   0.008   2.632
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -2217,7 +2228,7 @@ is an approximation of the conditional distribution of the random
 effects given the observed data.
 
 ``` r
-# get the varational parameters
+# get the variational parameters
 va_par <- joint_ms_va_par(comp_obj, opt_out$par)
 
 # it is a list with the estimated variational parameters for each individual
@@ -2583,9 +2594,9 @@ dat <- sim_dat(1000L)
 # we show a few properties of the data below
 mean(dat$terminal_outcome$event) # mean event rate
 #> [1] 0.782
-sum(dat$obs_process$event) # number of observed marker less the individuals
+sum(dat$obs_process$event) # number of observed markers less the individuals
 #> [1] 2421
-NROW(dat$marker_data) # number of observed marker
+NROW(dat$marker_data) # number of observed markers less the individuals
 #> [1] 3421
 
 # distribution of observed marker per individual
@@ -2643,7 +2654,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  28.843   0.012   7.487
+#>  28.728   0.016   7.460
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2665,7 +2676,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>  374.80    0.10   93.73
+#> 390.573   0.212  97.716
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -2822,14 +2833,14 @@ w_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression            median
 #>   <bch:expr>          <bch:tm>
-#> 1 w/ caching 1 thread   6.97ms
-#> 2 w/ caching 2 thread   3.77ms
-#> 3 w/ caching 3 thread   2.59ms
-#> 4 w/ caching 4 thread   2.33ms
+#> 1 w/ caching 1 thread   7.34ms
+#> 2 w/ caching 2 thread   3.96ms
+#> 3 w/ caching 3 thread   2.73ms
+#> 4 w/ caching 4 thread   2.18ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#> [1] 335ms
+#> [1] 297ms
 
 # w/o caching
 wo_caching <- bench::mark(
@@ -2845,14 +2856,614 @@ wo_caching[, c("expression", "median")]
 #> # A tibble: 4 × 2
 #>   expression             median
 #>   <bch:expr>           <bch:tm>
-#> 1 w/o caching 1 thread  19.14ms
-#> 2 w/o caching 2 thread   10.1ms
-#> 3 w/o caching 3 thread   7.01ms
-#> 4 w/o caching 4 thread   5.51ms
+#> 1 w/o caching 1 thread  20.95ms
+#> 2 w/o caching 2 thread  11.16ms
+#> 3 w/o caching 3 thread   7.88ms
+#> 4 w/o caching 4 thread   5.96ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#> [1] 288ms
+#> [1] 284ms
+```
+
+### Two Markers, the Observation Time Process, and a Terminal Event with Delayed Entry
+
+We alter the previous example in this section by adding delayed entries.
+In this case, the likelihood has to be altered to account for the
+delayed entry as described by Crowther et al. (2016) and Berg and
+Drepper (2016).
+
+To show the likelihood we use, assume that there is only one type of
+survival outcome,
+![H = 1](https://render.githubusercontent.com/render/math?math=H%20%3D%201 "H = 1").
+The log marginal likelihood of individual
+![i](https://render.githubusercontent.com/render/math?math=i "i") where
+we do not properly account for the delayed entry is
+
+![
+\\log E\\left(
+  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
+  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right)
+](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%0A "
+\log E\left(
+  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
+  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)
+")
+
+where
+![\\vec y\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%20y_i "\vec y_i")
+is observed markers of individual
+![i](https://render.githubusercontent.com/render/math?math=i "i"),
+![f\_i](https://render.githubusercontent.com/render/math?math=f_i "f_i")
+is the conditional density for the markers of individual
+![i](https://render.githubusercontent.com/render/math?math=i "i") given
+the random effects
+![\\vec U\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%20U_i "\vec U_i"),
+![t\_{i1}](https://render.githubusercontent.com/render/math?math=t_%7Bi1%7D "t_{i1}")
+is the observed time,
+![d\_{i1}](https://render.githubusercontent.com/render/math?math=d_%7Bi1%7D "d_{i1}")
+is an event indicator,
+![h\_{i1}](https://render.githubusercontent.com/render/math?math=h_%7Bi1%7D "h_{i1}")
+is the conditional hazard,
+![S\_{i1}](https://render.githubusercontent.com/render/math?math=S_%7Bi1%7D "S_{i1}")
+is the conditional survival function, and
+![v\_{i1}\\in \[0,\\infty)](https://render.githubusercontent.com/render/math?math=v_%7Bi1%7D%5Cin%20%5B0%2C%5Cinfty%29 "v_{i1}\in [0,\infty)")
+is the left-truncation time. We approximate the log marginal likelihood
+term with a lower bound given by
+
+![
+\\log E\\left(
+  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
+  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right) \\geq
+  E\_{Q\_{i1}}\\left(\\log\\left(
+  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
+  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)v(\\vec U\_i)}
+  {S\_{i1}(v\_{i1}\\mid \\vec U\_i)q\_{\\vec\\theta\_{i1}}(\\vec U\_i)}
+  \\right)\\right)
+](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%20%5Cgeq%0A%20%20E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29v%28%5Cvec%20U_i%29%7D%0A%20%20%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%0A%20%20%5Cright%29%5Cright%29%0A "
+\log E\left(
+  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
+  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq
+  E_{Q_{i1}}\left(\log\left(
+  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
+  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}
+  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}
+  \right)\right)
+")
+
+where the expectation on the right-hand side is using the density
+![q\_{\\vec\\theta\_{i1}}](https://render.githubusercontent.com/render/math?math=q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D "q_{\vec\theta_{i1}}")
+and ![v](https://render.githubusercontent.com/render/math?math=v "v") is
+the unconditional density of the random effects. Since this is a lower
+bound, we can jointly optimize the lower bound over the
+![\\vec\\theta\_{i1}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi1%7D "\vec\theta_{i1}")s
+and the model parameters.
+
+The correct likelihood with delayed entry is
+
+![
+\\log E\\left(
+  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
+  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\right)
+ - \\log E\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)\\right).
+](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29%0A%20-%20%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29.%0A "
+\log E\left(
+  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
+  S_{i1}(t_{i1}\mid \vec U_i)\right)
+ - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).
+")
+
+Of course, we can replace this with an approximation in the form of
+
+![
+E\_{Q\_{i1}}\\left(\\log\\left(
+  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
+  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\frac{v(\\vec U\_i)}{q\_{\\theta\_{i1}}(\\vec U\_i)}
+  \\right)\\right)
+ - E\_{Q\_{i2}}\\left(\\log\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)
+   \\frac{v(\\vec U\_i)}{q\_{\\theta\_{i2}}(\\vec U\_i)}\\right)\\right).
+](https://render.githubusercontent.com/render/math?math=%0AE_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%0A%20%20%5Cright%29%5Cright%29%0A%20-%20E_%7BQ_%7Bi2%7D%7D%5Cleft%28%5Clog%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%0A%20%20%20%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi2%7D%7D%28%5Cvec%20U_i%29%7D%5Cright%29%5Cright%29.%0A "
+E_{Q_{i1}}\left(\log\left(
+  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
+  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}
+  \right)\right)
+ - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)
+   \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
+")
+
+This has some implications:
+
+1.  We still need to maximize over the
+    ![\\vec\\theta\_{i1}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi1%7D "\vec\theta_{i1}")s
+    and the model parameters. However, we have to minimize over the
+    ![\\vec\\theta\_{i2}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi2%7D "\vec\theta_{i2}")s
+    as they provide an upper bound on the log marginal likelihood. Thus,
+    we have maxmin problem.
+2.  The approximation is no longer guaranteed to be a lower bound on the
+    log marginal likelihood because we are adding a lower bound on one
+    term with an upper bound on the other term.
+3.  The approximation of
+    ![\\log E\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)\\right)](https://render.githubusercontent.com/render/math?math=%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29 "\log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right)")
+    may be poor as we do not have the multivariate normal density from
+    the markers.
+
+Currently, 1. is most likely not handled in the most optimal way. At
+every evaluation, we minimize over the
+![\\vec\\theta\_{i2}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi2%7D "\vec\theta_{i2}")s
+parameters as a function of the other parameters. This is quite slow as
+will be clear in the example below. One can likely solve the maxmin
+problem in a much smarter way. It also yields a problem if the inner
+optimization over the
+![\\vec\\theta\_{i2}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi2%7D "\vec\theta_{i2}")s
+parameters fails. In this case, the upper bound on the log likelihood
+terms are (possibly very) loose possibly giving high likelihood to model
+parameters that are fare from the maximum likelihood estimator.
+
+Delayed entry is handled by the `delayed` argument of `surv_term` as
+illustrated in the example below.
+
+``` r
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat <- function(n_ids){
+  # simulate the outcomes
+  gl_dat <- get_gl_rule(100L)
+  dat <- lapply(1:n_ids, function(id){
+    # sample the delayed entry time
+    delayed_entry <- pmax(runif(1, -1, 5), 0)
+    
+    # sample the censoring time
+    cens <- -Inf
+    while(cens < delayed_entry)
+      cens <- min(rexp(1, rate = 1/10), 10)
+    
+    # sample the terminal event time and the random effects
+    Z1 <- c(1, runif(1, -1, 1))
+    
+    y_terminal <- -Inf 
+    while(y_terminal < delayed_entry){
+      U <- drop(rmvnorm(1, sigma = vcov_vary))
+      frailties <- drop(rmvnorm(1, sigma = vcov_surv))
+      log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
+  
+      # assign the conditional hazard function
+      expansion <- function(x, b_func)
+        cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
+              m_funcs[[2]](x) %*% U[3:4])
+      surv_func <- function(ti, fixef_vary_surv, associations, b_func){
+        formals(expansion)$b_func <- b_func
+        eval_surv_base_fun(
+          ti = ti, omega = c(fixef_vary_surv, associations), b_func = expansion,
+          gl_dat = gl_dat, delta = log_haz_offset)
+      }
+  
+      # sample the survival time
+      rng <- runif(1)
+      root_func <- function(x, rng)
+        rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[1]],
+                        associations = associations[[1]], b_func = b_funcs[[1]])
+  
+      if(root_func(cens, rng) < 0){
+        # the observation is censored
+        y_terminal <- cens
+        event <- 0
+      } else {
+        # find the event time
+        root <- uniroot(root_func, c(0, cens), tol = 1e-6, rng = rng)
+        y_terminal <- root$root
+        event <- 1
+  
+      }
+    }
+
+    terminal_outcome <- cbind(y = y_terminal, event = event, Z1 = Z1[2],
+                              id = id, delayed_entry = delayed_entry)
+
+    # clean up
+    rm(list = setdiff(ls(), c(
+      "y_terminal", "terminal_outcome", "expansion", "surv_func", "frailties", 
+      "U", "id", "delayed_entry")))
+
+    # simulate the observation times
+    Z2 <- 1
+    log_haz_offset <- sum(Z2 * fixef_surv[[2]]) + frailties[2]
+
+    root_func <- function(x, left_trunc_surv, rng)
+      rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[2]],
+                      associations = associations[[2]], b_func = b_funcs[[2]]) /
+      left_trunc_surv
+
+    max_sample <- 1000L
+    left_trunc_surv <- 1
+    Z2 <- matrix(rep(Z2, each = max_sample), max_sample)
+    event <- y <- lf_trunc <- rep(NA_real_, max_sample)
+    lf_trunc_i <- 0
+    for(i in 1:max_sample){
+      # sample a random uniform variable and invert the survival function
+      rng_i <- runif(1)
+      lf_trunc[i] <- lf_trunc_i
+
+      if(root_func(y_terminal, left_trunc_surv, rng_i) < 0){
+        # the observation is right-censored and we can exit
+        y[i] <- y_terminal
+        event[i] <- 0
+        break
+      }
+
+      # we need to invert the survival function to find the observation time
+      root <- uniroot(root_func, c(lf_trunc_i, y_terminal), tol = 1e-6,
+                      left_trunc_surv = left_trunc_surv, rng = rng_i)
+      lf_trunc_i <- y[i] <- root$root
+      event[i] <- 1
+      left_trunc_surv <- surv_func(
+        y[i], fixef_vary_surv = fixef_vary_surv[[2]], associations = associations[[2]],
+        b_func = b_funcs[[2]])
+    }
+
+    colnames(Z2) <- paste0("Z", 1:NCOL(Z2) - 1L)
+    obs_process <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i],
+                         event = event[1:i], Z2[1:i, -1, drop = FALSE],
+                         id = id)
+    
+    # account for the delayed entry 
+    obs_process[, "lf_trunc"] <- pmax(delayed_entry, obs_process[, "lf_trunc"])
+    obs_process <- obs_process[
+      obs_process[, "y"] > delayed_entry, , drop = FALSE]
+
+    # clean up
+    rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
+                              "obs_process", "delayed_entry")))
+
+    # sample the number of outcomes and the fixed effect covariates
+    obs_time <- c(delayed_entry, obs_process[obs_process[, "event"] == 1, "y"])
+    
+    n_obs <- length(obs_time)
+    X1 <- cbind(1, rnorm(n_obs))
+    X2 <- matrix(1, n_obs)
+    colnames(X1) <- paste0("X1_", 1:NCOL(X1) - 1L)
+    colnames(X2) <- paste0("X2_", 1:NCOL(X2) - 1L)
+    X <- list(X1, X2)
+
+    # sample the outcomes
+    eta <- sapply(1:2, function(i)
+      X[[i]] %*% fixef_marker[[i]] +
+        drop(g_funcs[[i]](obs_time)) %*% fixef_vary_marker[[i]] +
+        drop(m_funcs[[i]](obs_time)) %*% U[1:2 + (i == 2) * 2])
+
+    ys <- eta + rmvnorm(n_obs, sigma = vcov_marker)
+    colnames(ys) <- paste0("Y", 1:2)
+
+    # mask some observations
+    do_mask <- sample.int(3L, n_obs, replace = TRUE)
+    ys[do_mask == 2, 1] <- NA
+    ys[do_mask == 3, 2] <- NA
+
+    X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
+    marker_data <- cbind(ys, X, time = obs_time, id = id)
+
+    return(list(marker_data = marker_data, obs_process = obs_process,
+                terminal_outcome = terminal_outcome))
+  })
+
+  # combine the data and return
+  marker_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "marker_data")))
+  marker_data$id <- as.integer(marker_data$id)
+  # the order does not matter
+  marker_data <- marker_data[sample.int(NROW(marker_data)), ]
+
+  obs_process <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "obs_process")))
+  obs_process$id <- as.integer(obs_process$id)
+  # the order does not matter
+  obs_process <- obs_process[sample.int(NROW(obs_process)), ]
+
+  terminal_outcome <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "terminal_outcome")))
+  terminal_outcome$id <- as.integer(terminal_outcome$id)
+  # the order does not matter
+  terminal_outcome <- terminal_outcome[sample.int(NROW(terminal_outcome)), ]
+
+  list(marker_data = marker_data, obs_process = obs_process,
+       terminal_outcome = terminal_outcome)
+}
+
+# sample a moderate sized data set
+set.seed(2)
+dat <- sim_dat(1000L)
+
+# we show a few properties of the data below
+mean(dat$terminal_outcome$event) # mean event rate
+#> [1] 0.662
+sum(dat$obs_process$event) # number of observed markers less the individuals
+#> [1] 2729
+NROW(dat$marker_data) # number of observed markers less the individuals
+#> [1] 3729
+# fraction of individuals with a delayed entry time
+mean(dat$terminal_outcome$delayed_entry > 0) 
+#> [1] 0.845
+ 
+# distribution of observed marker per individual
+proportions(table(table(dat$obs_process$id)))
+#> 
+#>     1     2     3     4     5     6     7     8     9    10    11    12    13 
+#> 0.343 0.186 0.140 0.085 0.047 0.040 0.046 0.021 0.016 0.016 0.010 0.011 0.006 
+#>    14    15    16    17    18    19    20    21    22    23    24    25    27 
+#> 0.004 0.005 0.004 0.003 0.001 0.001 0.003 0.001 0.003 0.001 0.001 0.001 0.001 
+#>    30    33    43 
+#> 0.002 0.001 0.001
+
+# show data for one individual
+subset(dat$marker_data, id == 1)
+#>          Y1    Y2    X1_1   time id
+#> X        NA 2.029  0.4177 0.1093  1
+#> X.2 -2.0826 2.277 -0.3927 0.8605  1
+#> X.1 -0.9811    NA  0.9818 0.5344  1
+subset(dat$obs_process, id == 1)
+#>   lf_trunc      y event id
+#> 2   0.5344 0.8605     1  1
+#> 1   0.1093 0.5344     1  1
+#> 3   0.8605 1.1949     0  1
+subset(dat$terminal_outcome, id == 1)
+#>       y event     Z1 id delayed_entry
+#> 1 1.195     1 0.1467  1        0.1093
+
+# estimate the model with this package. Get the object we need for the
+# optimization while NOT account and accounting for the delayed entry
+marker_1 <- marker_term(
+  Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
+  time_fixef = ns_term(time, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
+  time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 10),
+                     intercept = TRUE))
+marker_2 <- marker_term(
+  Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
+  time_fixef = poly_term(time, degree = 2, raw = TRUE),
+  time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+
+# the wrong way 
+library(survival)
+surv_terminal_wrong <- surv_term(
+  Surv(delayed_entry, y, event) ~ Z1, id = id, dat$terminal_outcome,
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
+
+# the right way 
+surv_terminal <- surv_term(
+  Surv(delayed_entry, y, event) ~ Z1, id = id, dat$terminal_outcome,
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE, 
+  # some have delayed entry
+  delayed = delayed_entry > 0)
+
+surv_obs <- surv_term(
+  Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
+  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
+
+# the wrong way 
+comp_obj_wrong <- joint_ms_ptr(
+  markers = list(marker_1, marker_2),
+  survival_terms = list(surv_terminal_wrong, surv_obs),
+  max_threads = 4L)
+
+# the right way
+comp_obj <- joint_ms_ptr(
+  markers = list(marker_1, marker_2),
+  survival_terms = list(surv_terminal, surv_obs),
+  max_threads = 4L)
+
+# get the starting values
+system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
+#>    user  system elapsed 
+#>  14.085   0.008   3.792
+system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
+#>    user  system elapsed 
+#>  19.454   0.004   5.354
+
+# lower bound at the starting values
+print(-attr(start_val_wrong, "value"), digits = 8)
+#> [1] -8725.0019
+print(-attr(start_val, "value"), digits = 8)
+#> [1] -8725.0412
+
+# find the maximum lower bound estimate
+system.time(opt_out_wrong <- joint_ms_opt(
+  comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
+  cg_tol = .2, c2 = .1, gr_tol = .1))
+#>    user  system elapsed 
+#>   74.13    0.02   18.56
+
+system.time(opt_out <- joint_ms_opt(
+  comp_obj, par = opt_out_wrong$par, max_it = 2000L, pre_method = 3L, 
+  # the function is more expensive. Thus, it makes more sense to get a better
+  # approximation in the conjugate gradient step
+  cg_tol = .1, c2 = .1, 
+  # it takes much longer to get the same precision
+  gr_tol = 1))
+#>     user   system  elapsed 
+#> 1154.868    0.125  502.654
+
+# we set gr_tol in the call so this is the convergence criterion for the
+# gradient
+sqrt(sum(joint_ms_lb_gr(comp_obj_wrong, opt_out_wrong$par)^2))
+#> [1] 0.07558
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+#> [1] 0.9415
+
+opt_out_wrong$info # convergence code (0 == 'OK')
+#> [1] 0
+opt_out$info # convergence code (0 == 'OK')
+#> [1] 0
+
+print(-opt_out_wrong$value, digits = 8) # maximum lower bound value
+#> [1] -8351.7367
+print(-opt_out$value, digits = 8) # maximum lower bound value
+#> [1] -8332.0146
+
+opt_out_wrong$counts
+#> function gradient     n_cg 
+#>     1351      981     3469
+opt_out$counts
+#> function gradient     n_cg 
+#>     2599     1594     5452
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests_wrong <- joint_ms_format(comp_obj_wrong, opt_out_wrong$par)
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+mapply(rbind, SIMPLIFY = FALSE,
+       wrong = fmt_ests_wrong$markers[[1]], 
+       right = fmt_ests      $markers[[1]])
+#> $fixef
+#>                    
+#> wrong -0.5421 2.004
+#> right -0.4734 2.006
+#> 
+#> $fixef_vary
+#>                         
+#> wrong 1.679 1.369 -1.675
+#> right 1.545 1.251 -2.052
+
+fixef_marker[[1]] # true values
+#> [1] -0.5  2.0
+fixef_vary_marker[[1]] # true values
+#> [1]  1.4  1.2 -2.1
+
+# the parameters for the second marker
+mapply(rbind, SIMPLIFY = FALSE,
+       wrong = fmt_ests_wrong$markers[[2]], 
+       right = fmt_ests      $markers[[2]])
+#> $fixef
+#>            
+#> wrong 1.021
+#> right 1.002
+#> 
+#> $fixef_vary
+#>                      
+#> wrong 0.6660 -0.02026
+#> right 0.5398 -0.01895
+
+fixef_marker[[2]] # true values
+#> [1] 1
+fixef_vary_marker[[2]] # true values
+#> [1]  0.50 -0.02
+
+# the fixed effects for the survival outcome and the association parameters
+# for the terminal event
+mapply(rbind, SIMPLIFY = FALSE,
+       wrong = fmt_ests_wrong$survival[[1]], 
+       right = fmt_ests      $survival[[1]])
+#> $fixef
+#>                    
+#> wrong -1.063 0.2639
+#> right -1.025 0.2934
+#> 
+#> $fixef_vary
+#>                                    
+#> wrong 0.3087 -0.2337 -0.6419 0.1967
+#> right 0.4363  0.1389 -0.3251 0.4562
+#> 
+#> $associations
+#>                     
+#> wrong 0.8758 -0.4008
+#> right 0.8250 -0.4243
+
+fixef_surv[[1]]
+#> [1] -1.00  0.25
+fixef_vary_surv[[1]]
+#> [1]  0.50  0.10 -0.20  0.11
+associations[[1]]
+#> [1]  0.6 -0.4
+
+# same for the observation process
+mapply(rbind, SIMPLIFY = FALSE,
+       wrong = fmt_ests_wrong$survival[[2]], 
+       right = fmt_ests      $survival[[2]])
+#> $fixef
+#>             
+#> wrong 0.3081
+#> right 0.2537
+#> 
+#> $fixef_vary
+#>                     
+#> wrong -1.089 -0.3681
+#> right -1.248 -0.2943
+#> 
+#> $associations
+#>                     
+#> wrong -0.6652 0.2161
+#> right -0.6637 0.2160
+
+fixef_surv[[2]]
+#> [1] 0.2
+fixef_vary_surv[[2]]
+#> [1] -1.00 -0.25
+associations[[2]]
+#> [1] -0.7  0.2
+
+# the parameters for covariance matrix of the random effects
+fmt_ests_wrong$vcov$vcov_vary
+#>          [,1]     [,2]     [,3]     [,4]
+#> [1,]  0.45736  0.16473 -0.05153  0.03624
+#> [2,]  0.16473  1.76571 -0.28503 -0.06964
+#> [3,] -0.05153 -0.28503  0.37749  0.07415
+#> [4,]  0.03624 -0.06964  0.07415  0.09781
+fmt_ests      $vcov$vcov_vary
+#>          [,1]     [,2]     [,3]     [,4]
+#> [1,]  0.48442  0.14188 -0.03554  0.01724
+#> [2,]  0.14188  1.83499 -0.27519 -0.03186
+#> [3,] -0.03554 -0.27519  0.36531  0.08116
+#> [4,]  0.01724 -0.03186  0.08116  0.10830
+vcov_vary # the true values
+#>       [,1]  [,2]  [,3]  [,4]
+#> [1,]  0.35  0.08 -0.05  0.01
+#> [2,]  0.08  1.92 -0.24 -0.04
+#> [3,] -0.05 -0.24  0.32  0.09
+#> [4,]  0.01 -0.04  0.09  0.12
+
+norm(fmt_ests_wrong$vcov$vcov_vary - vcov_vary, "F")
+#> [1] 0.2474
+norm(fmt_ests      $vcov$vcov_vary - vcov_vary, "F")
+#> [1] 0.196
+
+# the parameters for the error term covariance matrix
+fmt_ests_wrong$vcov$vcov_marker
+#>         [,1]    [,2]
+#> [1,] 0.35539 0.08921
+#> [2,] 0.08921 0.15723
+fmt_ests      $vcov$vcov_marker
+#>         [,1]    [,2]
+#> [1,] 0.35488 0.08855
+#> [2,] 0.08855 0.15695
+vcov_marker
+#>      [,1] [,2]
+#> [1,] 0.36 0.10
+#> [2,] 0.10 0.16
+
+norm(fmt_ests_wrong$vcov$vcov_marker - vcov_marker, "F")
+#> [1] 0.01618
+norm(fmt_ests      $vcov$vcov_marker - vcov_marker, "F")
+#> [1] 0.01725
+
+# the parameters for the frailty covariance matrix
+fmt_ests_wrong$vcov$vcov_surv
+#>         [,1]    [,2]
+#> [1,] 0.01630 0.02729
+#> [2,] 0.02729 0.05932
+fmt_ests      $vcov$vcov_surv
+#>         [,1]    [,2]
+#> [1,] 0.01444 0.02430
+#> [2,] 0.02430 0.05522
+vcov_surv
+#>        [,1]   [,2]
+#> [1,] 0.0400 0.0225
+#> [2,] 0.0225 0.0625
+
+norm(fmt_ests_wrong$vcov$vcov_surv - vcov_surv, "F")
+#> [1] 0.02485
+norm(fmt_ests      $vcov$vcov_surv - vcov_surv, "F")
+#> [1] 0.02669
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
@@ -3112,9 +3723,9 @@ dat <- sim_dat(1000L)
 # we show a few properties of the data below
 mean(dat$terminal_outcome$event) # mean event rate
 #> [1] 0.77
-sum(dat$obs_process$event) # number of observed marker less the individuals
+sum(dat$obs_process$event) # number of observed markers less the individuals
 #> [1] 2425
-NROW(dat$marker_data) # number of observed marker
+NROW(dat$marker_data) # number of observed markers less the individuals
 #> [1] 3425
 
 # distribution of observed marker per individual
@@ -3186,7 +3797,7 @@ system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
 #> Model failed to converge with max|grad| = 0.00249365 (tol = 0.002, component 1)
 #>    user  system elapsed 
-#>  18.759   0.012   4.962
+#>  19.665   0.012   5.186
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -3208,7 +3819,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#> 200.637   0.052  50.177
+#>   210.7     0.1    52.7
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -3450,3 +4061,28 @@ where
     \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.](https://render.githubusercontent.com/render/math?math=O_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D. "O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
   \Omega_{(1:R, R + k), (1:R, R + k)}
     \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.")
+
+## References
+
+<div id="refs" class="references csl-bib-body hanging-indent">
+
+<div id="ref-Gerard16" class="csl-entry">
+
+Berg, Gerard J. van den, and Bettina Drepper. 2016. “Inference for
+Shared-Frailty Survival Models with Left-Truncated Data.” *Econometric
+Reviews* 35 (6): 1075–98.
+<https://doi.org/10.1080/07474938.2014.975640>.
+
+</div>
+
+<div id="ref-Crowther16" class="csl-entry">
+
+Crowther, Michael J., Therese M.-L Andersson, Paul C. Lambert, Keith R.
+Abrams, and Keith Humphreys. 2016. “Joint Modelling of Longitudinal and
+Survival Data: Incorporating Delayed Entry and an Assessment of Model
+Misspecification.” *Statistics in Medicine* 35 (7): 1193–1209.
+https://doi.org/<https://doi.org/10.1002/sim.6779>.
+
+</div>
+
+</div>

@@ -17,6 +17,16 @@ void rewind(const size_t idx){
   Number_mem[idx].rewind();
 }
 
+void rewind_to_mark(const size_t idx){
+  double_mem[idx].rewind_to_mark();
+  Number_mem[idx].rewind_to_mark();
+}
+
+void set_mark(const size_t idx){
+  double_mem[idx].setmark();
+  Number_mem[idx].setmark();
+}
+
 void rewind_all(){
   for(auto &x : double_mem) x.rewind();
   for(auto &x : Number_mem) x.rewind();

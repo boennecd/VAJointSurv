@@ -271,6 +271,24 @@ public:
     return n_params_w_va<is_traingular>();
   }
 
+  /**
+   * returns the start of the variational parameters. The variational parameters
+   * lie in continuous memory.
+   */
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint va_par_start() const {
+    return va_mean<is_traingular>();
+  }
+
+  /**
+   * returns the end of the variational parameters. The variational parameters
+   * lie in continuous memory.
+   */
+  template<bool is_traingular = is_traingular_default>
+  vajoint_uint va_par_end() const {
+    return va_vcov_end<is_traingular>();
+  }
+
   /// returns the number of shared random effects
   vajoint_uint n_shared() const {
     return n_shared_effect;

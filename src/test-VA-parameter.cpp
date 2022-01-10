@@ -45,10 +45,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 6);
     expect_true(params.n_shared_surv() == 2);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 78);
     expect_true(params.va_mean_end() == 86);
     expect_true(params.va_vcov() == 86);
     expect_true(params.va_vcov_end() == 150);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 150);
     expect_true(params.n_va_params() == 72);
@@ -81,10 +83,12 @@ context("subset_params works as expected") {
 
     expect_true(params.n_params<true>() == 59);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 59);
     expect_true(params.va_mean_end<true>() == 67);
     expect_true(params.va_vcov<true>() == 67);
     expect_true(params.va_vcov_end<true>() == 103);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 103);
     expect_true(params.n_va_params<true>() == 44);
@@ -178,10 +182,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 6);
     expect_true(params.n_shared_surv() == 1);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 75);
     expect_true(params.va_mean_end() == 82);
     expect_true(params.va_vcov() == 82);
     expect_true(params.va_vcov_end() == 131);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 131);
     expect_true(params.n_va_params() == 56);
@@ -214,10 +220,12 @@ context("subset_params works as expected") {
 
     expect_true(params.n_params<true>() == 57);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 57);
     expect_true(params.va_mean_end<true>() == 64);
     expect_true(params.va_vcov<true>() == 64);
     expect_true(params.va_vcov_end<true>() == 92);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 92);
     expect_true(params.n_va_params<true>() == 35);
@@ -312,10 +320,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 6);
     expect_true(params.n_shared_surv() == 2);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 82);
     expect_true(params.va_mean_end() == 90);
     expect_true(params.va_vcov() == 90);
     expect_true(params.va_vcov_end() == 154);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 154);
     expect_true(params.n_va_params() == 72);
@@ -348,10 +358,12 @@ context("subset_params works as expected") {
 
     expect_true(params.n_params<true>() == 63);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 63);
     expect_true(params.va_mean_end<true>() == 71);
     expect_true(params.va_vcov<true>() == 71);
     expect_true(params.va_vcov_end<true>() == 107);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 107);
     expect_true(params.n_va_params<true>() == 44);
@@ -427,10 +439,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 6);
     expect_true(params.n_shared_surv() == 0);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 58);
     expect_true(params.va_mean_end() == 64);
     expect_true(params.va_vcov() == 64);
     expect_true(params.va_vcov_end() == 100);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 100);
     expect_true(params.n_va_params() == 42);
@@ -451,10 +465,12 @@ context("subset_params works as expected") {
     expect_true(params.vcov_end<true>() == 40);
     expect_true(params.n_params<true>() == 40);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 40);
     expect_true(params.va_mean_end<true>() == 46);
     expect_true(params.va_vcov<true>() == 46);
     expect_true(params.va_vcov_end<true>() == 67);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 67);
     expect_true(params.n_va_params<true>() == 27);
@@ -523,10 +539,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 0);
     expect_true(params.n_shared_surv() == 2);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 14);
     expect_true(params.va_mean_end() == 16);
     expect_true(params.va_vcov() == 16);
     expect_true(params.va_vcov_end() == 20);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 20);
     expect_true(params.n_va_params() == 6);
@@ -551,10 +569,12 @@ context("subset_params works as expected") {
 
     expect_true(params.n_params<true>() == 13);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 13);
     expect_true(params.va_mean_end<true>() == 15);
     expect_true(params.va_vcov<true>() == 15);
     expect_true(params.va_vcov_end<true>() == 18);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 18);
     expect_true(params.n_va_params<true>() == 5);
@@ -617,10 +637,12 @@ context("subset_params works as expected") {
     expect_true(params.n_shared() == 0);
     expect_true(params.n_shared_surv() == 0);
 
+    expect_true(params.va_par_start() == params.va_mean());
     expect_true(params.va_mean() == 10);
     expect_true(params.va_mean_end() == 10);
     expect_true(params.va_vcov() == 10);
     expect_true(params.va_vcov_end() == 10);
+    expect_true(params.va_par_end() == params.va_vcov_end());
 
     expect_true(params.n_params_w_va() == 10);
     expect_true(params.n_va_params() == 0);
@@ -645,10 +667,12 @@ context("subset_params works as expected") {
 
     expect_true(params.n_params<true>() == 10);
 
+    expect_true(params.va_par_start<true>() == params.va_mean<true>());
     expect_true(params.va_mean<true>() == 10);
     expect_true(params.va_mean_end<true>() == 10);
     expect_true(params.va_vcov<true>() == 10);
     expect_true(params.va_vcov_end<true>() == 10);
+    expect_true(params.va_par_end<true>() == params.va_vcov_end<true>());
 
     expect_true(params.n_params_w_va<true>() == 10);
     expect_true(params.n_va_params<true>() == 0);

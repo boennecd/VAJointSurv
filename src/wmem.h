@@ -25,6 +25,22 @@ inline void rewind(){
   rewind(static_cast<size_t>(get_thread_num()));
 }
 
+/// rewind the working memory to the mark for a given thread
+void rewind_to_mark(const size_t);
+
+/// rewind the working memory to the mark for this thread
+inline void rewind_to_mark(){
+  rewind_to_mark(static_cast<size_t>(get_thread_num()));
+}
+
+/// sets the mark for a given thread
+void set_mark(const size_t);
+
+/// sets the mark for the current thread
+inline void set_mark(){
+  set_mark(static_cast<size_t>(get_thread_num()));
+}
+
 /// rewinds the working memory fo all threads
 void rewind_all();
 

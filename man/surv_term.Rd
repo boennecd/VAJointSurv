@@ -4,7 +4,15 @@
 \alias{surv_term}
 \title{Creates Data for One Type of Survival Outcome}
 \usage{
-surv_term(formula, id, data, time_fixef, ders = NULL, with_frailty = FALSE)
+surv_term(
+  formula,
+  id,
+  data,
+  time_fixef,
+  ders = NULL,
+  with_frailty = FALSE,
+  delayed = NULL
+)
 }
 \arguments{
 \item{formula}{a two-sided \code{\link{formula}} with the survival outcome
@@ -28,6 +36,9 @@ the survival outcome is linked to the markers. 0 implies present values,
 value of the random effect for all markers.}
 
 \item{with_frailty}{\code{TRUE} if there should be a frailty term.}
+
+\item{delayed}{a vector with an entry which is \code{TRUE} if the
+left-truncation time from the survival outcome is from a delayed entry.}
 }
 \description{
 Creates Data for One Type of Survival Outcome
@@ -35,4 +46,37 @@ Creates Data for One Type of Survival Outcome
 \details{
 The \code{time_fixef} should likely not include an intercept as this is
 often included in \code{formula}.
+
+The \code{delayed} argument is to account for delayed entry with terminal
+events when observations are sampled in a way such that they must not have
+had the event prior to their left-truncation time. In this case, the proper
+complete data likelihood is
+
+\deqn{\frac{a(u)h(t_{ij}\mid u)^{d_{ij}}S(t_{ij} \mid u)g(u)}{\int a(u) S(v_{ij} \mid u) du}}
+
+and not
+
+\deqn{a(u)h(t_{ij} \mid u)^{d_{ij}}\frac{S(t_{ij} \mid u)}{S(v_{ij} \mid u)}g(u)}
+
+where \eqn{h} is conditional hazard, \eqn{S} is the conditional survival
+function, \eqn{g} is additional conditional likelihood factors from other
+outcomes, \eqn{a} is the random effect distribution, \eqn{t_{ij}} is the
+observed time, \eqn{d_{ij}} is an event indicator, and \eqn{v_{ij}} is the
+left truncation time.
+
+The denominator in the proper complete likelihood becomes the expectation
+over all delayed entries when a cluster has more than one delayed entry. See
+van den Berg and Drepper (2016) and Crowther et al. (2016) for further
+details.
+}
+\references{
+Crowther MJ, Andersson TM, Lambert PC, Abrams KR & Humphreys K (2016).
+\emph{Joint
+modelling of longitudinal and survival data: incorporating delayed entry and
+an assessment of model misspecification}. Stat Med,
+35(7):1193-1209. doi:10.1002/sim.6779
+
+van den Berg GJ & Drepper B (2016). \emph{Inference for Shared-Frailty
+Survival Models with Left-Truncated Data}. Econometric Reviews, 35:6,
+1075-1098, doi: 10.1080/07474938.2014.975640
 }

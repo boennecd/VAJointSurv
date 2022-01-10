@@ -37,14 +37,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // joint_ms_ptr
-SEXP joint_ms_ptr(List markers, List survival_terms, unsigned const max_threads);
-RcppExport SEXP _VAJointSurv_joint_ms_ptr(SEXP markersSEXP, SEXP survival_termsSEXP, SEXP max_threadsSEXP) {
+SEXP joint_ms_ptr(List markers, List survival_terms, unsigned const max_threads, Rcpp::IntegerVector const& ids_delayed);
+RcppExport SEXP _VAJointSurv_joint_ms_ptr(SEXP markersSEXP, SEXP survival_termsSEXP, SEXP max_threadsSEXP, SEXP ids_delayedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type markers(markersSEXP);
     Rcpp::traits::input_parameter< List >::type survival_terms(survival_termsSEXP);
     Rcpp::traits::input_parameter< unsigned const >::type max_threads(max_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(joint_ms_ptr(markers, survival_terms, max_threads));
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector const& >::type ids_delayed(ids_delayedSEXP);
+    rcpp_result_gen = Rcpp::wrap(joint_ms_ptr(markers, survival_terms, max_threads, ids_delayed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -224,7 +225,7 @@ RcppExport SEXP run_testthat_tests(SEXP);
 static const R_CallMethodDef CallEntries[] = {
     {"_VAJointSurv_expansion_object", (DL_FUNC) &_VAJointSurv_expansion_object, 1},
     {"_VAJointSurv_eval_expansion", (DL_FUNC) &_VAJointSurv_eval_expansion, 4},
-    {"_VAJointSurv_joint_ms_ptr", (DL_FUNC) &_VAJointSurv_joint_ms_ptr, 3},
+    {"_VAJointSurv_joint_ms_ptr", (DL_FUNC) &_VAJointSurv_joint_ms_ptr, 4},
     {"_VAJointSurv_joint_ms_n_terms", (DL_FUNC) &_VAJointSurv_joint_ms_n_terms, 1},
     {"_VAJointSurv_joint_ms_eval_lb", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb, 5},
     {"_VAJointSurv_joint_ms_eval_lb_gr", (DL_FUNC) &_VAJointSurv_joint_ms_eval_lb_gr, 5},

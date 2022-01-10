@@ -1,7 +1,8 @@
 #include "arma-eigen-wrap.h"
 #include "marker-term.h"
-#include "psqn.h"
-#include "psqn-reporter.h"
+#include <psqn.h>
+#include <psqn-reporter.h>
+#include <psqn-bfgs.h>
 #include "log-cholesky.h"
 #include "kl-term.h"
 #include "cfaad/AAD.h"
@@ -171,108 +172,119 @@ class lower_bound_term {
   kl_term const &kl_dat;
 
   std::vector<vajoint_uint> marker_indices;
-  // indices of survival outcomes stored as (index, type of outcome)
+  /// indices of survival outcomes stored as (index, type of outcome)
   std::vector<std::array<vajoint_uint, 2L> > surv_indices;
   size_t n_global, n_private;
 
   friend lower_bound_caller;
-public:
-  lower_bound_term
-  (subset_params const &par_idx, marker::marker_dat const &m_dat,
-   survival::survival_dat const &s_dat, kl_term const &kl_dat):
-  par_idx(par_idx), m_dat(m_dat), s_dat(s_dat), kl_dat(kl_dat),
-  n_global(par_idx.n_params<true>()),
-  n_private{par_idx.n_va_params<true>()}
-  { }
+  bool const is_delayed_entry;
 
-  void add_marker_index(const vajoint_uint idx){
-    marker_indices.emplace_back(idx);
+  /**
+   * used to cache the last solution for the variational parameters if
+   * is_delayed_entry is true
+   */
+  std::unique_ptr<double[]> va_par_cache
+    {is_delayed_entry ? new double[par_idx.n_va_params<true>()] : nullptr};
+
+  void reset_va_par_cache() const {
+    if(is_delayed_entry)
+      std::fill(va_par_cache.get(),
+                va_par_cache.get() + par_idx.n_va_params<true>(), 0);
   }
 
-  void add_surv_index(const vajoint_uint idx, const vajoint_uint type){
-    surv_indices.emplace_back(std::array<vajoint_uint, 2L>{idx, type});
-  }
+  vajoint_uint const n_rng
+    {static_cast<vajoint_uint>(par_idx.va_mean_end() - par_idx.va_mean())};
 
-  void shrink_to_fit() {
-    marker_indices.shrink_to_fit();
-    surv_indices.shrink_to_fit();
-  }
+  /// the required working memory to evaluate the function
+  vajoint_uint const fn_n_wmem{
+    many_max<vajoint_uint>(log_chol::pd_mat::n_wmem(n_rng),
+                           m_dat.n_wmem(),
+                           kl_dat.n_wmem(),
+                           s_dat.n_wmem()[0] + s_dat.n_wmem()[1])};
 
-  size_t global_dim() const {
-    return n_global;
-  }
-  size_t private_dim() const {
-    return n_private;
-  }
+  /// the required double working memory to evaluate the gradient
+  vajoint_uint const gr_n_wmem_num
+    {many_max<vajoint_uint>(m_dat.n_wmem(), s_dat.n_wmem()[0])};
+  /// the required Number working memory to evaluate the gradient
+  vajoint_uint const gr_n_wmem_dub
+  {many_max<vajoint_uint>
+    (log_chol:: pd_mat::n_wmem(n_rng),
+     log_chol::dpd_mat::n_wmem(n_rng),
+     log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
+     log_chol::dpd_mat::n_wmem(par_idx.n_shared_surv()),
+     kl_dat.n_wmem(),
+     s_dat.n_wmem()[1])};
 
-  double comp(double const *p, double *gr,
-              lower_bound_caller const &caller, bool const comp_grad) const {
+  /**
+   * evaluates the lower bound at the parameter setting.
+   * set_my_tape() has to be called prior to calling this function
+   */
+  double eval_lb
+    (double const *p, lower_bound_caller const &caller,
+     bool const do_flip, bool const full_rewind) const {
     if(caller.setup_failed)
       return std::numeric_limits<double>::quiet_NaN();
-    set_my_tape();
 
-    vajoint_uint const n_rng{par_idx.va_mean_end() - par_idx.va_mean()};
-    wmem::rewind();
+    if(full_rewind)
+      wmem::rewind();
+    else
+      wmem::rewind_to_mark();
 
-    if(!comp_grad){
-      // find the required working memory
-      // TODO: do this once
-      vajoint_uint const n_wmem =
-        many_max<vajoint_uint>(log_chol::pd_mat::n_wmem(n_rng),
-                               m_dat.n_wmem(),
-                               kl_dat.n_wmem(),
-                               s_dat.n_wmem()[0] + s_dat.n_wmem()[1]);
+    // get working memory
+    auto const n_par_full = par_idx.n_params_w_va<false>();
+    double * const inter_mem{wmem::get_double_mem(fn_n_wmem + n_par_full)},
+           * const par_vec{inter_mem + fn_n_wmem};
 
-      double * const inter_mem{wmem::get_double_mem(n_wmem)};
-      double * const par_vec{wmem::get_double_mem(par_idx.n_params_w_va())};
+    // copy the global parameters
+    std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec);
 
-      // copy the global parameters
-      std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec);
+    // insert the variational parameters
+    std::copy(p + par_idx.va_mean<true>(), p + par_idx.va_mean_end<true>(),
+              par_vec + par_idx.va_mean<false>());
+    log_chol::pd_mat::get(p + par_idx.va_vcov<true>(), n_rng,
+                          par_vec + par_idx.va_vcov<false>(), inter_mem);
 
-      // insert the variational parameters
-      std::copy(p + par_idx.va_mean<true>(), p + par_idx.va_mean_end<true>(),
-                par_vec + par_idx.va_mean<false>());
-      log_chol::pd_mat::get(p + par_idx.va_vcov<true>(), n_rng,
-                            par_vec + par_idx.va_vcov<false>(), inter_mem);
+    // compute the lower bound terms and return
+    double res = kl_dat.eval(par_vec, inter_mem);
+    for(vajoint_uint idx : marker_indices)
+      res += m_dat(par_vec, inter_mem, idx);
+    if(lower_bound_caller::optimze_survival)
+      for(auto &idx : surv_indices)
+        res += s_dat(par_vec, inter_mem, idx[0], idx[1],
+                     inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
 
-      // compute the lower bound terms and return
-      double res = kl_dat.eval(par_vec, inter_mem);
-      for(vajoint_uint idx : marker_indices)
-        res += m_dat(par_vec, inter_mem, idx);
-      if(lower_bound_caller::optimze_survival)
-        for(auto &idx : surv_indices)
-          res += s_dat(par_vec, inter_mem, idx[0], idx[1],
-                       inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
+    return do_flip ? -res : res;
+  }
 
-      return res;
-    }
+  /**
+   * evaluates the gradient of lower bound at the parameter setting.
+   * set_my_tape() has to be called prior to calling this function
+   */
+  double eval_lb_grad
+    (double const *p, double *gr, lower_bound_caller const &caller,
+     bool const do_flip, bool const full_rewind) const {
+    if(caller.setup_failed)
+      return std::numeric_limits<double>::quiet_NaN();
 
-    // find the required working memory
-    // TODO: compute this once
-    vajoint_uint const n_wmem_num
-      {many_max<vajoint_uint>(m_dat.n_wmem(), s_dat.n_wmem()[0])};
-    vajoint_uint const n_wmem_dub
-      {many_max<vajoint_uint>
-        (log_chol:: pd_mat::n_wmem(n_rng),
-         log_chol::dpd_mat::n_wmem(n_rng),
-         log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
-         log_chol::dpd_mat::n_wmem(par_idx.n_shared_surv()),
-         kl_dat.n_wmem(),
-         s_dat.n_wmem()[1])};
+    if(full_rewind)
+      wmem::rewind();
+    else
+      wmem::rewind_to_mark();
 
-    Number * const inter_mem_num{wmem::get_Number_mem(n_wmem_num)};
-    double * const inter_mem_dub{wmem::get_double_mem(n_wmem_dub)};
+    // get working memory
+    auto const n_par_full = par_idx.n_params_w_va<false>();
+    Number * const inter_mem_num
+      {wmem::get_Number_mem(gr_n_wmem_num + n_par_full)};
+    double * const inter_mem_dub
+      {wmem::get_double_mem(gr_n_wmem_dub + 2 * n_par_full)};
 
     // setup the parameter vectors
-    double * const par_vec_dub
-      {wmem::get_double_mem(par_idx.n_params_w_va<false>())},
-           * const par_vec_gr
-      {wmem::get_double_mem(par_idx.n_params_w_va<false>())};
-    Number * const par_vec_num
-      {wmem::get_Number_mem(par_idx.n_params_w_va<false>())};
+    Number * const par_vec_num{inter_mem_num + gr_n_wmem_num};
+    double * const par_vec_dub{inter_mem_dub + gr_n_wmem_dub},
+           * const par_vec_gr{par_vec_dub + n_par_full};
 
     Number::tape->rewind();
-    std::fill(par_vec_gr, par_vec_gr + par_idx.n_params_w_va<false>(), 0);
+    std::fill(par_vec_gr, par_vec_gr + n_par_full, 0);
 
     // copy the global parameters
     std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec_dub);
@@ -308,7 +320,7 @@ public:
     // compute the gradient and return
     res.propagateToStart();
 
-    for(vajoint_uint i = 0; i < par_idx.n_params_w_va<false>(); ++i)
+    for(vajoint_uint i = 0; i < n_par_full; ++i)
       par_vec_gr[i] += par_vec_num[i].adjoint();
 
     // the covariance matrix parameters
@@ -343,7 +355,224 @@ public:
        gr + par_idx.va_vcov<true>(),
        par_vec_gr + par_idx.va_vcov<false>(), inter_mem_dub);
 
+    if(do_flip){
+      auto const n_par = par_idx.n_params_w_va<true>();
+      for(vajoint_uint i = 0; i < n_par; ++i)
+        gr[i] *= -1;
+
+      return -res.value();
+    }
+
     return res.value();
+  }
+
+  /**
+   * class to optimize the VA parameters only. Needed for the minmax problem
+   * with delayed entry
+   */
+  class opt_VA;
+  friend class opt_VA;
+
+  class opt_VA final : public PSQN::problem {
+    lower_bound_term const &dat;
+    lower_bound_caller const &caller;
+    double * const full_par,
+           * const gr_full;
+    vajoint_uint n_pars;
+
+    subset_params const & par_idx() const {
+      return dat.par_idx;
+    }
+
+  public:
+    /**
+     * the full_par needs to have the model parameters set. The gr_full needs
+     * to have enough memory for the model parameters and the global parameters.
+     */
+    opt_VA
+    (lower_bound_term const &dat, lower_bound_caller const &caller,
+     double * const full_par, double * gr_full):
+    dat{dat}, caller{caller}, full_par{full_par}, gr_full{gr_full},
+    n_pars{static_cast<vajoint_uint>(par_idx().n_va_params<true>())}
+      { }
+
+    PSQN::psqn_uint size() const {
+      return n_pars;
+    }
+
+    double func(double const *val) {
+      std::copy(val, val + size(), full_par + par_idx().va_par_start<true>());
+      return nan_if_fail
+        ([&]{ return dat.eval_lb(full_par, caller, false, false); });
+    }
+
+    double grad(double const * __restrict__ val,
+                double       * __restrict__ gr) {
+      std::copy(val, val + size(), full_par + par_idx().va_par_start<true>());
+
+      double const res{nan_if_fail
+        ([&]{
+          return dat.eval_lb_grad(full_par, gr_full, caller, false, false);
+        })};
+
+      std::copy
+        (gr_full + par_idx().va_par_start<true>(),
+         gr_full + par_idx().va_par_end<true>(), gr);
+      return res;
+    }
+  };
+
+public:
+  lower_bound_term
+  (subset_params const &par_idx, marker::marker_dat const &m_dat,
+   survival::survival_dat const &s_dat, kl_term const &kl_dat,
+   bool const is_delayed_entry):
+  par_idx(par_idx), m_dat(m_dat), s_dat(s_dat), kl_dat(kl_dat),
+  n_global(par_idx.n_params<true>()),
+  n_private{par_idx.n_va_params<true>()},
+  is_delayed_entry{is_delayed_entry}
+  {
+    reset_va_par_cache();
+  }
+
+  /// copy constructor because of the unique_ptr
+  lower_bound_term(lower_bound_term const &o):
+  par_idx(o.par_idx), m_dat(o.m_dat), s_dat(o.s_dat), kl_dat(o.kl_dat),
+  marker_indices{o.marker_indices}, surv_indices{o.surv_indices},
+  n_global(o.n_global), n_private{o.n_private},
+  is_delayed_entry{o.is_delayed_entry}
+  {
+    reset_va_par_cache();
+  }
+
+
+
+  void add_marker_index(const vajoint_uint idx){
+    marker_indices.emplace_back(idx);
+  }
+
+  void add_surv_index(const vajoint_uint idx, const vajoint_uint type){
+    surv_indices.emplace_back(std::array<vajoint_uint, 2L>{idx, type});
+  }
+
+  void shrink_to_fit() {
+    marker_indices.shrink_to_fit();
+    surv_indices.shrink_to_fit();
+  }
+
+  size_t global_dim() const {
+    return n_global;
+  }
+  size_t private_dim() const {
+    return is_delayed_entry ? 0 : n_private;
+  }
+
+  double comp
+    (double const *p, double *gr, lower_bound_caller const &caller,
+     bool const comp_grad) const {
+    if(caller.setup_failed)
+      return std::numeric_limits<double>::quiet_NaN();
+
+    set_my_tape(); // has to be called as we call eval_lb and eval_lb_grad
+
+    if(!is_delayed_entry){
+      if(!comp_grad)
+        return eval_lb(p, caller, is_delayed_entry, true);
+      return eval_lb_grad(p, gr, caller, is_delayed_entry, true);
+    }
+
+    // we have to optimize the VA parameters. We start by getting the memory
+    // we need
+    wmem::rewind();
+
+    vajoint_uint const n_pars{par_idx.n_params_w_va<true>()};
+    double * const full_par{wmem::get_double_mem(2 * n_pars + n_private)},
+           * const gr_full{full_par + n_pars},
+           * const par_sub{gr_full + n_pars};
+
+    wmem::set_mark();
+
+    // fill the parameters and do the optimization
+    std::copy(p, p + n_global, full_par);
+
+    // function to set the VA parameters to be match the global parameters.
+    // The right thing if there are no survival terms
+    auto set_va_pars_to_model_par = [&](){
+      auto const va_shift = par_idx.va_par_start<true>();
+      std::fill(par_sub + par_idx.va_mean<true>() - va_shift,
+                par_sub + par_idx.va_mean_end<true>() - va_shift, 0);
+
+      // TODO: we make the assumption that the covariance matrix for the
+      //       varying effects is before that of the time invariant effects in
+      //       the log hazards
+      lp_joint::copy_block_upper_tri(
+        par_sub + par_idx.va_vcov<true>() - va_shift,
+        p + par_idx.vcov_vary<true>(),
+        p + par_idx.vcov_surv<true>(),
+        par_idx.n_shared(), par_idx.n_shared_surv());
+    };
+
+    if(!lower_bound_caller::optimze_survival){
+      // already converged as the survival terms are ignored
+      // copy the parameters
+      set_va_pars_to_model_par();
+      std::copy(par_sub, par_sub + n_private,
+                full_par + par_idx.va_par_start<true>());
+
+      if(comp_grad)
+        std::fill(gr, gr + n_global, 0);
+      return eval_lb(full_par, caller, true, false);
+    }
+
+    // does the optimization starting at the current par_sub
+    opt_VA problem{*this, caller, full_par, gr_full};
+    auto do_opt = [&]{
+      // TODO: it would be nice if the user can set these values
+      return PSQN::bfgs<PSQN::dummy_reporter, PSQN::dummy_interrupter>
+        (problem, par_sub, 1e-8, 10000L, 1e-4, .9, 0L, 1e-4);
+    };
+
+    // the first attempt is to use the cached value as the starting point. The
+    // assumption is that the next point at which we evaluate the functions
+    // is not far from the previous one
+    std::copy(va_par_cache.get(), va_par_cache.get() + n_private, par_sub);
+    auto opt_res = do_opt();
+
+    auto did_converge = [](decltype(opt_res) const &val){
+      return val.info == PSQN::info_code::converged;
+    };
+
+    if(!did_converge(opt_res)){
+      // we try again starting at the model parameters
+      set_va_pars_to_model_par();
+      opt_res = do_opt();
+    }
+
+    if(!did_converge(opt_res)){
+      // we cannot return a non-optimal upper bound on the likelihood we are
+      // minimizing as it can be very far from optimal
+      // TODO: it would be nice to able to warn the user if the method did
+      //       not work
+      if(comp_grad)
+        std::fill
+          (gr, gr + n_global, std::numeric_limits<double>::quiet_NaN());
+
+      return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    // copy the parameters
+    std::copy(par_sub, par_sub + n_private,
+              full_par + par_idx.va_par_start<true>());
+    std::copy(par_sub, par_sub + n_private, va_par_cache.get());
+
+    if(!comp_grad)
+      return eval_lb(full_par, caller, true, false);
+
+    double const res
+      {eval_lb_grad(full_par, gr_full, caller, true, false)};
+    std::copy(gr_full, gr_full + n_global, gr);
+
+    return res;
   }
 
   double func(double const *point, lower_bound_caller const &caller) const {
@@ -439,7 +668,8 @@ class problem_data {
 
 public:
   problem_data(List markers, List survival_terms,
-               unsigned const max_threads) {
+               unsigned const max_threads,
+               Rcpp::IntegerVector const &ids_delayed) {
     // handle the markers
     std::vector<marker::setup_marker_dat_helper> input_dat;
     joint_bases::bases_vector bases_fix;
@@ -535,6 +765,11 @@ public:
         if(b != dat_n_idx.id.begin() && *b < *(b - 1))
           throw std::invalid_argument("Marker ids are not sorted");
 
+      // check that all ids are sorted
+      for(auto b = ids_delayed.begin(); b != ids_delayed.end(); ++b)
+        if(b != ids_delayed.begin() && *b < *(b - 1))
+          throw std::invalid_argument("ids_delayed are not sorted");
+
       for(size_t i = 0; i < s_id_vecs.size(); ++i)
         for(auto b = s_id_vecs[i].begin(); b != s_id_vecs[i].end(); ++b)
           if(b != s_id_vecs[i].begin() && *b < *(b - 1))
@@ -557,6 +792,9 @@ public:
         return true;
       };
 
+      // the next index of the delayed clusters
+      auto id_delayed = ids_delayed.begin();
+
       while(!all_at_end()){
         // find the lowest id as the ids are supposed to be sorted
         int cur_id{std::numeric_limits<int>::max()};
@@ -566,8 +804,16 @@ public:
           if(s_indices[i] != s_id_vecs[i].end())
             cur_id = std::min(*s_indices[i], cur_id);
 
+
+        // find out if the cluster is to account for a delayed entry
+        bool is_flipped{false};
+        if(id_delayed != ids_delayed.end() && *id_delayed == cur_id){
+          is_flipped = true;
+          ++id_delayed;
+        }
+
         // add the observation where the id does match
-        ele_funcs.emplace_back(par_idx, m_dat, s_dat, kl_dat);
+        ele_funcs.emplace_back(par_idx, m_dat, s_dat, kl_dat, is_flipped);
         while(id_marker != dat_n_idx.id.end() && *id_marker == cur_id)
           ele_funcs.back().add_marker_index
             (std::distance(dat_n_idx.id.begin(), id_marker++));
@@ -646,11 +892,12 @@ inline void set_or_clear_cached_expansions
 /// returns a pointer to problem_data object
 // [[Rcpp::export(".joint_ms_ptr", rng = false)]]
 SEXP joint_ms_ptr
-  (List markers, List survival_terms, unsigned const max_threads){
+  (List markers, List survival_terms, unsigned const max_threads,
+   Rcpp::IntegerVector const &ids_delayed){
   profiler pp(".joint_ms_ptr");
 
   return Rcpp::XPtr<problem_data>
-    (new problem_data(markers, survival_terms, max_threads));
+    (new problem_data(markers, survival_terms, max_threads, ids_delayed));
 }
 
 /// returns the number of lower bound terms of different types

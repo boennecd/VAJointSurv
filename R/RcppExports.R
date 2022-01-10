@@ -9,8 +9,8 @@ eval_expansion <- function(ptr, x, ders, lower_limit) {
     .Call(`_VAJointSurv_eval_expansion`, ptr, x, ders, lower_limit)
 }
 
-.joint_ms_ptr <- function(markers, survival_terms, max_threads) {
-    .Call(`_VAJointSurv_joint_ms_ptr`, markers, survival_terms, max_threads)
+.joint_ms_ptr <- function(markers, survival_terms, max_threads, ids_delayed) {
+    .Call(`_VAJointSurv_joint_ms_ptr`, markers, survival_terms, max_threads, ids_delayed)
 }
 
 joint_ms_n_terms <- function(ptr) {

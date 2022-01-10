@@ -96,6 +96,30 @@ inline void rank_one
     }
 }
 
+/**
+ * Given to upper triangles of matrices A and B, the function copy them into
+ * the upper traingle of the matrix
+ *
+ *   | A 0 |
+ *   | 0 B |
+ *
+ * where the zeros are matrices with zeros.
+ */
+inline void copy_block_upper_tri
+  (double *res, double const *A, double const *B, vajoint_uint const na,
+   vajoint_uint const nb){
+  // copy A
+  for(vajoint_uint j = 0; j < na; ++j, res += j, A += j)
+    std::copy(A, A + j + 1, res);
+
+  // copy B
+  for(vajoint_uint j = 0; j < nb; ++j, res += j, B += j){
+    std::fill(res, res + na, 0);
+    res += na;
+    std::copy(B, B + j + 1, res);
+  }
+}
+
 } // namespace lp_joint
 
 #endif
