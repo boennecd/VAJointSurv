@@ -2880,15 +2880,7 @@ The log marginal likelihood of individual
 ![i](https://render.githubusercontent.com/render/math?math=i "i") where
 we do not properly account for the delayed entry is
 
-![
-\\log E\\left(
-  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right)
-](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%0A "
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)
-")
+![\\log E\\left( f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}} \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right)](https://render.githubusercontent.com/render/math?math=%5Clog%20E%5Cleft%28%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29 "\log E\left( f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}} \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)")
 
 where
 ![\\vec y\_i](https://render.githubusercontent.com/render/math?math=%5Cvec%20y_i "\vec y_i")
@@ -2911,25 +2903,7 @@ is the conditional survival function, and
 is the left-truncation time. We approximate the log marginal likelihood
 term with a lower bound given by
 
-![
-\\log E\\left(
-  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right) \\geq
-  E\_{Q\_{i1}}\\left(\\log\\left(
-  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)v(\\vec U\_i)}
-  {S\_{i1}(v\_{i1}\\mid \\vec U\_i)q\_{\\vec\\theta\_{i1}}(\\vec U\_i)}
-  \\right)\\right)
-](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%20%5Cgeq%0A%20%20E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29v%28%5Cvec%20U_i%29%7D%0A%20%20%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%0A%20%20%5Cright%29%5Cright%29%0A "
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq
-  E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}
-  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}
-  \right)\right)
-")
+![\\log E\\left(  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right) \\geq  E\_{Q\_{i1}}\\left(\\log\\left(  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}  \\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)v(\\vec U\_i)}  {S\_{i1}(v\_{i1}\\mid \\vec U\_i)q\_{\\vec\\theta\_{i1}}(\\vec U\_i)}  \\right)\\right)](https://render.githubusercontent.com/render/math?math=%5Clog%20E%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%20%5Cgeq%20%20E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29v%28%5Cvec%20U_i%29%7D%20%20%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%20%20%5Cright%29%5Cright%29 "\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq  E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}  \right)\right)")
 
 where the expectation on the right-hand side is using the density
 ![q\_{\\vec\\theta\_{i1}}](https://render.githubusercontent.com/render/math?math=q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D "q_{\vec\theta_{i1}}")
@@ -2941,35 +2915,11 @@ and the model parameters.
 
 The correct likelihood with delayed entry is
 
-![
-\\log E\\left(
-  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\right)
- - \\log E\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)\\right).
-](https://render.githubusercontent.com/render/math?math=%0A%5Clog%20E%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29%0A%20-%20%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29.%0A "
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\right)
- - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).
-")
+![\\log E\\left(  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\right)  - \\log E\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)\\right).](https://render.githubusercontent.com/render/math?math=%5Clog%20E%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29%20%20-%20%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29. "\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\right)  - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).")
 
 Of course, we can replace this with an approximation in the form of
 
-![
-E\_{Q\_{i1}}\\left(\\log\\left(
-  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\frac{v(\\vec U\_i)}{q\_{\\theta\_{i1}}(\\vec U\_i)}
-  \\right)\\right)
- - E\_{Q\_{i2}}\\left(\\log\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)
-   \\frac{v(\\vec U\_i)}{q\_{\\theta\_{i2}}(\\vec U\_i)}\\right)\\right).
-](https://render.githubusercontent.com/render/math?math=%0AE_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%0A%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%0A%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%0A%20%20%5Cright%29%5Cright%29%0A%20-%20E_%7BQ_%7Bi2%7D%7D%5Cleft%28%5Clog%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%0A%20%20%20%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi2%7D%7D%28%5Cvec%20U_i%29%7D%5Cright%29%5Cright%29.%0A "
-E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}
-  \right)\right)
- - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)
-   \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
-")
+![E\_{Q\_{i1}}\\left(\\log\\left(  f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}  S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\frac{v(\\vec U\_i)}{q\_{\\theta\_{i1}}(\\vec U\_i)}  \\right)\\right)  - E\_{Q\_{i2}}\\left(\\log\\left(S\_{i1}(v\_{i1}\\mid \\vec U\_i)  \\frac{v(\\vec U\_i)}{q\_{\\theta\_{i2}}(\\vec U\_i)}\\right)\\right).](https://render.githubusercontent.com/render/math?math=E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%20%20%5Cright%29%5Cright%29%20%20-%20E_%7BQ_%7Bi2%7D%7D%5Cleft%28%5Clog%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%20%20%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi2%7D%7D%28%5Cvec%20U_i%29%7D%5Cright%29%5Cright%29. "E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}  \right)\right)  - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)  \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).")
 
 This has some implications:
 
@@ -2978,7 +2928,7 @@ This has some implications:
     and the model parameters. However, we have to minimize over the
     ![\\vec\\theta\_{i2}](https://render.githubusercontent.com/render/math?math=%5Cvec%5Ctheta_%7Bi2%7D "\vec\theta_{i2}")s
     as they provide an upper bound on the log marginal likelihood. Thus,
-    we have maxmin problem.
+    we have a maxmin problem rather than a pure maximization problem.
 2.  The approximation is no longer guaranteed to be a lower bound on the
     log marginal likelihood because we are adding a lower bound on one
     term with an upper bound on the other term.

@@ -2044,11 +2044,7 @@ outcome, $H = 1$.
 The log marginal likelihood of individual $i$ 
 where we do not properly account for the delayed entry is
 
-$$
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)
-$$
+$$\log E\left( f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}} \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)$$
 
 where $\vec y_i$ is observed markers of individual $i$, 
 $f_i$ is the conditional density for the markers of individual $i$ given the 
@@ -2058,16 +2054,7 @@ $h_{i1}$ is the conditional hazard, $S_{i1}$ is the conditional survival
 function, and $v_{i1}\in [0,\infty)$ is the left-truncation time. We approximate 
 the log marginal likelihood term with a lower bound given by 
 
-$$
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq
-  E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}
-  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}
-  \right)\right)
-$$
+$$\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq  E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}  \right)\right)$$
 
 where the expectation on the right-hand side is using the density 
 $q_{\vec\theta_{i1}}$ and $v$ is the unconditional density of the random 
@@ -2076,30 +2063,18 @@ lower bound over the $\vec\theta_{i1}$s and the model parameters.
 
 The correct likelihood with delayed entry is
 
-$$
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\right)
- - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).
-$$
+$$\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\right)  - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).$$
 
 Of course, we can replace this with an approximation in the form of 
 
-$$
-E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}
-  \right)\right)
- - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)
-   \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
-$$
+$$E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}  \right)\right)  - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)  \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).$$
 
 This has some implications:
 
  1. We still need to maximize over the $\vec\theta_{i1}$s and the model 
     parameters. However, we have to minimize over the $\vec\theta_{i2}$s as 
     they provide an upper bound on the log marginal likelihood. 
-    Thus, we have maxmin problem. 
+    Thus, we have a maxmin problem rather than a pure maximization problem.
  2. The approximation is no longer guaranteed to be a lower bound on the 
     log marginal likelihood because we are adding a lower bound on one term with 
     an upper bound on the other term.

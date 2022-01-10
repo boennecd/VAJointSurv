@@ -2635,42 +2635,17 @@ with(wo_caching, median[4] / median[1])
 <h3>Two Markers, the Observation Time Process, and a Terminal Event with Delayed Entry</h3>
 <p>We alter the previous example in this section by adding delayed entries. In this case, the likelihood has to be altered to account for the delayed entry as described by <span class="citation">Crowther et al. (2016)</span> and <span class="citation">Berg and Drepper (2016)</span>.</p>
 <p>To show the likelihood we use, assume that there is only one type of survival outcome, <span class="math inline">\(H = 1\)</span>. The log marginal likelihood of individual <span class="math inline">\(i\)</span> where we do not properly account for the delayed entry is</p>
-<p><span class="math display">\[
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)
-\]</span></p>
+<p><span class="math display">\[\log E\left( f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}} \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)\]</span></p>
 <p>where <span class="math inline">\(\vec y_i\)</span> is observed markers of individual <span class="math inline">\(i\)</span>, <span class="math inline">\(f_i\)</span> is the conditional density for the markers of individual <span class="math inline">\(i\)</span> given the random effects <span class="math inline">\(\vec U_i\)</span>, <span class="math inline">\(t_{i1}\)</span> is the observed time, <span class="math inline">\(d_{i1}\)</span> is an event indicator, <span class="math inline">\(h_{i1}\)</span> is the conditional hazard, <span class="math inline">\(S_{i1}\)</span> is the conditional survival function, and <span class="math inline">\(v_{i1}\in [0,\infty)\)</span> is the left-truncation time. We approximate the log marginal likelihood term with a lower bound given by</p>
-<p><span class="math display">\[
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq
-  E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}
-  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}
-  \right)\right)
-\]</span></p>
+<p><span class="math display">\[\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq  E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}  \right)\right)\]</span></p>
 <p>where the expectation on the right-hand side is using the density <span class="math inline">\(q_{\vec\theta_{i1}}\)</span> and <span class="math inline">\(v\)</span> is the unconditional density of the random effects. Since this is a lower bound, we can jointly optimize the lower bound over the <span class="math inline">\(\vec\theta_{i1}\)</span>s and the model parameters.</p>
 <p>The correct likelihood with delayed entry is</p>
-<p><span class="math display">\[
-\log E\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\right)
- - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).
-\]</span></p>
+<p><span class="math display">\[\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\right)  - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).\]</span></p>
 <p>Of course, we can replace this with an approximation in the form of</p>
-<p><span class="math display">\[
-E_{Q_{i1}}\left(\log\left(
-  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}
-  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}
-  \right)\right)
- - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)
-   \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
-\]</span></p>
+<p><span class="math display">\[E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}  \right)\right)  - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)  \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).\]</span></p>
 <p>This has some implications:</p>
 <ol style="list-style-type: decimal">
-<li>We still need to maximize over the <span class="math inline">\(\vec\theta_{i1}\)</span>s and the model parameters. However, we have to minimize over the <span class="math inline">\(\vec\theta_{i2}\)</span>s as they provide an upper bound on the log marginal likelihood. Thus, we have maxmin problem.</li>
+<li>We still need to maximize over the <span class="math inline">\(\vec\theta_{i1}\)</span>s and the model parameters. However, we have to minimize over the <span class="math inline">\(\vec\theta_{i2}\)</span>s as they provide an upper bound on the log marginal likelihood. Thus, we have a maxmin problem rather than a pure maximization problem.</li>
 <li>The approximation is no longer guaranteed to be a lower bound on the log marginal likelihood because we are adding a lower bound on one term with an upper bound on the other term.</li>
 <li>The approximation of <span class="math inline">\(\log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right)\)</span> may be poor as we do not have the multivariate normal density from the markers.</li>
 </ol>
