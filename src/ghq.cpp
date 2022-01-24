@@ -283,7 +283,7 @@ void combined_problem::eval
     if(n_outs_p > 1){
       // compute the scales to use for the derivatives
       for(size_t i = 0; i < n_points; ++i, ++outs_inner_p)
-        scales[i] = integrands[i] / *outs_inner_p;
+        scales[i] = integrands[i] > 0 ? integrands[i] / *outs_inner_p : 0;
 
       // set the derivatives
       for(size_t j = 0; j < n_outs_p - 1; ++j)

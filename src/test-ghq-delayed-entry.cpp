@@ -18,6 +18,31 @@ namespace {
  gl_dat <- with(SimSurvNMarker::get_gl_rule(30),
  list(node = (node + 1) / 2, weight = weight / 2))
  dput(gl_dat)
+
+ # util functions
+ upper_to_full <- \(x){
+ dim <- (sqrt(8 * length(x) + 1) - 1) / 2
+ out <- matrix(0, dim, dim)
+ out[upper.tri(out, TRUE)] <- x
+ out[lower.tri(out)] <- t(out)[lower.tri(out)]
+ out
+ }
+
+ get_n_remove <- \(x, n){
+ out <- x[1:n]
+ eval(substitute(out <- out[-(1:n)], list(out = substitute(x), n = n)),
+ parent.frame())
+ out
+ }
+
+ d_upper_to_full <- \(x){
+ dim <- (sqrt(8 * length(x) + 1) - 1) / 2
+ out <- matrix(0, dim, dim)
+ out[upper.tri(out, TRUE)] <- x
+ out[upper.tri(out)] <- out[upper.tri(out)] / 2
+ out[lower.tri(out)] <- t(out)[lower.tri(out)]
+ out
+ }
  */
 constexpr size_t n_ghq{10};
 constexpr double ghq_nodes[]{-3.43615911883774, -2.53273167423279, -1.75668364929988, -1.03661082978951, -0.342901327223705, 0.342901327223705, 1.03661082978951, 1.75668364929988, 2.53273167423279, 3.43615911883774},
@@ -29,17 +54,19 @@ constexpr double gl_nodes[]{0.998446742037325, 0.991834061639874, 0.980010932484
 
 }
 
-context("delayed_dat lp_joint functions") {
+context("delayed_dat functions") {
   test_that("works with two survival outcomes of the same type with fraitly") {
     /*
      library(ghqCpp)
 
      set.seed(2)
-     S1 <- rWishart(1, 3, diag(1/3, 3)) |> drop() |> round(3)
-     S2 <- rWishart(1, 1, diag(1, 1)) |> drop() |> round(3)
-     Sigma <- matrix(0, NROW(S1) + NROW(S2), NROW(S1) + NROW(S2))
-     Sigma[1:NROW(S1), 1:NROW(S1)] <- S1
-     Sigma[1:NROW(S2) + NROW(S1), 1:NROW(S2) + NROW(S1)] <- S2
+     k1 <- 3
+     k2 <- 1
+     S1 <- rWishart(1, k1, diag(1/k1, k1)) |> drop() |> round(3)
+     S2 <- rWishart(1, k2, diag(1/k2, k2)) |> drop() |> round(3)
+     Sigma <- matrix(0, k1 + k2, k1 + k2)
+     Sigma[1:k1, 1:k1] <- S1
+     Sigma[1:k2 + k1, 1:k2 + k1] <- S2
 
      dput(S1)
      dput(S2)
@@ -57,17 +84,48 @@ context("delayed_dat lp_joint functions") {
      eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
      ws <- c(gl_dat$weight %o% delayed)
 
-     dput(expected_survival_term(
+     expected_survival_term(
      eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
-     weights = ghq_dat$w, nodes = ghq_dat$x))
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log() |> dput()
+
+     fn <- \(par){
+     gamma <- get_n_remove(par, length(gamma))
+     alpha <- get_n_remove(par, length(alpha))
+     S1 <- upper_to_full(get_n_remove(par, k1 * (k1 + 1) / 2))
+     S2 <- upper_to_full(par)
+
+     Sigma <- matrix(0, k1 + k2, k1 + k2)
+     Sigma[1:k1, 1:k1] <- S1
+     Sigma[1:k2 + k1, 1:k2 + k1] <- S2
+
+     environment(eta) <- environment()
+     environment(M) <- environment()
+
+     M_comb <- lapply(delayed, expand, fun = M) |> do.call(what = rbind)
+     eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
+     expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log()
+     }
+
+     grad <- numDeriv::grad(fn, c(gamma, alpha, S1[upper.tri(S1, TRUE)], S2))
+
+     get_n_remove(grad, length(gamma)) |> dput()
+     get_n_remove(grad, length(alpha)) |> dput()
+     get_n_remove(grad, k1 * (k1 + 1) / 2) |> d_upper_to_full() |> dput()
+     d_upper_to_full(grad) |> dput()
      */
 
     constexpr double assoc[]{.67, .25},
                   fix_surv[]{.15, .33},
                      delay[]{.5, 1},
-                   true_fn{0.314491215425103},
+                   true_fn{-1.15679913510741},
                  vcov_vary[]{0.203, -0.294, -0.062, -0.294, 0.46, 0.302, -0.062, 0.302, 1.617},
-                 vcov_surv[]{0.555};
+                 vcov_surv[]{0.555},
+                   d_assoc[]{-0.0184346377802509, -0.00919147692590657},
+                   d_gamma[]{-0.881901733102239, 0.841649437411157},
+               d_vcov_vary[]{0.050779395782231, 0.0254164927279688, 0.00948376621481518, 0.0254164927279688, -0.00166047224672699, -0.000619579387180349, 0.00948376621481518, -0.000619579387180349, -0.000231186169974813},
+                 d_vcov_surv{0.113124530606547};
 
     survival::node_weight const gl_dat
       {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
@@ -106,8 +164,38 @@ context("delayed_dat lp_joint functions") {
       survival::delayed_dat cmp_dat
         {bases_fix, bases_rng, design_mats, params, info, ders};
 
-      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      {
+        double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+        expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+      }
+
+      constexpr double dum_off{-1.5};
+      std::vector<double> gr(params.n_params(), dum_off);
+
+      double const res
+        {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+      expect_true
+        (std::abs(gr[params.fixef_surv(0)] - d_gamma[0] - dum_off)
+           < std::abs(d_gamma[0]) * 1e-3);
+      expect_true
+        (std::abs(gr[params.fixef_vary_surv(0)] - d_gamma[1] - dum_off)
+           < std::abs(d_gamma[0]) * 1e-3);
+
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[params.association(0) + i] - d_assoc[i] - dum_off)
+             < std::abs(d_assoc[i]) * 1e-3);
+
+      for(size_t i = 0; i < 9; ++i)
+        expect_true
+          (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i] - dum_off)
+             < std::abs(d_vcov_vary[i]) * 1e-3);
+
+      expect_true
+        (std::abs(gr[params.vcov_surv()] - d_vcov_surv - dum_off)
+           < std::abs(d_vcov_surv) * 1e-3);
     }
 
     /*  works with another redundant survival type with frailty and another
@@ -147,8 +235,38 @@ context("delayed_dat lp_joint functions") {
     survival::delayed_dat cmp_dat
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
-    double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+    {
+      double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    constexpr double dum_off{-1.5};
+    std::vector<double> gr(params.n_params(), dum_off);
+
+    double const res
+      {cmp_dat.grad(x.data(), gr.data(), mem, 1, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+    expect_true
+      (std::abs(gr[params.fixef_surv(1)] - d_gamma[0] - dum_off)
+         < std::abs(d_gamma[0]) * 1e-3);
+    expect_true
+      (std::abs(gr[params.fixef_vary_surv(1)] - d_gamma[1] - dum_off)
+         < std::abs(d_gamma[0]) * 1e-3);
+
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[params.association(1) + i] - d_assoc[i] - dum_off)
+         < std::abs(d_assoc[i]) * 1e-3);
+
+    for(size_t i = 0; i < 9; ++i)
+      expect_true
+      (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i] - dum_off)
+         < std::abs(d_vcov_vary[i]) * 1e-3);
+
+    expect_true
+      (std::abs(gr[params.vcov_surv() + 3] - d_vcov_surv - dum_off)
+         < std::abs(d_vcov_surv) * 1e-3);
   }
 
   test_that("works with two survival outcomes of the same type without fraitly and with current value and slope") {
@@ -171,16 +289,40 @@ context("delayed_dat lp_joint functions") {
      eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
      ws <- c(gl_dat$weight %o% delayed)
 
-     dput(expected_survival_term(
+     expected_survival_term(
      eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
-     weights = ghq_dat$w, nodes = ghq_dat$x))
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log() |> dput()
+
+     fn <- \(par){
+     gamma <- get_n_remove(par, length(gamma))
+     alpha <- get_n_remove(par, length(alpha))
+     Sigma <- upper_to_full(par)
+
+     environment(eta) <- environment()
+     environment(M) <- environment()
+
+     M_comb <- lapply(delayed, expand, fun = M) |> do.call(what = rbind)
+     eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
+     expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log()
+     }
+
+     grad <- numDeriv::grad(fn, c(gamma, alpha, Sigma[upper.tri(Sigma, TRUE)]))
+
+     get_n_remove(grad, length(gamma)) |> dput()
+     get_n_remove(grad, length(alpha)) |> dput()
+     d_upper_to_full(grad) |> dput()
      */
 
     constexpr double assoc[]{.67, 1, .25},
                   fix_surv[]{.35, .5},
                      delay[]{.66, 1.25},
-                     true_fn{0.216227859228867},
-                 vcov_vary[]{0.18, -0.282, -0.298, -0.282, 0.599, 0.757, -0.298, 0.757, 1.806};
+                     true_fn{-1.53142252348068},
+                 vcov_vary[]{0.18, -0.282, -0.298, -0.282, 0.599, 0.757, -0.298, 0.757, 1.806},
+                   d_gamma[]{-0.99038243533505, 0.817424734218724},
+                   d_assoc[]{0.0315009345747261, 0.147744995604926, 0.605116537123115},
+               d_vcov_vary[]{0.435080048959208, 0.512740604206576, 0.0753189883308562, 0.512740604206576, 0.404105825746256, 0.0999765811449094, 0.0753189883308562, 0.0999765811449094, 0.012404404002973};
 
     survival::node_weight const gl_dat
       {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
@@ -217,8 +359,29 @@ context("delayed_dat lp_joint functions") {
       survival::delayed_dat cmp_dat
         {bases_fix, bases_rng, design_mats, params, info, ders};
 
-      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      {
+        double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+        expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+      }
+
+      std::vector<double> gr(params.n_params(), 0);
+      double const res
+        {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+      double const *todo_delete{gr.data() +  params.fixef_vary_surv(0)};
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[params.fixef_vary_surv(0) + i] - d_gamma[i]) <
+            std::abs(d_gamma[i]) * 1e-3);
+      for(size_t i = 0; i < 3; ++i)
+        expect_true
+          (std::abs(gr[params.association(0) + i] - d_assoc[i]) <
+            std::abs(d_assoc[i]) * 1e-3);
+      for(size_t i = 0; i < 9; ++i)
+        expect_true
+        (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i]) <
+          std::abs(d_vcov_vary[i]) * 1e-3);
     }
 
     // works with a another redundant survival type without frailty
@@ -246,8 +409,29 @@ context("delayed_dat lp_joint functions") {
     survival::delayed_dat cmp_dat
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
-    double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+    {
+      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    std::vector<double> gr(params.n_params(), 0);
+    double const res
+      {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+        (std::abs(gr[params.fixef_vary_surv(0) + i] - d_gamma[i]) <
+          std::abs(d_gamma[i]) * 1e-3);
+    for(size_t i = 0; i < 3; ++i)
+      expect_true
+        (std::abs(gr[params.association(0) + i] - d_assoc[i]) <
+          std::abs(d_assoc[i]) * 1e-3);
+
+    for(size_t i = 0; i < 9; ++i)
+      expect_true
+        (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i]) <
+          std::abs(d_vcov_vary[i]) * 1e-3);
   }
 
   test_that("works with two survival outcomes of different types with fraitly") {
@@ -255,11 +439,13 @@ context("delayed_dat lp_joint functions") {
      library(ghqCpp)
 
      set.seed(2)
-     S1 <- rWishart(1, 3, diag(1/3, 3)) |> drop() |> round(3)
-     S2 <- rWishart(1, 2, diag(1/2, 2)) |> drop() |> round(3)
-     Sigma <- matrix(0, NROW(S1) + NROW(S2), NROW(S1) + NROW(S2))
-     Sigma[1:NROW(S1), 1:NROW(S1)] <- S1
-     Sigma[1:NROW(S2) + NROW(S1), 1:NROW(S2) + NROW(S1)] <- S2
+     k1 <- 3
+     k2 <- 2
+     S1 <- rWishart(1, k1, diag(1/k1, k1)) |> drop() |> round(3)
+     S2 <- rWishart(1, k2, diag(1/k2, k2)) |> drop() |> round(3)
+     Sigma <- matrix(0, k1 + k2, k1 + k2)
+     Sigma[1:k1, 1:k1] <- S1
+     Sigma[1:k2 + k1, 1:k2 + k1] <- S2
 
      dput(S1)
      dput(S2)
@@ -283,9 +469,42 @@ context("delayed_dat lp_joint functions") {
      SIMPLIFY = FALSE) |> unlist()
      ws <- c(gl_dat$weight %o% delayed)
 
-     dput(expected_survival_term(
+     expected_survival_term(
      eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
-     weights = ghq_dat$w, nodes = ghq_dat$x))
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log() |> dput()
+
+     fn <- \(par){
+     gamma <- get_n_remove(par, lengths(gamma) |> sum())
+     gamma <- list(gamma[1:2], gamma[3:4])
+     alpha <- get_n_remove(par, lengths(alpha) |> sum())
+     alpha <- list(alpha[1:2], alpha[3:4])
+     S1 <- upper_to_full(get_n_remove(par, k1 * (k1 + 1) / 2))
+     S2 <- upper_to_full(par)
+
+     Sigma <- matrix(0, k1 + k2, k1 + k2)
+     Sigma[1:k1, 1:k1] <- S1
+     Sigma[1:k2 + k1, 1:k2 + k1] <- S2
+
+     environment(eta) <- environment()
+     environment(M) <- environment()
+
+     M_comb <- mapply(expand, delayed, type, MoreArgs = list(fun = M),
+     SIMPLIFY = FALSE) |> do.call(what = rbind)
+     eta_comb <- mapply(expand, delayed, type, MoreArgs = list(fun = eta),
+     SIMPLIFY = FALSE) |> unlist()
+     expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x) |> log()
+     }
+
+     grad <- numDeriv::grad(fn, c(
+     unlist(gamma), unlist(alpha), S1[upper.tri(S1, TRUE)],
+     S2[upper.tri(S2, TRUE)]))
+
+     get_n_remove(grad, lengths(gamma) |> sum()) |> dput()
+     get_n_remove(grad, lengths(alpha) |> sum()) |> dput()
+     get_n_remove(grad, k1 * (k1 + 1) / 2) |> d_upper_to_full() |> dput()
+     d_upper_to_full(grad) |> dput()
      */
 
     constexpr double assoc1[]{.67, .25},
@@ -293,9 +512,13 @@ context("delayed_dat lp_joint functions") {
                   fix_surv1[]{.15, .33},
                   fix_surv2[]{-.5, .75},
                       delay[]{.5, 1},
-                      true_fn{0.3409580807473},
+                      true_fn{-1.075995739615},
                   vcov_vary[]{0.203, -0.294, -0.062, -0.294, 0.46, 0.302, -0.062, 0.302, 1.617},
-                  vcov_surv[]{0.407, -0.466, -0.466, 0.745};
+                  vcov_surv[]{0.407, -0.466, -0.466, 0.745},
+                    d_gamma[]{-0.778544337108826, 0.592757753956056, -0.17034927451654, 0.215809741927663},
+                    d_assoc[]{-0.0193417235255589, -0.0124083794131624, 0.0030447397139061, 0.000829696691836845},
+                d_vcov_vary[]{-0.00561347280926271, -0.00013807922540087, 0.00682683528908458, -0.00013807922540087, -0.0111717916431203, -0.000540786856978555, 0.00682683528908458, -0.000540786856978555, -0.000493832007298489},
+                d_vcov_surv[]{0.0227134396401382, 0.0501122918816501, 0.0501122918816501, -0.0594930011914013};
 
     survival::node_weight const gl_dat
     {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
@@ -342,8 +565,44 @@ context("delayed_dat lp_joint functions") {
       survival::delayed_dat cmp_dat
         {bases_fix, bases_rng, design_mats, params, info, ders};
 
-      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      {
+        double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+        expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+      }
+
+      std::vector<double> gr(params.n_params(), 0);
+      double const res
+        {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[i + params.association(0)] - d_assoc[i])
+             < std::abs(d_assoc[i]) * 1e-3);
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[i + params.association(1)] - d_assoc[i + 2])
+             < std::abs(d_assoc[i + 2]) * 1e-3);
+
+      expect_true
+        (std::abs(gr[params.fixef_surv(0)] - d_gamma[0])
+          < std::abs(d_gamma[0]) * 1e-3);
+      expect_true
+        (std::abs(gr[params.fixef_vary_surv(0)] - d_gamma[1])
+           < std::abs(d_gamma[1]) * 1e-3);
+
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[params.fixef_vary_surv(1) + i] - d_gamma[i + 2])
+             < std::abs(d_gamma[i + 2]) * 1e-3);
+      for(size_t i = 0; i < 9; ++i)
+        expect_true
+          (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i])
+             < std::abs(d_vcov_vary[i]) * 1e-3);
+      for(size_t i = 0; i < 4; ++i)
+        expect_true
+          (std::abs(gr[params.vcov_surv() + i] - d_vcov_surv[i])
+             < std::abs(d_vcov_surv[i]) * 1e-3);
     }
 
     // works with another redundant survival type with frailty and another
@@ -389,5 +648,7 @@ context("delayed_dat lp_joint functions") {
 
     double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+    // TODO: test the gradients
   }
 }

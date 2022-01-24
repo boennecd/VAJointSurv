@@ -149,6 +149,10 @@ private:
 
   vajoint_uint n_markers() const { return bases_rng.size(); }
 
+  /// struct to hide parts of the implementation
+  struct impl;
+  friend class impl;
+
 public:
   delayed_dat(joint_bases::bases_vector const &bases_fix_in,
               joint_bases::bases_vector const &bases_rng_in,
@@ -162,9 +166,18 @@ public:
     return v_cluster_infos;
   }
 
-  // evaluates the delayed entry terms for a given cluster
+  /// evaluates the delayed entry term for a given cluster
   double operator()
     (double const *param, ghqCpp::simple_mem_stack<double> &mem,
+     const vajoint_uint cluster_index, node_weight const &nws,
+     ghqCpp::ghq_data const &ghq_dat) const;
+
+  /**
+   * evaluates the delayed entry term for a given cluster and adds the gradient
+   * to the passed vector (i.e. the vector is not overwritten)
+   */
+  double grad
+    (double const *param, double *gr, ghqCpp::simple_mem_stack<double> &mem,
      const vajoint_uint cluster_index, node_weight const &nws,
      ghqCpp::ghq_data const &ghq_dat) const;
 };

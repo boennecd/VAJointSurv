@@ -3,6 +3,8 @@
 
 #include "VA-joint-config.h"
 
+namespace survival {
+
 /**
  * struct to hold nodes, weights, and the number of nodes. In this namespace,
  * the quadrature that are used are some quadrature rule on the interval (0, 1)
@@ -12,5 +14,7 @@ struct node_weight {
   double const * ns, * ws;
   vajoint_uint n_nodes;
 };
+
+}
 
 #endif

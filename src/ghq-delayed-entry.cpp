@@ -151,8 +151,7 @@ delayed_dat::eval_data::eval_data
       type_active.emplace(obs.type);
 
   idx_active_frailty.resize(dat.par_idx.surv_info().size());
-  std::fill(idx_active_frailty.begin(),
-            idx_active_frailty.end() + dat.par_idx.surv_info().size(), 0);
+  std::fill(idx_active_frailty.begin(), idx_active_frailty.end(), 0);
 
   idx_inv_active_fraitly.resize(type_active.size());
 
@@ -163,124 +162,144 @@ delayed_dat::eval_data::eval_data
   }
 }
 
-double delayed_dat::operator()
-  (double const *param, ghqCpp::simple_mem_stack<double> &mem,
-   const vajoint_uint cluster_index, node_weight const &nws,
-   ghqCpp::ghq_data const &ghq_dat) const {
-  auto const &info{cluster_infos()[cluster_index]};
+
+struct delayed_dat::impl{
+  delayed_dat const &dat;
+  delayed_dat::cluster_info const &info;
+  node_weight const &nws;
+  eval_data const &e_dat;
+  ghqCpp::simple_mem_stack<double> &mem;
+
   vajoint_uint const n_outcomes = info.size(),
                      n_gl = nws.n_nodes,
                      n_gl_outcomes{n_gl * n_outcomes},
-                     n_shared{par_idx.n_shared()};
+                     n_shared{dat.par_idx.n_shared()},
+                     n_rng = n_shared + e_dat.n_active_frailties();
 
-  eval_data e_dat{*this, nws, info, mem}; // TODO: can cache this
-  vajoint_uint const n_rng = n_shared + e_dat.n_active_frailties();
-
-  // get the memory we need
   double * const etas
     {mem.get(n_gl_outcomes + n_gl_outcomes * n_rng + n_rng * n_rng)},
          * const rng_design{etas + n_gl_outcomes},
          * const vcov{rng_design + n_gl_outcomes * n_rng};
-  auto mem_marker = mem.set_mark_raii();
 
-  // setup the eta offsets. These consists of time-varying and fixed part
-  // We start with the fixed part
-  for(vajoint_uint i = 0; i < n_outcomes; ++i){
-    auto &obs = info[i];
-    auto &design_mat_i = design_mats[obs.type];
-    double const *x{design_mat_i.col(obs.index)};
-    double const offset
-      {std::inner_product(x, x + design_mat_i.n_rows(),
-                          param + par_idx.fixef_surv(obs.type), 0.)};
-    std::fill(etas + i * n_gl, etas + (i + 1) * n_gl, offset);
-  }
+  ghqCpp::simple_mem_stack<double>::return_memory_handler mem_mark
+    {mem.set_mark_raii()};
 
-  // then the time-varying part
-  {
-    double *etas_i{etas};
-    for(size_t l = 0; l < info.size(); ++l, etas_i += n_gl){
-      auto &obs = info[l];
-      double const * const fixef_vary_par
-        {param + par_idx.fixef_vary_surv(obs.type)};
+  impl(delayed_dat const &dat, delayed_dat::cluster_info const &info,
+       node_weight const &nws, eval_data const &e_dat,
+       ghqCpp::simple_mem_stack<double> &mem, double const *param):
+    dat{dat}, info{info}, nws{nws}, e_dat{e_dat}, mem{mem} {
+    	// setup the eta offsets. These consists of time-varying and fixed part
+      for(vajoint_uint i = 0; i < n_outcomes; ++i){
+        // start with the fixed part
+        auto &obs = info[i];
+        double * const etas_i{etas + i * n_gl};
+        {
+          auto &design_mat_i = dat.design_mats[obs.type];
+          double const *x{design_mat_i.col(obs.index)};
+          double const offset
+            {std::inner_product(x, x + design_mat_i.n_rows(),
+                                param + dat.par_idx.fixef_surv(obs.type), 0.)};
+          std::fill(etas_i, etas_i + n_gl, offset);
+        }
 
-      auto &fixef_vary_basis_l = e_dat.fixef_vary_basis[l];
-      for(vajoint_uint j = 0; j < fixef_vary_basis_l.n_cols(); ++j)
-        for(vajoint_uint i = 0; i < fixef_vary_basis_l.n_rows(); ++i)
-          etas_i[i] += fixef_vary_basis_l.col(j)[i] * fixef_vary_par[j];
-    }
-  }
+        double const * const fixef_vary_par
+          {param + dat.par_idx.fixef_vary_surv(obs.type)};
 
-  // fill the rng_design matrix
-  std::fill(rng_design, rng_design + n_gl_outcomes * n_rng, 0);
-  {
-    double * rng_design_k{rng_design};
-    for(vajoint_uint k = 0; k < n_markers();
-        rng_design_k += rng_n_basis(k) * n_gl_outcomes, ++k){
-      std::vector<std::vector<simple_mat<double> > > &marker_k =
-        e_dat.rng_basis[k];
+        // then the time-varying part
+        auto &fixef_vary_basis_i = e_dat.fixef_vary_basis[i];
+        for(vajoint_uint j = 0; j < fixef_vary_basis_i.n_cols(); ++j)
+          for(vajoint_uint l = 0; l < fixef_vary_basis_i.n_rows(); ++l)
+            etas_i[l] += fixef_vary_basis_i.col(j)[l] * fixef_vary_par[j];
+      }
 
-      size_t const n_basis = rng_n_basis(k);
+      // fill the rng_design matrix
+      std::fill(rng_design, rng_design + n_gl_outcomes * n_rng, 0);
+      {
+        double * rng_design_k{rng_design};
+        for(vajoint_uint k = 0; k < dat.n_markers();
+            rng_design_k += dat.rng_n_basis(k) * n_gl_outcomes, ++k){
+          std::vector<std::vector<simple_mat<double> > > const &marker_k =
+            e_dat.rng_basis[k];
 
-      double * rng_design_kl{rng_design_k};
-      for(size_t l = 0; l < info.size(); ++l, rng_design_kl += n_gl){
-        auto &obs = info[l];
-        auto const &rng_basis_kl = marker_k[l];
-        double const * association{param + par_idx.association(obs.type)};
+          size_t const n_basis = dat.rng_n_basis(k);
 
-        // find the right association parameters
-        auto &ders_l = ders_v[obs.type];
-        for(size_t kk = 0; kk < k; ++kk)
-          association += ders_l[kk].size();
+          double * rng_design_kl{rng_design_k};
+          for(size_t l = 0; l < info.size(); ++l, rng_design_kl += n_gl){
+            auto &obs = info[l];
+            auto const &rng_basis_kl = marker_k[l];
+            double const * association{param + dat.par_idx.association(obs.type)};
 
-        for(size_t v = 0; v < rng_basis_kl.size(); ++v){
-          auto const &rng_basis_klv = rng_basis_kl[v];
-          for(size_t j = 0; j < n_basis; ++j)
-            for(size_t i = 0; i < n_gl; ++i)
-              rng_design_kl[i + j * n_gl_outcomes] +=
-                association[v] * rng_basis_klv.col(j)[i];
+            // find the right association parameters
+            auto &ders_l = dat.ders_v[obs.type];
+            for(size_t kk = 0; kk < k; ++kk)
+              association += ders_l[kk].size();
+
+            for(size_t v = 0; v < rng_basis_kl.size(); ++v){
+              auto const &rng_basis_klv = rng_basis_kl[v];
+              for(size_t j = 0; j < n_basis; ++j)
+                for(size_t i = 0; i < n_gl; ++i)
+                  rng_design_kl[i + j * n_gl_outcomes] +=
+                    association[v] * rng_basis_klv.col(j)[i];
+            }
+          }
         }
       }
+
+      // fill in the frailty columns
+      if(e_dat.n_active_frailties()){
+        double * rng_design_frailty_part{rng_design + n_gl_outcomes * n_shared};
+
+        for(size_t l = 0; l < info.size(); ++l, rng_design_frailty_part += n_gl){
+          auto &obs = info[l];
+          if(!dat.par_idx.surv_info()[obs.type].with_frailty)
+            continue;
+
+          auto idx = e_dat.idx_active_frailty[obs.type];
+          double *cp{rng_design_frailty_part + idx * n_gl_outcomes};
+          std::fill(cp, cp + n_gl, 1);
+        }
+      }
+
+      // fill the covariance matrix
+      double * vcov_j{vcov};
+      double const * vcov_vary{param + dat.par_idx.vcov_vary()};
+      for(size_t j = 0; j < n_shared; ++j, vcov_j += n_rng,
+          vcov_vary += n_shared){
+        std::copy(vcov_vary, vcov_vary + n_shared, vcov_j);
+        std::fill(vcov_j + n_shared, vcov_j + n_rng, 0);
+      }
+
+      double const * const vcov_surv{param + dat.par_idx.vcov_surv()};
+      auto const n_shared_surv = dat.par_idx.n_shared_surv();
+      size_t const n_left{e_dat.n_active_frailties()};
+
+      for(size_t j = 0; j < n_left; ++j, vcov_j += n_rng){
+        std::fill(vcov_j, vcov_j + n_shared, 0);
+
+        size_t const offset{e_dat.idx_inv_active_fraitly[j] * n_shared_surv};
+        for(size_t i = 0; i < e_dat.idx_inv_active_fraitly.size(); ++i)
+          vcov_j[i + n_shared] =
+            vcov_surv[e_dat.idx_inv_active_fraitly[i] + offset];
+      }
     }
-  }
+};
 
-  // fill in the frailty columns
-  if(e_dat.n_active_frailties()){
-    double * rng_design_frailty_part{rng_design + n_gl_outcomes * n_shared};
+double delayed_dat::operator()
+  (double const *param, ghqCpp::simple_mem_stack<double> &mem,
+   const vajoint_uint cluster_index, node_weight const &nws,
+   ghqCpp::ghq_data const &ghq_dat) const {
+  // use the helper to set up the objects need for the quadrature
+  auto const &info{cluster_infos()[cluster_index]};
+  eval_data e_dat{*this, nws, info, mem}; // TODO: can cache this
+  impl im{*this, info, nws, e_dat, mem, param};
 
-    for(size_t l = 0; l < info.size(); ++l, rng_design_frailty_part += n_gl){
-      auto &obs = info[l];
-      if(!par_idx.surv_info()[obs.type].with_frailty)
-        continue;
+  // apply the quadrature
+  double * const etas{im.etas},
+         * const rng_design{im.rng_design},
+         * const vcov{im.vcov};
 
-      auto idx = e_dat.idx_active_frailty[obs.type];
-      double *cp{rng_design_frailty_part + idx * n_gl_outcomes};
-      std::fill(cp, cp + n_gl, 1);
-    }
-  }
-
-  // fill the covariance matrix
-  {
-    double * vcov_j{vcov};
-    double const * vcov_vary{param + par_idx.vcov_vary()};
-    for(size_t j = 0; j < n_shared; ++j, vcov_j += n_rng,
-        vcov_vary += n_shared){
-      std::copy(vcov_vary, vcov_vary + n_shared, vcov_j);
-      std::fill(vcov_j + n_shared, vcov_j + n_rng, 0);
-    }
-
-    double const * const vcov_surv{param + par_idx.vcov_surv()};
-    auto const n_shared_surv = par_idx.n_shared_surv();
-    size_t const n_left{e_dat.n_active_frailties()};
-
-    for(size_t j = 0; j < n_left; ++j, vcov_j += n_rng){
-      std::fill(vcov_j, vcov_j + n_shared, 0);
-
-      size_t const offset{e_dat.idx_inv_active_fraitly[j] * n_shared_surv};
-      for(size_t i = 0; i < e_dat.idx_inv_active_fraitly.size(); ++i)
-        vcov_j[i + n_shared] =
-          vcov_surv[e_dat.idx_inv_active_fraitly[i] + offset];
-    }
-  }
+  vajoint_uint const n_gl_outcomes{im.n_gl_outcomes},
+                     n_rng{im.n_rng};
 
   arma::vec ws_vec(&e_dat.quad_weights[0], n_gl_outcomes, false),
           etas_vec(etas, n_gl_outcomes, false);
@@ -290,7 +309,133 @@ double delayed_dat::operator()
     (etas_vec, ws_vec, rng_design_mat, vcov_mat);
   ghqCpp::adaptive_problem prob(surv_term, mem, 1e-6);
 
-  return ghqCpp::ghq(ghq_dat, prob, mem, 1000)[0];
+  return std::log(ghqCpp::ghq(ghq_dat, prob, mem, 1000)[0]);
 }
 
+double delayed_dat::grad
+  (double const *param, double *gr, ghqCpp::simple_mem_stack<double> &mem,
+   const vajoint_uint cluster_index, node_weight const &nws,
+   ghqCpp::ghq_data const &ghq_dat) const {
+  // use the helper to set up the objects need for the quadrature
+  auto const &info{cluster_infos()[cluster_index]};
+  eval_data e_dat{*this, nws, info, mem}; // TODO: can cache this
+  impl im{*this, info, nws, e_dat, mem, param};
+
+  // apply the quadrature
+  double * const etas{im.etas},
+         * const rng_design{im.rng_design},
+         * const vcov{im.vcov};
+
+  vajoint_uint const n_gl_outcomes{im.n_gl_outcomes},
+                             n_rng{im.n_rng},
+                        n_outcomes{im.n_outcomes},
+                              n_gl{im.n_gl},
+                          n_shared{im.n_shared};
+
+  arma::vec ws_vec(&e_dat.quad_weights[0], n_gl_outcomes, false),
+  etas_vec(etas, n_gl_outcomes, false);
+  arma::mat rng_design_mat(rng_design, n_gl_outcomes, n_rng, false),
+  vcov_mat(vcov, n_rng, n_rng, false);
+  ghqCpp::expected_survival_term<true> surv_term
+    (etas_vec, ws_vec, rng_design_mat, vcov_mat);
+  ghqCpp::outer_prod_problem outer_term(n_rng);
+
+  std::vector<ghqCpp::ghq_problem const *> problems{&surv_term, &outer_term};
+  ghqCpp::combined_problem prob_comb{problems};
+  ghqCpp::adaptive_problem prob(prob_comb, mem, 1e-6);
+
+  auto res = ghqCpp::ghq(ghq_dat, prob, mem, 1000);
+  double const fn_exp{res[0]},
+               fn{std::log(fn_exp)};
+
+  // to get the derivative w.r.t. the logarithm
+  for(size_t i = 1; i < res.size(); ++i)
+    res[i] /= fn_exp;
+
+  double const * const d_eta{res.data() + 1},
+               * const d_rng_design{d_eta + n_gl_outcomes},
+               * const d_vcov_inter{d_rng_design + n_rng * n_gl_outcomes};
+
+  // handle the derivatives w.r.t. eta
+  {
+    double const * d_eta_i{d_eta};
+    for(vajoint_uint i = 0; i < n_outcomes; ++i, d_eta_i += n_gl){
+      // start with the fixed effect part
+      auto &obs = info[i];
+      {
+        auto &design_mat_i = design_mats[obs.type];
+        double const *x{design_mat_i.col(obs.index)};
+        double const sum_d_eta = std::accumulate(d_eta_i, d_eta_i + n_gl, 0.);
+        double * const outcome{gr + par_idx.fixef_surv(obs.type)};
+        for(vajoint_uint j = 0; j < design_mat_i.n_rows(); ++j)
+          outcome[j] += sum_d_eta * x[j];
+      }
+
+      // then the time-varying part
+      double * const outcome{gr + par_idx.fixef_vary_surv(obs.type)};
+
+      auto &fixef_vary_basis_i = e_dat.fixef_vary_basis[i];
+      for(vajoint_uint j = 0; j < fixef_vary_basis_i.n_cols(); ++j)
+        for(vajoint_uint i = 0; i < fixef_vary_basis_i.n_rows(); ++i)
+          outcome[j] += fixef_vary_basis_i.col(j)[i] * d_eta_i[i];
+    }
+  }
+
+  // the derivatives for the association parameter
+  {
+    double const * d_rng_design_k{d_rng_design};
+    for(vajoint_uint k = 0; k < n_markers();
+        d_rng_design_k += rng_n_basis(k) * n_gl_outcomes, ++k){
+      std::vector<std::vector<simple_mat<double> > > const &marker_k =
+        e_dat.rng_basis[k];
+
+      size_t const n_basis = rng_n_basis(k);
+
+      double const * d_rng_design_kl{d_rng_design_k};
+      for(size_t l = 0; l < info.size(); ++l, d_rng_design_kl += n_gl){
+        auto &obs = info[l];
+        auto const &rng_basis_kl = marker_k[l];
+        double * outcome{gr + par_idx.association(obs.type)};
+
+        // find the right association parameters
+        auto &ders_l = ders_v[obs.type];
+        for(size_t kk = 0; kk < k; ++kk)
+          outcome += ders_l[kk].size();
+
+        for(size_t v = 0; v < rng_basis_kl.size(); ++v){
+          auto const &rng_basis_klv = rng_basis_kl[v];
+          for(size_t j = 0; j < n_basis; ++j)
+            for(size_t i = 0; i < n_gl; ++i)
+              outcome[v] += d_rng_design_kl[i + j * n_gl_outcomes] *
+                rng_basis_klv.col(j)[i];
+        }
+      }
+    }
+  }
+
+  // the derivatives w.r.t. the covariance matrix
+  double * const d_vcov{mem.get(n_rng * n_rng)};
+  outer_term.d_Sig(d_vcov, d_vcov_inter, 1, vcov_mat);
+
+  double const * d_vcov_j{d_vcov};
+  double * gr_vcov_vary{gr + par_idx.vcov_vary()};
+  for(size_t j = 0; j < n_shared; ++j, d_vcov_j += n_rng,
+      gr_vcov_vary += n_shared){
+    for(vajoint_uint i = 0; i < n_shared; ++i)
+      gr_vcov_vary[i] += d_vcov_j[i];
+  }
+
+  double * const gr_vcov_surv{gr + par_idx.vcov_surv()};
+  auto const n_shared_surv = par_idx.n_shared_surv();
+  size_t const n_left{e_dat.n_active_frailties()};
+
+  for(size_t j = 0; j < n_left; ++j, d_vcov_j += n_rng){
+    size_t const offset{e_dat.idx_inv_active_fraitly[j] * n_shared_surv};
+    for(size_t i = 0; i < e_dat.idx_inv_active_fraitly.size(); ++i)
+      gr_vcov_surv[e_dat.idx_inv_active_fraitly[i] + offset] +=
+        d_vcov_j[i + n_shared];
+  }
+
+  return fn;
+}
 }
