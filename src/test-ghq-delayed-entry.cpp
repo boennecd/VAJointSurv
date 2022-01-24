@@ -1,0 +1,393 @@
+#include <testthat.h>
+#include "ghq-delayed-entry.h"
+#include <vector>
+
+/* The tests are run using this package
+ *
+ *   https://github.com/boennecd/ghq-cpp/tree/main/ghqCpp
+ *
+ * The commit is 61f0506c21 as of this writing.
+ */
+
+using survival::delayed_dat;
+
+namespace {
+
+/*
+ dput(ghq_dat <- fastGHQuad::gaussHermiteData(10))
+ gl_dat <- with(SimSurvNMarker::get_gl_rule(30),
+ list(node = (node + 1) / 2, weight = weight / 2))
+ dput(gl_dat)
+ */
+constexpr size_t n_ghq{10};
+constexpr double ghq_nodes[]{-3.43615911883774, -2.53273167423279, -1.75668364929988, -1.03661082978951, -0.342901327223705, 0.342901327223705, 1.03661082978951, 1.75668364929988, 2.53273167423279, 3.43615911883774},
+                 ghq_weights[]{7.6404328552326e-06, 0.00134364574678124, 0.0338743944554811, 0.240138611082314, 0.610862633735326, 0.610862633735326, 0.240138611082315, 0.033874394455481, 0.00134364574678124, 7.64043285523265e-06};
+
+constexpr size_t n_gl{30};
+constexpr double gl_nodes[]{0.998446742037325, 0.991834061639874, 0.980010932484154, 0.963100023714637, 0.941280267896026, 0.914782881191384, 0.883888716052413, 0.848925247396658, 0.810263091494621, 0.76831207407101, 0.723516884769045, 0.676352362765439, 0.627318463083945, 0.576934956804292, 0.525735921277659, 0.474264078722341, 0.423065043195708, 0.372681536916055, 0.323647637234561, 0.276483115230955, 0.23168792592899, 0.189736908505379, 0.151074752603342, 0.116111283947587, 0.0852171188086158, 0.0587197321039737, 0.0368999762853629, 0.0199890675158463, 0.00816593836012641, 0.00155325796267525},
+              gl_wewights[]{0.0039840962480833, 0.00923323415554548, 0.0143923539416617, 0.0193995962848135, 0.024201336415297, 0.0287465781088095, 0.0329871149410902, 0.0368779873688526, 0.0403779476147101, 0.0434498936005415, 0.0460612611188931, 0.0481843685873221, 0.0497967102933976, 0.0508811948742027, 0.0514263264467794, 0.0514263264467794, 0.0508811948742027, 0.0497967102933976, 0.0481843685873221, 0.0460612611188931, 0.0434498936005415, 0.0403779476147101, 0.0368779873688526, 0.0329871149410902, 0.0287465781088095, 0.024201336415297, 0.0193995962848135, 0.0143923539416617, 0.00923323415554548, 0.0039840962480833};
+
+}
+
+context("delayed_dat lp_joint functions") {
+  test_that("works with two survival outcomes of the same type with fraitly") {
+    /*
+     library(ghqCpp)
+
+     set.seed(2)
+     S1 <- rWishart(1, 3, diag(1/3, 3)) |> drop() |> round(3)
+     S2 <- rWishart(1, 1, diag(1, 1)) |> drop() |> round(3)
+     Sigma <- matrix(0, NROW(S1) + NROW(S2), NROW(S1) + NROW(S2))
+     Sigma[1:NROW(S1), 1:NROW(S1)] <- S1
+     Sigma[1:NROW(S2) + NROW(S1), 1:NROW(S2) + NROW(S1)] <- S2
+
+     dput(S1)
+     dput(S2)
+
+     gamma <- c(.15, .33)
+     delayed <- c(.5, 1)
+     alpha <- c(.67, .25)
+
+     eta <- \(x) cbind(1, log(x)) %*% gamma |> drop()
+     M <- \(x) cbind(alpha[1], alpha[1] * x, alpha[2] * x, 1)
+
+     expand <- \(x, fun) fun(x * gl_dat$node)
+
+     M_comb <- lapply(delayed, expand, fun = M) |> do.call(what = rbind)
+     eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
+     ws <- c(gl_dat$weight %o% delayed)
+
+     dput(expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x))
+     */
+
+    constexpr double assoc[]{.67, .25},
+                  fix_surv[]{.15, .33},
+                     delay[]{.5, 1},
+                   true_fn{0.314491215425103},
+                 vcov_vary[]{0.203, -0.294, -0.062, -0.294, 0.46, 0.302, -0.062, 0.302, 1.617},
+                 vcov_surv[]{0.555};
+
+    survival::node_weight const gl_dat
+      {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
+    ghqCpp::ghq_data const ghq_dat{ghq_nodes, ghq_weights, n_ghq};
+    ghqCpp::simple_mem_stack<double> mem;
+
+    joint_bases::bases_vector bases_fix;
+    joint_bases::bases_vector bases_rng;
+
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, false, true));
+
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, false));
+
+    {
+      subset_params params;
+      params.add_marker({ 1L, 2L, 2L});
+      params.add_marker({ 2L, 2L, 1L});
+      params.add_surv({ 1L, 1L, {1, 1}, true});
+
+      std::vector<double> x(params.n_params(), 0);
+      x[params.association(0)] = assoc[0];
+      x[params.association(0) + 1] = assoc[1];
+      x[params.fixef_surv(0)] = fix_surv[0];
+      x[params.fixef_vary_surv(0)] = fix_surv[1];
+      std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+      std::copy(vcov_surv, vcov_surv + 1, x.data() + params.vcov_surv());
+
+      double dsgn[]{1, 1};
+      std::vector<simple_mat<double> > design_mats{{dsgn, 1, 2}};
+
+      std::vector<std::vector<std::vector<int> > > ders{{{0}, {0}}};
+      std::vector<delayed_dat::cluster_info>
+        info{{{0, 0, delay[0]}, {0, 1, delay[1]}}};
+
+      survival::delayed_dat cmp_dat
+        {bases_fix, bases_rng, design_mats, params, info, ders};
+
+      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    /*  works with another redundant survival type with frailty and another
+     *  observation of the same type. */
+    mem.reset();
+
+    bases_fix.clear();
+
+    bases_fix.emplace_back(new joint_bases::orth_poly(2, true));
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, false, true));
+
+    subset_params params;
+    params.add_marker({ 1L, 2L, 2L});
+    params.add_marker({ 2L, 2L, 1L});
+    params.add_surv({ 2L, 3L, {1, 1}, true});
+    params.add_surv({ 1L, 1L, {1, 1}, true});
+
+    std::vector<double> x(params.n_params(), 0);
+    x[params.association(1)] = assoc[0];
+    x[params.association(1) + 1] = assoc[1];
+    x[params.fixef_surv(1)] = fix_surv[0];
+    x[params.fixef_vary_surv(1)] = fix_surv[1];
+    std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+    x[params.vcov_surv()] = -1;
+    x[params.vcov_surv() + 1] = -1;
+    x[params.vcov_surv() + 2] = -1;
+    x[params.vcov_surv() + 3] = *vcov_surv;
+
+    double dsgn_dum[]{0, 1, 2, 3}, dsgn[]{0, 1, 1};
+    std::vector<simple_mat<double> > design_mats{{dsgn_dum, 2, 1}, {dsgn, 1, 3}};
+
+    std::vector<std::vector<std::vector<int> > > ders{{{1}, {-1}}, {{0}, {0}}};
+    std::vector<delayed_dat::cluster_info>
+      info{{{0, 0, 2}, {1, 0, 4}},
+           {{1, 1, delay[0]}, {1, 2, delay[1]}}};
+
+    survival::delayed_dat cmp_dat
+      {bases_fix, bases_rng, design_mats, params, info, ders};
+
+    double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+    expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+  }
+
+  test_that("works with two survival outcomes of the same type without fraitly and with current value and slope") {
+    /*
+     library(ghqCpp)
+
+     set.seed(3)
+     dput(Sigma <- rWishart(1, 3, diag(1/3, 3)) |> drop() |> round(3))
+
+     gamma <- c(.35, .5)
+     delayed <- c(.66, 1.25)
+     alpha <- c(.67, 1, .25)
+
+     eta <- \(x) cbind(1, log(x)) %*% gamma |> drop()
+     M <- \(x) cbind(alpha[1] * x + alpha[2], alpha[1] * x^2 + 2 * alpha[2] * x, alpha[3])
+
+     expand <- \(x, fun) fun(x * gl_dat$node)
+
+     M_comb <- lapply(delayed, expand, fun = M) |> do.call(what = rbind)
+     eta_comb <- lapply(delayed, expand, fun = eta) |> unlist()
+     ws <- c(gl_dat$weight %o% delayed)
+
+     dput(expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x))
+     */
+
+    constexpr double assoc[]{.67, 1, .25},
+                  fix_surv[]{.35, .5},
+                     delay[]{.66, 1.25},
+                     true_fn{0.216227859228867},
+                 vcov_vary[]{0.18, -0.282, -0.298, -0.282, 0.599, 0.757, -0.298, 0.757, 1.806};
+
+    survival::node_weight const gl_dat
+      {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
+    ghqCpp::ghq_data const ghq_dat{ghq_nodes, ghq_weights, n_ghq};
+    ghqCpp::simple_mem_stack<double> mem;
+
+    joint_bases::bases_vector bases_fix;
+    joint_bases::bases_vector bases_rng;
+
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, true, true));
+
+    bases_rng.emplace_back(new joint_bases::orth_poly(2, false));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, false));
+
+    subset_params params;
+    params.add_marker({ 1L, 2L, 2L});
+    params.add_marker({ 2L, 2L, 1L});
+    params.add_surv({ 0L, 2L, {2, 1}, false});
+
+    {
+      std::vector<double> x(params.n_params(), 0);
+      std::copy(assoc, assoc + 3, x.data() + params.association(0));
+
+      std::copy(fix_surv, fix_surv + 2, x.data() + params.fixef_vary_surv(0));
+
+      std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+
+      std::vector<simple_mat<double> > design_mats{{nullptr, 0, 2}};
+
+      std::vector<std::vector<std::vector<int> > > ders{{{0, 1}, {1}}};
+      std::vector<delayed_dat::cluster_info>
+        info{{{0, 0, delay[0]}, {0, 1, delay[1]}}};
+
+      survival::delayed_dat cmp_dat
+        {bases_fix, bases_rng, design_mats, params, info, ders};
+
+      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    // works with a another redundant survival type without frailty
+    bases_fix.emplace_back(new joint_bases::orth_poly(3, true, true));
+
+    params.add_surv({ 3L, 4L, {2, 2}, false});
+
+    std::vector<double> x(params.n_params(), 0);
+    std::copy(assoc, assoc + 3, x.data() + params.association(0));
+
+    std::copy(fix_surv, fix_surv + 2, x.data() + params.fixef_vary_surv(0));
+
+    std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+
+    double dum[]{0,1,3};
+    std::vector<simple_mat<double> > design_mats
+      {{nullptr, 0, 2}, {dum, 3, 1}};
+
+    std::vector<std::vector<std::vector<int> > > ders{{{0, 1}, {1}},
+                                                      {{-1, 1}, {0, 2}}};
+    std::vector<delayed_dat::cluster_info>
+      info{{{0, 0, delay[0]}, {0, 1, delay[1]}},
+           {{1, 0, 4}}};
+
+    survival::delayed_dat cmp_dat
+      {bases_fix, bases_rng, design_mats, params, info, ders};
+
+    double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+    expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+  }
+
+  test_that("works with two survival outcomes of different types with fraitly") {
+    /*
+     library(ghqCpp)
+
+     set.seed(2)
+     S1 <- rWishart(1, 3, diag(1/3, 3)) |> drop() |> round(3)
+     S2 <- rWishart(1, 2, diag(1/2, 2)) |> drop() |> round(3)
+     Sigma <- matrix(0, NROW(S1) + NROW(S2), NROW(S1) + NROW(S2))
+     Sigma[1:NROW(S1), 1:NROW(S1)] <- S1
+     Sigma[1:NROW(S2) + NROW(S1), 1:NROW(S2) + NROW(S1)] <- S2
+
+     dput(S1)
+     dput(S2)
+
+     gamma <- list(c(.15, .33), c(-.5, .75))
+     delayed <- c(.5, 1)
+     alpha <- list(c(.67, .25), c(-.2, .4))
+
+     eta <- \(x, type) cbind(1, log(x)) %*% gamma[[type]] |> drop()
+     M <- \(x, type){
+     alpha <- alpha[[type]]
+     cbind(alpha[1], alpha[1] * x, alpha[2] * x, type == 1, type == 2)
+     }
+
+     expand <- \(x, ..., fun) fun(x * gl_dat$node, ...)
+
+     type <- c(2:1)
+     M_comb <- mapply(expand, delayed, type, MoreArgs = list(fun = M),
+     SIMPLIFY = FALSE) |> do.call(what = rbind)
+     eta_comb <- mapply(expand, delayed, type, MoreArgs = list(fun = eta),
+     SIMPLIFY = FALSE) |> unlist()
+     ws <- c(gl_dat$weight %o% delayed)
+
+     dput(expected_survival_term(
+     eta = eta_comb, ws = ws, M = M_comb, Sigma = Sigma,
+     weights = ghq_dat$w, nodes = ghq_dat$x))
+     */
+
+    constexpr double assoc1[]{.67, .25},
+                     assoc2[]{-.2, .4},
+                  fix_surv1[]{.15, .33},
+                  fix_surv2[]{-.5, .75},
+                      delay[]{.5, 1},
+                      true_fn{0.3409580807473},
+                  vcov_vary[]{0.203, -0.294, -0.062, -0.294, 0.46, 0.302, -0.062, 0.302, 1.617},
+                  vcov_surv[]{0.407, -0.466, -0.466, 0.745};
+
+    survival::node_weight const gl_dat
+    {gl_nodes, gl_wewights, static_cast<vajoint_uint>(n_gl)};
+    ghqCpp::ghq_data const ghq_dat{ghq_nodes, ghq_weights, n_ghq};
+    ghqCpp::simple_mem_stack<double> mem;
+
+    joint_bases::bases_vector bases_fix;
+    joint_bases::bases_vector bases_rng;
+
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, false, true));
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, true, true));
+
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, true));
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, false));
+
+    {
+      subset_params params;
+      params.add_marker({ 1L, 2L, 2L});
+      params.add_marker({ 2L, 2L, 1L});
+      params.add_surv({ 1L, 1L, {1, 1}, true});
+      params.add_surv({ 0L, 2L, {1, 1}, true});
+
+      std::vector<double> x(params.n_params(), 0);
+      std::copy(assoc1, assoc1 + 2, x.data() + params.association(0));
+      std::copy(assoc2, assoc2 + 2, x.data() + params.association(1));
+
+      x[params.fixef_surv(0)] = fix_surv1[0];
+      x[params.fixef_vary_surv(0)] = fix_surv1[1];
+
+      std::copy(fix_surv2, fix_surv2 + 2, x.data() + params.fixef_vary_surv(1));
+
+      std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+      std::copy(vcov_surv, vcov_surv + 4, x.data() + params.vcov_surv());
+
+      double dsgn1[]{1};
+      std::vector<simple_mat<double> > design_mats
+        {{dsgn1, 1, 1}, {nullptr, 0, 1}};
+
+      std::vector<std::vector<std::vector<int> > > ders
+        {{{0}, {0}}, {{0}, {0}}};
+      std::vector<delayed_dat::cluster_info>
+        info{{{1, 0, delay[0]}, {0, 0, delay[1]}}};
+
+      survival::delayed_dat cmp_dat
+        {bases_fix, bases_rng, design_mats, params, info, ders};
+
+      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    // works with another redundant survival type with frailty and another
+    // survival outcome of one of the types used
+    bases_fix.clear();
+    bases_fix.emplace_back(new joint_bases::orth_poly(3, true, true));
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, false, true));
+    bases_fix.emplace_back(new joint_bases::orth_poly(1, true, true));
+
+    subset_params params;
+    params.add_marker({ 1L, 2L, 2L});
+    params.add_marker({ 2L, 2L, 1L});
+    params.add_surv({ 2L, 4L, {2, 1}, true});
+    params.add_surv({ 1L, 1L, {1, 1}, true});
+    params.add_surv({ 0L, 2L, {1, 1}, true});
+
+    std::vector<double> x(params.n_params(), 0);
+    std::copy(assoc1, assoc1 + 2, x.data() + params.association(1));
+    std::copy(assoc2, assoc2 + 2, x.data() + params.association(2));
+
+    x[params.fixef_surv(1)] = fix_surv1[0];
+    x[params.fixef_vary_surv(1)] = fix_surv1[1];
+
+    std::copy(fix_surv2, fix_surv2 + 2, x.data() + params.fixef_vary_surv(2));
+
+    std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
+    for(unsigned i = 0; i < 2; ++i)
+      std::copy(vcov_surv + 2 * i, vcov_surv + 2 * (i + 1),
+                x.data() + params.vcov_surv() + 1 + (i + 1) * 3);
+
+    double dsgn0[]{0, 1}, dsgn1[]{1};
+    std::vector<simple_mat<double> > design_mats
+      {{dsgn0, 2, 1}, {dsgn1, 1, 1}, {nullptr, 0, 2}};
+
+    std::vector<std::vector<std::vector<int> > > ders
+      {{{0, 1}, {0}}, {{0}, {0}}, {{0}, {0}}};
+    std::vector<delayed_dat::cluster_info>
+      info{{{0, 0, 2}, {2, 0, 3}},
+           {{2, 1, delay[0]}, {1, 0, delay[1]}}};
+
+    survival::delayed_dat cmp_dat
+      {bases_fix, bases_rng, design_mats, params, info, ders};
+
+    double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+    expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+  }
+}

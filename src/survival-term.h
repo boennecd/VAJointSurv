@@ -7,21 +7,12 @@
 #include "simple-mat.h"
 #include "VA-parameter.h"
 #include <stdexcept>
+#include "JointSurv-misc.h"
 
 namespace survival {
 
 using joint_bases::basisMixin;
 using joint_bases::bases_vector;
-
-/**
- * struct to hold nodes, weights, and the number of nodes. In this namespace,
- * the quadrature that are used are some quadrature rule on the interval (0, 1)
- */
-struct node_weight {
-  /// the nodes should be between zero and one
-  double const * ns, * ws;
-  vajoint_uint n_nodes;
-};
 
 /**
  * computes the approximate expected cumulative hazard times minus one. That is
@@ -289,8 +280,8 @@ class survival_dat {
   /// design matrices for the fixed effects (one for each type of outcome)
   std::vector<simple_mat<double> > design_mats;
   /**
-   * functor to compute the approximation of the expected cumulative hazard (one
-   * for each type of outcome)
+   * functors to compute the approximation of the expected cumulative hazard
+   * (one for each type of outcome)
    */
   std::vector<expected_cum_hazzard> cum_hazs;
   /// vector of vectors with lower bounds, upper bounds, and outcome indicators
