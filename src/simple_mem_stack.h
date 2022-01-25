@@ -33,6 +33,7 @@ class simple_mem_stack {
 
   public:
     using iterator = T*;
+    using const_iterator = const T*;
 
     block_container(size_t const n_ele): n_ele{n_ele} { }
     block_container(const block_container &o):
@@ -43,6 +44,8 @@ class simple_mem_stack {
 
     iterator begin() { return mem.get(); }
     iterator end() { return mem.get() + n_ele; }
+    const_iterator begin() const  { return mem.get(); }
+    const_iterator end() const { return mem.get() + n_ele; }
     size_t size() const { return n_ele; }
   };
 
@@ -218,10 +221,14 @@ public:
 
   /// turns back the memory to the start without deallocating the memory
   void reset(){
+#ifdef DEBUG_SIMPLE_MEM_STACK
+    clear();
+#else
     while(!marks.empty())
       marks.pop();
 
     cur_head = iterator{memory.begin()};
+#endif // #ifdef DEBUG_SIMPLE_MEM_STACK
   }
 
   /**

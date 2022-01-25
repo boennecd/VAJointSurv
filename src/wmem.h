@@ -3,6 +3,7 @@
 
 #include "VA-joint-config.h"
 #include "cfaad/AAD.h"
+#include "simple_mem_stack.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -52,6 +53,14 @@ double * get_double_mem(const size_t);
 
 /// returns a pointer with capacity of some given number of Numbers
 cfaad::Number * get_Number_mem(const size_t);
+
+/// returns the simple_mem_stack for a given thread
+ghqCpp::simple_mem_stack<double> &mem_stack(const size_t);
+
+/// returns the simple_mem_stack for this thread
+inline ghqCpp::simple_mem_stack<double> &mem_stack(){
+  return mem_stack(get_thread_num());
+}
 } // namespace wmem
 
 #endif

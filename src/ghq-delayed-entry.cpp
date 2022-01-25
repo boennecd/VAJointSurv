@@ -163,7 +163,7 @@ delayed_dat::eval_data::eval_data
 }
 
 
-struct delayed_dat::impl{
+struct delayed_dat::impl {
   delayed_dat const &dat;
   delayed_dat::cluster_info const &info;
   node_weight const &nws;
@@ -381,7 +381,7 @@ double delayed_dat::grad
     }
   }
 
-  // the derivatives for the association parameter
+  // the derivatives for the association parameters
   {
     double const * d_rng_design_k{d_rng_design};
     for(vajoint_uint k = 0; k < n_markers();
@@ -438,4 +438,4 @@ double delayed_dat::grad
 
   return fn;
 }
-}
+} // namespace survival

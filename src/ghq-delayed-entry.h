@@ -14,7 +14,7 @@ struct delayed_dat {
     /// the entry time
     double entry_time;
   };
-  // defines all the delayed entries for a cluster
+  /// defines all the delayed entries for a cluster
   using cluster_info = std::vector<cluster_obs>;
 
 private:
@@ -154,6 +154,8 @@ private:
   friend class impl;
 
 public:
+  delayed_dat() = default;
+
   delayed_dat(joint_bases::bases_vector const &bases_fix_in,
               joint_bases::bases_vector const &bases_rng_in,
               std::vector<simple_mat<double> > &design_mats,
@@ -161,7 +163,7 @@ public:
               std::vector<cluster_info> const &cluster_infos,
               std::vector<std::vector<std::vector<int> > > &ders);
 
-  /// returns the information about each cluster
+  /// returns information about each cluster
   std::vector<cluster_info> const & cluster_infos() const {
     return v_cluster_infos;
   }
@@ -174,7 +176,7 @@ public:
 
   /**
    * evaluates the delayed entry term for a given cluster and adds the gradient
-   * to the passed vector (i.e. the vector is not overwritten)
+   * to the passed pointer (i.e. the pointer is not overwritten)
    */
   double grad
     (double const *param, double *gr, ghqCpp::simple_mem_stack<double> &mem,

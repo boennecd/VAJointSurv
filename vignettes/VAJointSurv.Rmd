@@ -2081,15 +2081,20 @@ This has some implications:
  3. The approximation of $\log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right)$ may 
     be poor as we do not have the multivariate normal density from the markers. 
     
-Currently, 1. is most likely not handled in the most optimal way. At every 
-evaluation, we minimize over the $\vec\theta_{i2}$s parameters as a function 
-of the other parameters. This is quite slow as will be clear in the example 
-below. One can likely solve the maxmin problem in a much smarter way. It also 
-yields a problem if the inner optimization over the $\vec\theta_{i2}$s 
-parameters fails. In this case, 
-the upper bound on the log likelihood terms are (possibly very)
-loose possibly giving high likelihood to model parameters that are fare from 
-the maximum likelihood estimator.
+Currently, we compute the terms in the marginal likelihood due to delayed entry
+with adaptive Gauss-Hermite quadrature. This can be quite slow if there are 
+many random effects that needs to marginalized out. 
+However, it seems that quite few 
+quadrature nodes can be used to approximate the terms from delayed entry when 
+the marginal survival probabilities are close to one (and the variance of the 
+random effects is not extremely large). However, more quadrature nodes seems 
+to be needed for the gradient of marginal likelihood terms due to delayed entry. 
+Thus, you may experience odd behavior (very small improvements in the likelihood 
+approximation at each step)
+of the optimizer if more quadrature nodes are needed.
+
+We do believe that the maxmin problem mentioned in 1. can be solved efficiently 
+but our current "brute force" attempts where not fast.
 
 Delayed entry is handled by the `delayed` argument of `surv_term` as illustrated 
 in the example below.
@@ -2330,6 +2335,16 @@ system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
 print(-attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
+          head(joint_ms_lb_gr(comp_obj, start_val), 37 + 2 * 27),
+          tolerance = 1e-6)
 
 # find the maximum lower bound estimate
 system.time(opt_out_wrong <- joint_ms_opt(

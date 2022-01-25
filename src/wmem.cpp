@@ -6,10 +6,13 @@ using double_block = cfaad::blocklist<double       , max_ele>;
 using Number_block = cfaad::blocklist<cfaad::Number, max_ele>;
 std::vector<double_block> double_mem = std::vector<double_block>(1);
 std::vector<Number_block> Number_mem = std::vector<Number_block>(1);
+std::vector<ghqCpp::simple_mem_stack<double> > mem_stacks =
+  std::vector<ghqCpp::simple_mem_stack<double> >(1);
 
 void setup_working_memory(const size_t n_threads){
   double_mem.resize(n_threads);
   Number_mem.resize(n_threads);
+  mem_stacks.resize(n_threads);
 }
 
 void rewind(const size_t idx){
@@ -43,6 +46,10 @@ double * get_double_mem(const size_t n){
 
 cfaad::Number * get_Number_mem(const size_t n){
   return Number_mem[get_thread_num()].emplace_back_multi(n);
+}
+
+ghqCpp::simple_mem_stack<double> &mem_stack(const size_t idx){
+  return mem_stacks[idx];
 }
 
 } // namespace wmem

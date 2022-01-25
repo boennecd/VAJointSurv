@@ -22,6 +22,20 @@ set_n_check_quad_rule <- function(quad_rule){
   quad_rule
 }
 
+set_n_check_gh_quad_rule <- function(quad_rule){
+  if(is.null(quad_rule))
+    quad_rule <- list(node = c(-1.65068012388578, -0.52464762327529, 0.52464762327529, 1.65068012388578),
+                      weight = c(0.0813128354472451, 0.804914090005513, 0.804914090005512, 0.0813128354472453))
+
+  with(quad_rule,
+       stopifnot(is.list(quad_rule),
+                 is.numeric(node), all(is.finite(node)),
+                 is.numeric(weight), all(is.finite(weight)),
+                 length(node) == length(weight)))
+
+  quad_rule
+}
+
 check_n_threads <- function(object, n_threads){
   stopifnot(length(n_threads) == 1, n_threads > 0)
   if(object$max_threads < n_threads)
@@ -44,11 +58,18 @@ check_n_threads <- function(object, n_threads){
 #' expansions that take longer to compute (like \code{\link{ns_term}} and
 #' \code{\link{bs_term}}). The computation time may be worse particularly if
 #' you use more threads as the CPU cache is not well utilized.
+#' @param gh_quad_rule list with two numeric vectors called node and weight
+#' with Gauss–Hermite quadrature nodes and weights to handle delayed entry.
+#' A low number of quadrature nodes and weights is used when \code{NULL} is
+#' passed.
+#' This seems to work well when delayed entry happens at time with large
+#' marginal survival probabilities. The nodes and weights can be obtained e.g.
+#' from \code{fastGHQuad::gaussHermiteData}.
 #'
 #' @export
 joint_ms_ptr <- function(markers = list(), survival_terms = list(),
                          max_threads = 1L, quad_rule = NULL,
-                         cache_expansions = TRUE){
+                         cache_expansions = TRUE, gh_quad_rule = NULL){
   stopifnot(
     length(max_threads) == 1, max_threads > 0,
     is.logical(cache_expansions), length(cache_expansions) == 1)
@@ -64,6 +85,7 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
     stopifnot(all(sapply(survival_terms, inherits, "surv_term")))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
 
   # handle the default for ders
   survival_terms <- lapply(survival_terms, function(x){
@@ -73,17 +95,17 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   })
 
   # we need to to alter the start times and add new observations for the delayed
-  # entries. First we extract the new entries
+  # entries
   survival_terms_org <- survival_terms
   survival_terms <- lapply(survival_terms, function(x){
     idx_delayed <- which(x$delayed)
 
     if(length(idx_delayed) > 0){
-      y_delayed <- cbind(0, x$y[idx_delayed, "start"], 0)
+      y_delayed <- x$y[idx_delayed, "start"]
       x$y[idx_delayed, "start"] <- 0
     }
     else
-      y_delayed <- matrix(0, 0L, 3L)
+      y_delayed <- numeric()
 
     id_delayed <- x$id[idx_delayed]
     Z_delayed <- x$Z[, idx_delayed, drop = FALSE]
@@ -92,64 +114,21 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
     x
   })
 
-  # extract all the ids and the ids which needs a new id for their corresponding
-  # term with the delayed entries
-  ids <- c(lapply(markers, `[[`, "id"),
-               lapply(survival_terms, `[[`, "id"))
-  ids <- sort(unique(unlist(ids)))
-
-  ids_w_delayed_entries <- lapply(
-    survival_terms, function(x) x$delayed_data$id)
-  ids_w_delayed_entries <- sort(unique(unlist(ids_w_delayed_entries)))
-
-  # generate the new ids
-  new_ids_delayed <- ids_w_delayed_entries
-  while(any(has_match <- new_ids_delayed %in% ids))
-    new_ids_delayed <- sample.int(.Machine$integer.max, sum(has_match))
-  new_ids_delayed <- sort(new_ids_delayed)
-  if(is.null(new_ids_delayed))
-    # happens if there are no survival terms
-    new_ids_delayed <- integer()
-
-  # we have to alter the ids in the delayed data in survival_terms and combine
-  # the result
-  survival_terms <- lapply(survival_terms, function(x){
-    delayed_data <- x$delayed_data
-    x$delayed_data <- NULL
-
-    if(length(delayed_data$id) < 1)
-      return(x)
-
-    delayed_data$id <-
-      new_ids_delayed[match(delayed_data$id, ids_w_delayed_entries)]
-    stopifnot(all(is.finite(delayed_data$id)))
-
-    # combine the data
-    x$Z <- cbind(x$Z, delayed_data$Z)
-    x$y <- rbind(x$y, delayed_data$y)
-    x$id <- c(x$id, delayed_data$id)
-
-    # reorder the data
-    ord <- order(x$id)
-    x$Z <- x$Z[, ord]
-    x$y <- x$y[ord, ]
-    x$id <- x$id[ord]
-
-    x
-  })
+  # extract all the delayed entries
+  delayed_terms <- lapply(survival_terms, `[[`, "delayed_data")
 
   # create the C++ object
   ptr <- .joint_ms_ptr(
     markers, survival_terms, max_threads = max_threads,
-    ids_delayed = new_ids_delayed)
+    delayed_terms = delayed_terms)
   param_names <- joint_ms_parameter_names(ptr)
   out <- list(param_names = param_names, ptr = ptr)
   indices <- joint_ms_parameter_indices(ptr)
 
   # create a vector with the unique ids
-  ids_all <- c(lapply(markers, `[[`, "id"),
+  ids <- c(lapply(markers, `[[`, "id"),
            lapply(survival_terms, `[[`, "id"))
-  ids_all <- sort(unique(unlist(ids_all)))
+  ids <- sort(unique(unlist(ids)))
 
   # compute starting values. Start with the markers
   start_val <- numeric(joint_ms_n_params(ptr))
@@ -179,9 +158,11 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   out <- structure(
     list(param_names = param_names, indices = indices, ptr = ptr,
          start_val = start_val, max_threads = max_threads,
-         quad_rule = quad_rule, n_lb_terms = joint_ms_n_terms(ptr),
+         quad_rule = quad_rule, gh_quad_rule = gh_quad_rule,
+         n_lb_terms = joint_ms_n_terms(ptr),
          cache_expansions = cache_expansions, ids = ids,
-         ids_all = ids_all, markers = markers, survival_terms = survival_terms,
+         markers = markers, survival_terms = survival_terms,
+         delayed_terms = delayed_terms,
          survival_terms_org = survival_terms_org),
     class = "joint_ms")
 
@@ -263,10 +244,12 @@ joint_ms_start_val <- function(
   c1 = 1e-4, c2 = .9, use_bfgs = TRUE, trace = 0, cg_tol = 0.5,
   strong_wolfe = TRUE, max_cg = 0, pre_method = 3L,
   quad_rule = object$quad_rule, mask = integer(),
-  cache_expansions = object$cache_expansions, gr_tol = -1){
+  cache_expansions = object$cache_expansions, gr_tol = -1,
+  gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
   check_n_threads(object, n_threads)
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
@@ -335,7 +318,7 @@ joint_ms_start_val <- function(
       val = x, ptr = object$ptr, rel_eps = rel_eps,
       max_it = max_it, n_threads = n_threads, c1 = c1, c2 = c2,
       quad_rule = quad_rule, cache_expansions = cache_expansions,
-      gr_tol = gr_tol)
+      gr_tol = gr_tol, gh_quad_rule = gh_quad_rule)
 
     # this may lead to semi-definite covariance matrices. We ad-hock adjust
     # these which may help
@@ -370,7 +353,8 @@ joint_ms_start_val <- function(
                            max_cg = max_cg, pre_method = pre_method,
                            quad_rule = quad_rule, mask = mask,
                            cache_expansions = cache_expansions,
-                           only_markers = TRUE, gr_tol = gr_tol)
+                           only_markers = TRUE, gr_tol = gr_tol,
+                           gh_quad_rule = gh_quad_rule)
 
     if(NCOL(vcov_surv))
       res$par <- do_opt_priv(res$par)
@@ -401,28 +385,34 @@ joint_ms_start_val <- function(
 #' @export
 joint_ms_lb <- function(object, par, n_threads = object$max_threads,
                         quad_rule = object$quad_rule,
-                        cache_expansions = object$cache_expansions){
+                        cache_expansions = object$cache_expansions,
+                        gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
   check_n_threads(object, n_threads)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
 
   joint_ms_eval_lb(val = par, ptr = object$ptr, n_threads = n_threads,
-                   quad_rule = quad_rule, cache_expansions = cache_expansions)
+                   quad_rule = quad_rule, cache_expansions = cache_expansions,
+                   gh_quad_rule = gh_quad_rule)
 }
 
 #' @rdname joint_ms_lb
 #' @export
 joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
                            quad_rule = object$quad_rule,
-                           cache_expansions = object$cache_expansions){
+                           cache_expansions = object$cache_expansions,
+                           gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
   check_n_threads(object, n_threads)
 
   joint_ms_eval_lb_gr(val = par, ptr = object$ptr, n_threads = n_threads,
-                      quad_rule = quad_rule, cache_expansions = cache_expansions)
+                      quad_rule = quad_rule, cache_expansions = cache_expansions,
+                      gh_quad_rule = gh_quad_rule)
 }
 
 #' Computes the Hessian
@@ -438,14 +428,17 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 joint_ms_hess <- function(
   object, par, quad_rule = object$quad_rule,
   cache_expansions = object$cache_expansions, eps = 1e-4, scale = 2,
-  tol = .Machine$double.eps^(3/5), order = 6L){
+  tol = .Machine$double.eps^(3/5), order = 6L,
+  gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
   quad_rule <- set_n_check_quad_rule(quad_rule)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
 
   res <- .joint_ms_hess(val = par, ptr = object$ptr, quad_rule =  quad_rule,
                         cache_expansions = cache_expansions, eps = eps,
-                        scale = scale, tol = tol, order = order)
+                        scale = scale, tol = tol, order = order,
+                        gh_quad_rule = gh_quad_rule)
 
   # try to compute
   is_global <- 1:(object$indices$va_params_start - 1L)
@@ -475,9 +468,11 @@ joint_ms_opt <- function(
   n_threads = object$max_threads, c1 = 1e-4, c2 = .9, use_bfgs = TRUE,
   trace = 0L, cg_tol = .5, strong_wolfe = TRUE, max_cg = 0L,
   pre_method = 3L, quad_rule = object$quad_rule, mask = integer(),
-  cache_expansions = object$cache_expansions, gr_tol = -1){
+  cache_expansions = object$cache_expansions, gr_tol = -1,
+  gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
   quad_rule <- set_n_check_quad_rule(quad_rule)
+  gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
   check_n_threads(object, n_threads)
   stopifnot(is.integer(mask), all(mask >= 0 & mask < length(par)))
 
@@ -488,7 +483,8 @@ joint_ms_opt <- function(
                          pre_method = pre_method, quad_rule = quad_rule,
                          mask = mask,
                          cache_expansions = cache_expansions,
-                         only_markers = FALSE, gr_tol = gr_tol)
+                         only_markers = FALSE, gr_tol = gr_tol,
+                         gh_quad_rule = gh_quad_rule)
   if(!fit$convergence)
     warning(sprintf("Fit did not converge but returned with code %d. Perhaps increase the maximum number of iterations",
                     fit$info))

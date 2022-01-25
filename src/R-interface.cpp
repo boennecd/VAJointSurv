@@ -1,8 +1,7 @@
 #include "arma-eigen-wrap.h"
 #include "marker-term.h"
-#include <psqn.h>
-#include <psqn-reporter.h>
-#include <psqn-bfgs.h>
+#include "psqn.h"
+#include "psqn-reporter.h"
 #include "log-cholesky.h"
 #include "kl-term.h"
 #include "cfaad/AAD.h"
@@ -11,6 +10,7 @@
 #include "survival-term.h"
 #include <array>
 #include "prof-vajoint.h"
+#include "ghq-delayed-entry.h"
 
 using Rcpp::List;
 using Rcpp::NumericMatrix;
@@ -56,8 +56,19 @@ void set_my_tape(){
 }
 /// the currently set quadrature rule to use
 survival::node_weight const * cur_quad_rule;
+/// the currently set Gauss-Hermite quadrature rule to use
+ghqCpp::ghq_data const * cur_gh_quad_rule;
 
 survival::node_weight node_weight_from_list(List dat){
+  NumericVector nodes = dat["node"],
+              weigths = dat["weight"];
+  if(nodes.size() != weigths.size())
+    throw std::runtime_error("nodes.size() != weigths.size()");
+
+  return { &nodes[0], &weigths[0], static_cast<vajoint_uint>(nodes.size()) };
+}
+
+ghqCpp::ghq_data gh_node_weight_from_list(List dat){
   NumericVector nodes = dat["node"],
               weigths = dat["weight"];
   if(nodes.size() != weigths.size())
@@ -170,121 +181,129 @@ class lower_bound_term {
   marker::marker_dat const &m_dat;
   survival::survival_dat const &s_dat;
   kl_term const &kl_dat;
+  survival::delayed_dat const &d_dat;
 
   std::vector<vajoint_uint> marker_indices;
   /// indices of survival outcomes stored as (index, type of outcome)
   std::vector<std::array<vajoint_uint, 2L> > surv_indices;
   size_t n_global, n_private;
 
+  bool has_delayed_entry{false};
+  size_t delayed_entry_idx;
+
   friend lower_bound_caller;
-  bool const is_delayed_entry;
+public:
+  lower_bound_term
+  (subset_params const &par_idx, marker::marker_dat const &m_dat,
+   survival::survival_dat const &s_dat, kl_term const &kl_dat,
+   survival::delayed_dat const &d_dat):
+  par_idx(par_idx), m_dat(m_dat), s_dat(s_dat), kl_dat(kl_dat), d_dat(d_dat),
+  n_global(par_idx.n_params<true>()),
+  n_private{par_idx.n_va_params<true>()}
+  { }
 
-  /**
-   * used to cache the last solution for the variational parameters if
-   * is_delayed_entry is true
-   */
-  std::unique_ptr<double[]> va_par_cache
-    {is_delayed_entry ? new double[par_idx.n_va_params<true>()] : nullptr};
-
-  void reset_va_par_cache() const {
-    if(is_delayed_entry)
-      std::fill(va_par_cache.get(),
-                va_par_cache.get() + par_idx.n_va_params<true>(), 0);
+  void add_marker_index(const vajoint_uint idx){
+    marker_indices.emplace_back(idx);
   }
 
-  vajoint_uint const n_rng
-    {static_cast<vajoint_uint>(par_idx.va_mean_end() - par_idx.va_mean())};
-
-  /// the required working memory to evaluate the function
-  vajoint_uint const fn_n_wmem{
-    many_max<vajoint_uint>(log_chol::pd_mat::n_wmem(n_rng),
-                           m_dat.n_wmem(),
-                           kl_dat.n_wmem(),
-                           s_dat.n_wmem()[0] + s_dat.n_wmem()[1])};
-
-  /// the required double working memory to evaluate the gradient
-  vajoint_uint const gr_n_wmem_num
-    {many_max<vajoint_uint>(m_dat.n_wmem(), s_dat.n_wmem()[0])};
-  /// the required Number working memory to evaluate the gradient
-  vajoint_uint const gr_n_wmem_dub
-  {many_max<vajoint_uint>
-    (log_chol:: pd_mat::n_wmem(n_rng),
-     log_chol::dpd_mat::n_wmem(n_rng),
-     log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
-     log_chol::dpd_mat::n_wmem(par_idx.n_shared_surv()),
-     kl_dat.n_wmem(),
-     s_dat.n_wmem()[1])};
-
-  /**
-   * evaluates the lower bound at the parameter setting.
-   * set_my_tape() has to be called prior to calling this function
-   */
-  double eval_lb
-    (double const *p, lower_bound_caller const &caller,
-     bool const do_flip, bool const full_rewind) const {
-    if(caller.setup_failed)
-      return std::numeric_limits<double>::quiet_NaN();
-
-    if(full_rewind)
-      wmem::rewind();
-    else
-      wmem::rewind_to_mark();
-
-    // get working memory
-    auto const n_par_full = par_idx.n_params_w_va<false>();
-    double * const inter_mem{wmem::get_double_mem(fn_n_wmem + n_par_full)},
-           * const par_vec{inter_mem + fn_n_wmem};
-
-    // copy the global parameters
-    std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec);
-
-    // insert the variational parameters
-    std::copy(p + par_idx.va_mean<true>(), p + par_idx.va_mean_end<true>(),
-              par_vec + par_idx.va_mean<false>());
-    log_chol::pd_mat::get(p + par_idx.va_vcov<true>(), n_rng,
-                          par_vec + par_idx.va_vcov<false>(), inter_mem);
-
-    // compute the lower bound terms and return
-    double res = kl_dat.eval(par_vec, inter_mem);
-    for(vajoint_uint idx : marker_indices)
-      res += m_dat(par_vec, inter_mem, idx);
-    if(lower_bound_caller::optimze_survival)
-      for(auto &idx : surv_indices)
-        res += s_dat(par_vec, inter_mem, idx[0], idx[1],
-                     inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
-
-    return do_flip ? -res : res;
+  void add_surv_index(const vajoint_uint idx, const vajoint_uint type){
+    surv_indices.emplace_back(std::array<vajoint_uint, 2L>{idx, type});
   }
 
-  /**
-   * evaluates the gradient of lower bound at the parameter setting.
-   * set_my_tape() has to be called prior to calling this function
-   */
-  double eval_lb_grad
-    (double const *p, double *gr, lower_bound_caller const &caller,
-     bool const do_flip, bool const full_rewind) const {
+  void add_delayed_entry(size_t const idx){
+    has_delayed_entry = true;
+    delayed_entry_idx = idx;
+  }
+
+  void shrink_to_fit() {
+    marker_indices.shrink_to_fit();
+    surv_indices.shrink_to_fit();
+  }
+
+  size_t global_dim() const {
+    return n_global;
+  }
+  size_t private_dim() const {
+    return n_private;
+  }
+
+  double comp(double const *p, double *gr,
+              lower_bound_caller const &caller, bool const comp_grad) const {
     if(caller.setup_failed)
       return std::numeric_limits<double>::quiet_NaN();
+    set_my_tape();
 
-    if(full_rewind)
-      wmem::rewind();
-    else
-      wmem::rewind_to_mark();
+    vajoint_uint const n_rng{par_idx.va_mean_end() - par_idx.va_mean()};
+    wmem::rewind();
 
-    // get working memory
-    auto const n_par_full = par_idx.n_params_w_va<false>();
-    Number * const inter_mem_num
-      {wmem::get_Number_mem(gr_n_wmem_num + n_par_full)};
-    double * const inter_mem_dub
-      {wmem::get_double_mem(gr_n_wmem_dub + 2 * n_par_full)};
+    if(!comp_grad){
+      // find the required working memory
+      // TODO: do this once
+      vajoint_uint const n_wmem =
+        many_max<vajoint_uint>(log_chol::pd_mat::n_wmem(n_rng),
+                               m_dat.n_wmem(),
+                               kl_dat.n_wmem(),
+                               s_dat.n_wmem()[0] + s_dat.n_wmem()[1]);
+
+      double * const inter_mem{wmem::get_double_mem(n_wmem)};
+      double * const par_vec{wmem::get_double_mem(par_idx.n_params_w_va())};
+
+      // copy the global parameters
+      std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec);
+
+      // insert the variational parameters
+      std::copy(p + par_idx.va_mean<true>(), p + par_idx.va_mean_end<true>(),
+                par_vec + par_idx.va_mean<false>());
+      log_chol::pd_mat::get(p + par_idx.va_vcov<true>(), n_rng,
+                            par_vec + par_idx.va_vcov<false>(), inter_mem);
+
+      // compute the lower bound terms and return
+      double res = kl_dat.eval(par_vec, inter_mem);
+      for(vajoint_uint idx : marker_indices)
+        res += m_dat(par_vec, inter_mem, idx);
+      if(lower_bound_caller::optimze_survival){
+        for(auto &idx : surv_indices)
+          res += s_dat(par_vec, inter_mem, idx[0], idx[1],
+                       inter_mem + s_dat.n_wmem()[0], *cur_quad_rule);
+
+        if(has_delayed_entry){
+          ghqCpp::simple_mem_stack<double> &my_stack = wmem::mem_stack();
+          my_stack.reset();
+
+          res += d_dat(par_vec, my_stack, delayed_entry_idx,
+                       *cur_quad_rule, *cur_gh_quad_rule);
+        }
+      }
+
+      return res;
+    }
+
+    // find the required working memory
+    // TODO: compute this once
+    vajoint_uint const n_wmem_num
+      {many_max<vajoint_uint>(m_dat.n_wmem(), s_dat.n_wmem()[0])};
+    vajoint_uint const n_wmem_dub
+      {many_max<vajoint_uint>
+        (log_chol:: pd_mat::n_wmem(n_rng),
+         log_chol::dpd_mat::n_wmem(n_rng),
+         log_chol::dpd_mat::n_wmem(par_idx.marker_info().size()),
+         log_chol::dpd_mat::n_wmem(par_idx.n_shared_surv()),
+         kl_dat.n_wmem(),
+         s_dat.n_wmem()[1])};
+
+    Number * const inter_mem_num{wmem::get_Number_mem(n_wmem_num)};
+    double * const inter_mem_dub{wmem::get_double_mem(n_wmem_dub)};
 
     // setup the parameter vectors
-    Number * const par_vec_num{inter_mem_num + gr_n_wmem_num};
-    double * const par_vec_dub{inter_mem_dub + gr_n_wmem_dub},
-           * const par_vec_gr{par_vec_dub + n_par_full};
+    double * const par_vec_dub
+      {wmem::get_double_mem(par_idx.n_params_w_va<false>())},
+           * const par_vec_gr
+      {wmem::get_double_mem(par_idx.n_params_w_va<false>())};
+    Number * const par_vec_num
+      {wmem::get_Number_mem(par_idx.n_params_w_va<false>())};
 
     Number::tape->rewind();
-    std::fill(par_vec_gr, par_vec_gr + n_par_full, 0);
+    std::fill(par_vec_gr, par_vec_gr + par_idx.n_params_w_va<false>(), 0);
 
     // copy the global parameters
     std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec_dub);
@@ -306,21 +325,31 @@ class lower_bound_term {
        par_vec_dub + par_idx.va_vcov<false>() + n_rng * n_rng,
        par_vec_num + par_idx.va_vcov<false>());
 
-    // compute the lower bound terms
+    // compute the lower bound terms.
     Number res{0};
     for(vajoint_uint idx : marker_indices)
       res += m_dat(par_vec_num, inter_mem_num, idx);
-    if(lower_bound_caller::optimze_survival)
+
+    res += kl_dat.grad(par_vec_gr, par_vec_dub, inter_mem_dub);
+
+    if(lower_bound_caller::optimze_survival){
       for(auto &idx : surv_indices)
         res += s_dat(par_vec_num, inter_mem_num, idx[0], idx[1],
                      inter_mem_dub, *cur_quad_rule);
 
-    res += kl_dat.grad(par_vec_gr, par_vec_dub, inter_mem_dub);
+      if(has_delayed_entry){
+        ghqCpp::simple_mem_stack<double> &my_stack = wmem::mem_stack();
+        my_stack.reset();
+
+        res += d_dat.grad(par_vec_dub, par_vec_gr, my_stack, delayed_entry_idx,
+                          *cur_quad_rule, *cur_gh_quad_rule);
+      }
+    }
 
     // compute the gradient and return
     res.propagateToStart();
 
-    for(vajoint_uint i = 0; i < n_par_full; ++i)
+    for(vajoint_uint i = 0; i < par_idx.n_params_w_va<false>(); ++i)
       par_vec_gr[i] += par_vec_num[i].adjoint();
 
     // the covariance matrix parameters
@@ -355,224 +384,7 @@ class lower_bound_term {
        gr + par_idx.va_vcov<true>(),
        par_vec_gr + par_idx.va_vcov<false>(), inter_mem_dub);
 
-    if(do_flip){
-      auto const n_par = par_idx.n_params_w_va<true>();
-      for(vajoint_uint i = 0; i < n_par; ++i)
-        gr[i] *= -1;
-
-      return -res.value();
-    }
-
     return res.value();
-  }
-
-  /**
-   * class to optimize the VA parameters only. Needed for the minmax problem
-   * with delayed entry
-   */
-  class opt_VA;
-  friend class opt_VA;
-
-  class opt_VA final : public PSQN::problem {
-    lower_bound_term const &dat;
-    lower_bound_caller const &caller;
-    double * const full_par,
-           * const gr_full;
-    vajoint_uint n_pars;
-
-    subset_params const & par_idx() const {
-      return dat.par_idx;
-    }
-
-  public:
-    /**
-     * the full_par needs to have the model parameters set. The gr_full needs
-     * to have enough memory for the model parameters and the global parameters.
-     */
-    opt_VA
-    (lower_bound_term const &dat, lower_bound_caller const &caller,
-     double * const full_par, double * gr_full):
-    dat{dat}, caller{caller}, full_par{full_par}, gr_full{gr_full},
-    n_pars{static_cast<vajoint_uint>(par_idx().n_va_params<true>())}
-      { }
-
-    PSQN::psqn_uint size() const {
-      return n_pars;
-    }
-
-    double func(double const *val) {
-      std::copy(val, val + size(), full_par + par_idx().va_par_start<true>());
-      return nan_if_fail
-        ([&]{ return dat.eval_lb(full_par, caller, false, false); });
-    }
-
-    double grad(double const * __restrict__ val,
-                double       * __restrict__ gr) {
-      std::copy(val, val + size(), full_par + par_idx().va_par_start<true>());
-
-      double const res{nan_if_fail
-        ([&]{
-          return dat.eval_lb_grad(full_par, gr_full, caller, false, false);
-        })};
-
-      std::copy
-        (gr_full + par_idx().va_par_start<true>(),
-         gr_full + par_idx().va_par_end<true>(), gr);
-      return res;
-    }
-  };
-
-public:
-  lower_bound_term
-  (subset_params const &par_idx, marker::marker_dat const &m_dat,
-   survival::survival_dat const &s_dat, kl_term const &kl_dat,
-   bool const is_delayed_entry):
-  par_idx(par_idx), m_dat(m_dat), s_dat(s_dat), kl_dat(kl_dat),
-  n_global(par_idx.n_params<true>()),
-  n_private{par_idx.n_va_params<true>()},
-  is_delayed_entry{is_delayed_entry}
-  {
-    reset_va_par_cache();
-  }
-
-  /// copy constructor because of the unique_ptr
-  lower_bound_term(lower_bound_term const &o):
-  par_idx(o.par_idx), m_dat(o.m_dat), s_dat(o.s_dat), kl_dat(o.kl_dat),
-  marker_indices{o.marker_indices}, surv_indices{o.surv_indices},
-  n_global(o.n_global), n_private{o.n_private},
-  is_delayed_entry{o.is_delayed_entry}
-  {
-    reset_va_par_cache();
-  }
-
-
-
-  void add_marker_index(const vajoint_uint idx){
-    marker_indices.emplace_back(idx);
-  }
-
-  void add_surv_index(const vajoint_uint idx, const vajoint_uint type){
-    surv_indices.emplace_back(std::array<vajoint_uint, 2L>{idx, type});
-  }
-
-  void shrink_to_fit() {
-    marker_indices.shrink_to_fit();
-    surv_indices.shrink_to_fit();
-  }
-
-  size_t global_dim() const {
-    return n_global;
-  }
-  size_t private_dim() const {
-    return is_delayed_entry ? 0 : n_private;
-  }
-
-  double comp
-    (double const *p, double *gr, lower_bound_caller const &caller,
-     bool const comp_grad) const {
-    if(caller.setup_failed)
-      return std::numeric_limits<double>::quiet_NaN();
-
-    set_my_tape(); // has to be called as we call eval_lb and eval_lb_grad
-
-    if(!is_delayed_entry){
-      if(!comp_grad)
-        return eval_lb(p, caller, is_delayed_entry, true);
-      return eval_lb_grad(p, gr, caller, is_delayed_entry, true);
-    }
-
-    // we have to optimize the VA parameters. We start by getting the memory
-    // we need
-    wmem::rewind();
-
-    vajoint_uint const n_pars{par_idx.n_params_w_va<true>()};
-    double * const full_par{wmem::get_double_mem(2 * n_pars + n_private)},
-           * const gr_full{full_par + n_pars},
-           * const par_sub{gr_full + n_pars};
-
-    wmem::set_mark();
-
-    // fill the parameters and do the optimization
-    std::copy(p, p + n_global, full_par);
-
-    // function to set the VA parameters to be match the global parameters.
-    // The right thing if there are no survival terms
-    auto set_va_pars_to_model_par = [&](){
-      auto const va_shift = par_idx.va_par_start<true>();
-      std::fill(par_sub + par_idx.va_mean<true>() - va_shift,
-                par_sub + par_idx.va_mean_end<true>() - va_shift, 0);
-
-      // TODO: we make the assumption that the covariance matrix for the
-      //       varying effects is before that of the time invariant effects in
-      //       the log hazards
-      lp_joint::copy_block_upper_tri(
-        par_sub + par_idx.va_vcov<true>() - va_shift,
-        p + par_idx.vcov_vary<true>(),
-        p + par_idx.vcov_surv<true>(),
-        par_idx.n_shared(), par_idx.n_shared_surv());
-    };
-
-    if(!lower_bound_caller::optimze_survival){
-      // already converged as the survival terms are ignored
-      // copy the parameters
-      set_va_pars_to_model_par();
-      std::copy(par_sub, par_sub + n_private,
-                full_par + par_idx.va_par_start<true>());
-
-      if(comp_grad)
-        std::fill(gr, gr + n_global, 0);
-      return eval_lb(full_par, caller, true, false);
-    }
-
-    // does the optimization starting at the current par_sub
-    opt_VA problem{*this, caller, full_par, gr_full};
-    auto do_opt = [&]{
-      // TODO: it would be nice if the user can set these values
-      return PSQN::bfgs<PSQN::dummy_reporter, PSQN::dummy_interrupter>
-        (problem, par_sub, 1e-8, 10000L, 1e-4, .9, 0L, 1e-4);
-    };
-
-    // the first attempt is to use the cached value as the starting point. The
-    // assumption is that the next point at which we evaluate the functions
-    // is not far from the previous one
-    std::copy(va_par_cache.get(), va_par_cache.get() + n_private, par_sub);
-    auto opt_res = do_opt();
-
-    auto did_converge = [](decltype(opt_res) const &val){
-      return val.info == PSQN::info_code::converged;
-    };
-
-    if(!did_converge(opt_res)){
-      // we try again starting at the model parameters
-      set_va_pars_to_model_par();
-      opt_res = do_opt();
-    }
-
-    if(!did_converge(opt_res)){
-      // we cannot return a non-optimal upper bound on the likelihood we are
-      // minimizing as it can be very far from optimal
-      // TODO: it would be nice to able to warn the user if the method did
-      //       not work
-      if(comp_grad)
-        std::fill
-          (gr, gr + n_global, std::numeric_limits<double>::quiet_NaN());
-
-      return std::numeric_limits<double>::quiet_NaN();
-    }
-
-    // copy the parameters
-    std::copy(par_sub, par_sub + n_private,
-              full_par + par_idx.va_par_start<true>());
-    std::copy(par_sub, par_sub + n_private, va_par_cache.get());
-
-    if(!comp_grad)
-      return eval_lb(full_par, caller, true, false);
-
-    double const res
-      {eval_lb_grad(full_par, gr_full, caller, true, false)};
-    std::copy(gr_full, gr_full + n_global, gr);
-
-    return res;
   }
 
   double func(double const *point, lower_bound_caller const &caller) const {
@@ -664,12 +476,12 @@ class problem_data {
   marker::marker_dat m_dat;
   survival::survival_dat s_dat;
   kl_term kl_dat;
+  survival::delayed_dat d_dat;
   std::unique_ptr<lb_optim> optim_obj;
 
 public:
   problem_data(List markers, List survival_terms,
-               unsigned const max_threads,
-               Rcpp::IntegerVector const &ids_delayed) {
+               unsigned const max_threads, List delayed_terms) {
     // handle the markers
     std::vector<marker::setup_marker_dat_helper> input_dat;
     joint_bases::bases_vector bases_fix;
@@ -747,6 +559,31 @@ public:
          with_frailty});
     }
 
+    // handle the terms for the delayed entry
+    if(delayed_terms.size() != survival_terms.size())
+      throw std::invalid_argument
+        ("delayed_terms.size() != survival_terms.size()");
+
+    std::vector<simple_mat<double> > d_fixef_design;
+    std::vector<Rcpp::IntegerVector> d_id_vecs;
+    std::vector<Rcpp::NumericVector> delay_times;
+
+    d_fixef_design.reserve(delayed_terms.size());
+    d_id_vecs.reserve(delayed_terms.size());
+    delay_times.reserve(delayed_terms.size());
+
+    for(auto d : delayed_terms){
+      List delay = d;
+
+      NumericMatrix Z{Rcpp::as<NumericMatrix>(delay["Z"])};
+      d_id_vecs.emplace_back(Rcpp::as<Rcpp::IntegerVector>(delay["id"]));
+      delay_times.emplace_back(Rcpp::as<NumericVector>(delay["y"]));
+
+      vajoint_uint const n_fixef = Z.nrow(),
+                         n_obs   = Z.ncol();
+      d_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
+    }
+
     // construct the objects to compute the different terms of the lower bound
     auto dat_n_idx =
       marker::get_comp_dat(input_dat, par_idx, bases_fix, bases_rng);
@@ -755,32 +592,84 @@ public:
     s_dat = survival::survival_dat
       (bases_fix_surv, bases_rng, s_fixef_design, par_idx, surv_input, ders);
 
+    // check that all ids are sorted
+    for(auto b = dat_n_idx.id.begin(); b != dat_n_idx.id.end(); ++b)
+      if(b != dat_n_idx.id.begin() && *b < *(b - 1))
+        throw std::invalid_argument("Marker ids are not sorted");
+
+    for(size_t i = 0; i < s_id_vecs.size(); ++i)
+      for(auto b = s_id_vecs[i].begin(); b != s_id_vecs[i].end(); ++b)
+        if(b != s_id_vecs[i].begin() && *b < *(b - 1))
+          throw std::invalid_argument
+          ("ids for survival type " + std::to_string(i + 1) + " are not sorted");
+
+    for(size_t i = 0; i < d_id_vecs.size(); ++i)
+      for(auto b = d_id_vecs[i].begin(); b != d_id_vecs[i].end(); ++b)
+        if(b != d_id_vecs[i].begin() && *b < *(b - 1))
+          throw std::invalid_argument
+          ("ids for delayed entry type " + std::to_string(i + 1) + " are not sorted");
+
+    // have to make a pass through the data to construct the delayed entry
+    // object
+    std::vector<std::vector<survival::delayed_dat::cluster_obs> >
+      delayed_cluster_obs;
+    std::vector<int> delayed_cluster_ids;
+    for(auto ids : d_id_vecs){
+      delayed_cluster_obs.reserve(ids.size());
+      delayed_cluster_ids.reserve(ids.size());
+    }
+
+    {
+      std::vector<vajoint_uint> indices(d_id_vecs.size(), 0);
+      auto all_at_end = [&]{
+        bool out{true};
+        for(size_t i = 0; out && i < indices.size(); ++i)
+          out &= indices[i] >= d_id_vecs[i].size();
+        return out;
+      };
+
+      while(!all_at_end()){
+        // find the next smallest id
+        int smallest_id{std::numeric_limits<int>::max()};
+        for(size_t i = 0; i < indices.size(); ++i)
+          if(indices[i] < d_id_vecs[i].size())
+            smallest_id = std::min(smallest_id, d_id_vecs[i][indices[i]]);
+
+        // create a cluster with ids that match the smallest id
+        delayed_cluster_ids.emplace_back(smallest_id);
+        delayed_cluster_obs.emplace_back();
+        auto &next_cluster = delayed_cluster_obs.back();
+
+        for(vajoint_uint type = 0; type < indices.size(); ++type){
+          while(indices[type] < d_id_vecs[type].size() &&
+                d_id_vecs[type][indices[type]] == smallest_id){
+            next_cluster.emplace_back(
+              survival::delayed_dat::cluster_obs
+                {type, indices[type], delay_times[type][indices[type]]});
+            ++indices[type];
+          }
+        }
+
+        next_cluster.shrink_to_fit();
+      }
+    }
+    delayed_cluster_obs.shrink_to_fit();
+
+    d_dat = survival::delayed_dat
+      (bases_fix_surv, bases_rng, d_fixef_design, par_idx, delayed_cluster_obs,
+       ders);
+
     // create the object to use for optimization
     std::vector<lower_bound_term> ele_funcs;
     ele_funcs.reserve(dat_n_idx.id.size());
 
     {
-      // check that all ids are sorted
-      for(auto b = dat_n_idx.id.begin(); b != dat_n_idx.id.end(); ++b)
-        if(b != dat_n_idx.id.begin() && *b < *(b - 1))
-          throw std::invalid_argument("Marker ids are not sorted");
-
-      // check that all ids are sorted
-      for(auto b = ids_delayed.begin(); b != ids_delayed.end(); ++b)
-        if(b != ids_delayed.begin() && *b < *(b - 1))
-          throw std::invalid_argument("ids_delayed are not sorted");
-
-      for(size_t i = 0; i < s_id_vecs.size(); ++i)
-        for(auto b = s_id_vecs[i].begin(); b != s_id_vecs[i].end(); ++b)
-          if(b != s_id_vecs[i].begin() && *b < *(b - 1))
-            throw std::invalid_argument
-              ("ids for survival type " + std::to_string(i + 1) + " are not sorted");
-
       // add the element functions
       auto id_marker = dat_n_idx.id.begin();
       std::vector<Rcpp::IntegerVector::iterator> s_indices(s_id_vecs.size());
       for(size_t i = 0; i < s_indices.size(); ++i)
         s_indices[i] = s_id_vecs[i].begin();
+      size_t delayed_idx{};
 
       // returns true if all iterators are at the end
       auto all_at_end = [&]{
@@ -792,9 +681,6 @@ public:
         return true;
       };
 
-      // the next index of the delayed clusters
-      auto id_delayed = ids_delayed.begin();
-
       while(!all_at_end()){
         // find the lowest id as the ids are supposed to be sorted
         int cur_id{std::numeric_limits<int>::max()};
@@ -804,26 +690,32 @@ public:
           if(s_indices[i] != s_id_vecs[i].end())
             cur_id = std::min(*s_indices[i], cur_id);
 
-
-        // find out if the cluster is to account for a delayed entry
-        bool is_flipped{false};
-        if(id_delayed != ids_delayed.end() && *id_delayed == cur_id){
-          is_flipped = true;
-          ++id_delayed;
-        }
-
         // add the observation where the id does match
-        ele_funcs.emplace_back(par_idx, m_dat, s_dat, kl_dat, is_flipped);
+        ele_funcs.emplace_back(par_idx, m_dat, s_dat, kl_dat, d_dat);
+        auto &ele_func = ele_funcs.back();
         while(id_marker != dat_n_idx.id.end() && *id_marker == cur_id)
-          ele_funcs.back().add_marker_index
+          ele_func.add_marker_index
             (std::distance(dat_n_idx.id.begin(), id_marker++));
 
         for(size_t i = 0; i < s_indices.size(); ++i)
           while(s_indices[i] != s_id_vecs[i].end() && *s_indices[i] == cur_id)
-            ele_funcs.back().add_surv_index
+            ele_func.add_surv_index
               (std::distance(s_id_vecs[i].begin(), s_indices[i]++), i);
 
-        ele_funcs.back().shrink_to_fit();
+        if(delayed_idx < delayed_cluster_ids.size() &&
+            delayed_cluster_ids[delayed_idx] < cur_id)
+          throw std::invalid_argument(
+              "delayed entry wihtout an outcome (id "
+                + std::to_string(delayed_cluster_ids[delayed_idx])
+                + " " + std::to_string(cur_id) + ")");
+
+        if(delayed_idx < delayed_cluster_ids.size() &&
+            delayed_cluster_ids[delayed_idx] == cur_id){
+          ele_func.add_delayed_entry(delayed_idx);
+          ++delayed_idx;
+        }
+
+        ele_func.shrink_to_fit();
       }
     }
 
@@ -893,11 +785,11 @@ inline void set_or_clear_cached_expansions
 // [[Rcpp::export(".joint_ms_ptr", rng = false)]]
 SEXP joint_ms_ptr
   (List markers, List survival_terms, unsigned const max_threads,
-   Rcpp::IntegerVector const &ids_delayed){
+   List delayed_terms){
   profiler pp(".joint_ms_ptr");
 
   return Rcpp::XPtr<problem_data>
-    (new problem_data(markers, survival_terms, max_threads, ids_delayed));
+    (new problem_data(markers, survival_terms, max_threads, delayed_terms));
 }
 
 /// returns the number of lower bound terms of different types
@@ -921,7 +813,7 @@ List joint_ms_n_terms(SEXP ptr){
 // [[Rcpp::export(rng = false)]]
 double joint_ms_eval_lb
   (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule,
-   bool const cache_expansions){
+   bool const cache_expansions, List gh_quad_rule){
   profiler pp("joint_ms_eval_lb");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -929,6 +821,8 @@ double joint_ms_eval_lb
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+  ghqCpp::ghq_data gh_quad_rule_use{gh_node_weight_from_list(gh_quad_rule)};
+  cur_gh_quad_rule = &gh_quad_rule_use;
 
   set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
   obj->set_n_threads(n_threads);
@@ -942,7 +836,7 @@ double joint_ms_eval_lb
 // [[Rcpp::export(rng = false)]]
 NumericVector joint_ms_eval_lb_gr
   (NumericVector val, SEXP ptr, unsigned const n_threads, List quad_rule,
-   bool const cache_expansions){
+   bool const cache_expansions, List gh_quad_rule){
   profiler pp("joint_ms_eval_lb_gr");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -950,6 +844,8 @@ NumericVector joint_ms_eval_lb_gr
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+  ghqCpp::ghq_data gh_quad_rule_use{gh_node_weight_from_list(gh_quad_rule)};
+  cur_gh_quad_rule = &gh_quad_rule_use;
 
   set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
@@ -966,12 +862,14 @@ NumericVector joint_ms_eval_lb_gr
 Eigen::SparseMatrix<double> joint_ms_hess
   (NumericVector val, SEXP ptr,  List quad_rule, bool const cache_expansions,
    double const eps, double const scale, double const tol,
-   unsigned const order){
+   unsigned const order, List gh_quad_rule){
   Rcpp::XPtr<problem_data> obj(ptr);
   check_par_length(*obj, val);
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+  ghqCpp::ghq_data gh_quad_rule_use{gh_node_weight_from_list(gh_quad_rule)};
+  cur_gh_quad_rule = &gh_quad_rule_use;
 
   set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
@@ -1089,7 +987,7 @@ NumericVector opt_priv
   (NumericVector val, SEXP ptr,
    double const rel_eps, unsigned const max_it, unsigned const n_threads,
    double const c1, double const c2, List quad_rule,
-   bool const cache_expansions, double const gr_tol){
+   bool const cache_expansions, double const gr_tol, List gh_quad_rule){
   profiler pp("opt_priv");
 
   Rcpp::XPtr<problem_data> obj(ptr);
@@ -1097,6 +995,8 @@ NumericVector opt_priv
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+  ghqCpp::ghq_data gh_quad_rule_use{gh_node_weight_from_list(gh_quad_rule)};
+  cur_gh_quad_rule = &gh_quad_rule_use;
 
   set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 
@@ -1119,7 +1019,7 @@ List joint_ms_opt_lb
    double const cg_tol, bool const strong_wolfe, size_t const max_cg,
    unsigned const pre_method, List quad_rule, Rcpp::IntegerVector mask,
    bool const cache_expansions, bool const only_markers,
-   double const gr_tol){
+   double const gr_tol, List gh_quad_rule){
   profiler pp("joint_ms_opt_lb");
 
   lower_bound_caller::optimze_survival = !only_markers;
@@ -1139,6 +1039,8 @@ List joint_ms_opt_lb
 
   survival::node_weight quad_rule_use{node_weight_from_list(quad_rule)};
   cur_quad_rule = &quad_rule_use;
+  ghqCpp::ghq_data gh_quad_rule_use{gh_node_weight_from_list(gh_quad_rule)};
+  cur_gh_quad_rule = &gh_quad_rule_use;
 
   set_or_clear_cached_expansions(*obj, quad_rule_use, cache_expansions);
 

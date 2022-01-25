@@ -172,6 +172,7 @@ context("delayed_dat functions") {
       constexpr double dum_off{-1.5};
       std::vector<double> gr(params.n_params(), dum_off);
 
+      mem.reset();
       double const res
         {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
@@ -236,6 +237,7 @@ context("delayed_dat functions") {
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
     {
+      mem.reset();
       double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
     }
@@ -243,6 +245,7 @@ context("delayed_dat functions") {
     constexpr double dum_off{-1.5};
     std::vector<double> gr(params.n_params(), dum_off);
 
+    mem.reset();
     double const res
       {cmp_dat.grad(x.data(), gr.data(), mem, 1, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
@@ -365,6 +368,7 @@ context("delayed_dat functions") {
       }
 
       std::vector<double> gr(params.n_params(), 0);
+      mem.reset();
       double const res
         {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
@@ -410,11 +414,13 @@ context("delayed_dat functions") {
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
     {
+      mem.reset();
       double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
     }
 
     std::vector<double> gr(params.n_params(), 0);
+    mem.reset();
     double const res
       {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
@@ -571,6 +577,7 @@ context("delayed_dat functions") {
       }
 
       std::vector<double> gr(params.n_params(), 0);
+      mem.reset();
       double const res
         {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
@@ -646,9 +653,49 @@ context("delayed_dat functions") {
     survival::delayed_dat cmp_dat
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
-    double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+    {
+      mem.reset();
+      double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+      expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+    }
+
+    std::vector<double> gr(params.n_params(), 0);
+    mem.reset();
+    double const res
+      {cmp_dat.grad(x.data(), gr.data(), mem, 1, gl_dat, ghq_dat)};
     expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
 
-    // TODO: test the gradients
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[i + params.association(1)] - d_assoc[i])
+         < std::abs(d_assoc[i]) * 1e-3);
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[i + params.association(2)] - d_assoc[i + 2])
+         < std::abs(d_assoc[i + 2]) * 1e-3);
+
+    expect_true
+      (std::abs(gr[params.fixef_surv(1)] - d_gamma[0])
+         < std::abs(d_gamma[0]) * 1e-3);
+    expect_true
+      (std::abs(gr[params.fixef_vary_surv(1)] - d_gamma[1])
+         < std::abs(d_gamma[1]) * 1e-3);
+
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[params.fixef_vary_surv(2) + i] - d_gamma[i + 2])
+         < std::abs(d_gamma[i + 2]) * 1e-3);
+    for(size_t i = 0; i < 9; ++i)
+      expect_true
+      (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i])
+         < std::abs(d_vcov_vary[i]) * 1e-3);
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[params.vcov_surv() + i + 4] - d_vcov_surv[i])
+         < std::abs(d_vcov_surv[i]) * 1e-3);
+    for(size_t i = 0; i < 2; ++i)
+      expect_true
+      (std::abs(gr[params.vcov_surv() + i + 7] - d_vcov_surv[i + 2])
+         < std::abs(d_vcov_surv[i + 2]) * 1e-3);
   }
 }

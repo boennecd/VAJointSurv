@@ -9,24 +9,24 @@ eval_expansion <- function(ptr, x, ders, lower_limit) {
     .Call(`_VAJointSurv_eval_expansion`, ptr, x, ders, lower_limit)
 }
 
-.joint_ms_ptr <- function(markers, survival_terms, max_threads, ids_delayed) {
-    .Call(`_VAJointSurv_joint_ms_ptr`, markers, survival_terms, max_threads, ids_delayed)
+.joint_ms_ptr <- function(markers, survival_terms, max_threads, delayed_terms) {
+    .Call(`_VAJointSurv_joint_ms_ptr`, markers, survival_terms, max_threads, delayed_terms)
 }
 
 joint_ms_n_terms <- function(ptr) {
     .Call(`_VAJointSurv_joint_ms_n_terms`, ptr)
 }
 
-joint_ms_eval_lb <- function(val, ptr, n_threads, quad_rule, cache_expansions) {
-    .Call(`_VAJointSurv_joint_ms_eval_lb`, val, ptr, n_threads, quad_rule, cache_expansions)
+joint_ms_eval_lb <- function(val, ptr, n_threads, quad_rule, cache_expansions, gh_quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb`, val, ptr, n_threads, quad_rule, cache_expansions, gh_quad_rule)
 }
 
-joint_ms_eval_lb_gr <- function(val, ptr, n_threads, quad_rule, cache_expansions) {
-    .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads, quad_rule, cache_expansions)
+joint_ms_eval_lb_gr <- function(val, ptr, n_threads, quad_rule, cache_expansions, gh_quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_eval_lb_gr`, val, ptr, n_threads, quad_rule, cache_expansions, gh_quad_rule)
 }
 
-.joint_ms_hess <- function(val, ptr, quad_rule, cache_expansions, eps, scale, tol, order) {
-    .Call(`_VAJointSurv_joint_ms_hess`, val, ptr, quad_rule, cache_expansions, eps, scale, tol, order)
+.joint_ms_hess <- function(val, ptr, quad_rule, cache_expansions, eps, scale, tol, order, gh_quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_hess`, val, ptr, quad_rule, cache_expansions, eps, scale, tol, order, gh_quad_rule)
 }
 
 joint_ms_parameter_names <- function(ptr) {
@@ -41,12 +41,12 @@ joint_ms_n_params <- function(ptr) {
     .Call(`_VAJointSurv_joint_ms_n_params`, ptr)
 }
 
-opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol) {
-    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol)
+opt_priv <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol, gh_quad_rule) {
+    .Call(`_VAJointSurv_opt_priv`, val, ptr, rel_eps, max_it, n_threads, c1, c2, quad_rule, cache_expansions, gr_tol, gh_quad_rule)
 }
 
-joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol) {
-    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol)
+joint_ms_opt_lb <- function(val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol, gh_quad_rule) {
+    .Call(`_VAJointSurv_joint_ms_opt_lb`, val, ptr, rel_eps, max_it, n_threads, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, quad_rule, mask, cache_expansions, only_markers, gr_tol, gh_quad_rule)
 }
 
 ph_ll <- function(time_fixef, Z, surv, with_frailty) {
