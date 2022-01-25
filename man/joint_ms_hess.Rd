@@ -12,7 +12,8 @@ joint_ms_hess(
   eps = 1e-04,
   scale = 2,
   tol = .Machine$double.eps^(3/5),
-  order = 6L
+  order = 6L,
+  gh_quad_rule = object$gh_quad_rule
 )
 }
 \arguments{
@@ -33,6 +34,14 @@ you use more threads as the CPU cache is not well utilized.}
 
 \item{eps, scale, tol, order}{parameter to pass to psqn. See
 \code{\link{psqn_hess}}.}
+
+\item{gh_quad_rule}{list with two numeric vectors called node and weight
+with Gauss–Hermite quadrature nodes and weights to handle delayed entry.
+A low number of quadrature nodes and weights is used when \code{NULL} is
+passed.
+This seems to work well when delayed entry happens at time with large
+marginal survival probabilities. The nodes and weights can be obtained e.g.
+from \code{fastGHQuad::gaussHermiteData}.}
 }
 \description{
 Computes the Hessian

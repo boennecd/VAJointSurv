@@ -153,6 +153,16 @@ private:
   struct impl;
   friend class impl;
 
+  /// holds memory for the cached data
+  std::vector<eval_data> cached_expansions;
+
+  /// the cached quadrature nodes and weights
+  std::vector<double> cached_nodes, cached_weights;
+
+  bool has_cached_expansions() const {
+    return cached_expansions.size() > 0;
+  }
+
 public:
   delayed_dat() = default;
 
@@ -162,6 +172,12 @@ public:
               subset_params const &par_idx,
               std::vector<cluster_info> const &cluster_infos,
               std::vector<std::vector<std::vector<int> > > &ders);
+
+  void set_cached_expansions
+    (node_weight const &nws, ghqCpp::simple_mem_stack<double> &mem);
+
+  /// clears the cached expansions
+  void clear_cached_expansions();
 
   /// returns information about each cluster
   std::vector<cluster_info> const & cluster_infos() const {

@@ -3139,10 +3139,10 @@ mean(dat$terminal_outcome$delayed_entry > 0)
 # distribution of observed marker per individual
 proportions(table(table(dat$obs_process$id)))
 #> 
-#>     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23 
-#> 0.343 0.186 0.140 0.085 0.047 0.040 0.046 0.021 0.016 0.016 0.010 0.011 0.006 0.004 0.005 0.004 0.003 0.001 0.001 0.003 0.001 0.003 0.001 
-#>    24    25    27    30    33    43 
-#> 0.001 0.001 0.001 0.002 0.001 0.001
+#>     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23    24 
+#> 0.343 0.186 0.140 0.085 0.047 0.040 0.046 0.021 0.016 0.016 0.010 0.011 0.006 0.004 0.005 0.004 0.003 0.001 0.001 0.003 0.001 0.003 0.001 0.001 
+#>    25    27    30    33    43 
+#> 0.001 0.001 0.002 0.001 0.001
 
 # show data for one individual
 subset(dat$marker_data, id == 1)
@@ -3206,10 +3206,10 @@ comp_obj <- joint_ms_ptr(
 # get the starting values
 system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #>    user  system elapsed 
-#>  14.103   0.008   3.836
+#>  13.571   0.008   3.696
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  22.766   0.031   5.978
+#>  22.089   0.008   5.815
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
@@ -3233,7 +3233,7 @@ system.time(opt_out_wrong <- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#>  76.672   0.012  19.173
+#>  73.458   0.008  18.369
 
 system.time(opt_out <- joint_ms_opt(
   comp_obj, par = opt_out_wrong$par, max_it = 2000L, pre_method = 3L, 
@@ -3243,7 +3243,7 @@ system.time(opt_out <- joint_ms_opt(
   # it takes much longer to get the same precision
   gr_tol = 1))
 #>     user   system  elapsed 
-#> 1837.573    0.486  460.513
+#> 1754.264    0.316  439.218
 
 # we set gr_tol in the call so this is the convergence criterion for the
 # gradient
@@ -3754,8 +3754,8 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
-#> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, : Model failed to converge with max|grad| = 0.00249365 (tol =
-#> 0.002, component 1)
+#> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, : Model failed to converge with max|grad| = 0.00249365 (tol = 0.002,
+#> component 1)
 #>    user  system elapsed 
 #>  18.689   0.012   4.958
 

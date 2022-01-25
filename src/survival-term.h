@@ -404,13 +404,13 @@ public:
         return;
     }
 
-    clear_cached_expansions();
     vajoint_uint const n_nodes{nws.n_nodes};
     cached_weights.resize(n_nodes);
     std::copy(nws.ws, nws.ws + n_nodes, cached_weights.begin());
     cached_nodes.resize(n_nodes);
     std::copy(nws.ns, nws.ns + n_nodes, cached_nodes.begin());
 
+    cached_expansions.clear();
     cached_expansions.reserve(obs_info.size());
     for(size_t i = 0; i < obs_info.size(); ++i){
       auto &info_objs = obs_info[i];

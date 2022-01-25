@@ -21,7 +21,8 @@ joint_ms_start_val(
   quad_rule = object$quad_rule,
   mask = integer(),
   cache_expansions = object$cache_expansions,
-  gr_tol = -1
+  gr_tol = -1,
+  gh_quad_rule = object$gh_quad_rule
 )
 }
 \arguments{
@@ -58,6 +59,14 @@ particularly with
 expansions that take longer to compute (like \code{\link{ns_term}} and
 \code{\link{bs_term}}). The computation time may be worse particularly if
 you use more threads as the CPU cache is not well utilized.}
+
+\item{gh_quad_rule}{list with two numeric vectors called node and weight
+with Gauss–Hermite quadrature nodes and weights to handle delayed entry.
+A low number of quadrature nodes and weights is used when \code{NULL} is
+passed.
+This seems to work well when delayed entry happens at time with large
+marginal survival probabilities. The nodes and weights can be obtained e.g.
+from \code{fastGHQuad::gaussHermiteData}.}
 }
 \description{
 Quick Heuristic for the Starting Values

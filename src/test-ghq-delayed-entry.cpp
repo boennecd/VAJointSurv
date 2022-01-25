@@ -236,40 +236,45 @@ context("delayed_dat functions") {
     survival::delayed_dat cmp_dat
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
-    {
+    for(size_t n_evals = 0; n_evals < 4; ++n_evals){
+      if(n_evals > 0)
+        cmp_dat.set_cached_expansions(gl_dat, mem);
+
+      {
+        mem.reset();
+        double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+        expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+      }
+
+      constexpr double dum_off{-1.5};
+      std::vector<double> gr(params.n_params(), dum_off);
+
       mem.reset();
-      double const res{cmp_dat(x.data(), mem, 1, gl_dat, ghq_dat)};
+      double const res
+        {cmp_dat.grad(x.data(), gr.data(), mem, 1, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+      expect_true
+        (std::abs(gr[params.fixef_surv(1)] - d_gamma[0] - dum_off)
+           < std::abs(d_gamma[0]) * 1e-3);
+      expect_true
+        (std::abs(gr[params.fixef_vary_surv(1)] - d_gamma[1] - dum_off)
+           < std::abs(d_gamma[0]) * 1e-3);
+
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+        (std::abs(gr[params.association(1) + i] - d_assoc[i] - dum_off)
+           < std::abs(d_assoc[i]) * 1e-3);
+
+      for(size_t i = 0; i < 9; ++i)
+        expect_true
+        (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i] - dum_off)
+           < std::abs(d_vcov_vary[i]) * 1e-3);
+
+      expect_true
+        (std::abs(gr[params.vcov_surv() + 3] - d_vcov_surv - dum_off)
+           < std::abs(d_vcov_surv) * 1e-3);
     }
-
-    constexpr double dum_off{-1.5};
-    std::vector<double> gr(params.n_params(), dum_off);
-
-    mem.reset();
-    double const res
-      {cmp_dat.grad(x.data(), gr.data(), mem, 1, gl_dat, ghq_dat)};
-    expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
-
-    expect_true
-      (std::abs(gr[params.fixef_surv(1)] - d_gamma[0] - dum_off)
-         < std::abs(d_gamma[0]) * 1e-3);
-    expect_true
-      (std::abs(gr[params.fixef_vary_surv(1)] - d_gamma[1] - dum_off)
-         < std::abs(d_gamma[0]) * 1e-3);
-
-    for(size_t i = 0; i < 2; ++i)
-      expect_true
-      (std::abs(gr[params.association(1) + i] - d_assoc[i] - dum_off)
-         < std::abs(d_assoc[i]) * 1e-3);
-
-    for(size_t i = 0; i < 9; ++i)
-      expect_true
-      (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i] - dum_off)
-         < std::abs(d_vcov_vary[i]) * 1e-3);
-
-    expect_true
-      (std::abs(gr[params.vcov_surv() + 3] - d_vcov_surv - dum_off)
-         < std::abs(d_vcov_surv) * 1e-3);
   }
 
   test_that("works with two survival outcomes of the same type without fraitly and with current value and slope") {
@@ -413,31 +418,36 @@ context("delayed_dat functions") {
     survival::delayed_dat cmp_dat
       {bases_fix, bases_rng, design_mats, params, info, ders};
 
-    {
+    for(size_t n_evals = 0; n_evals < 4; ++n_evals){
+      if(n_evals > 0)
+        cmp_dat.set_cached_expansions(gl_dat, mem);
+
+      {
+        mem.reset();
+        double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+        expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+      }
+
+      std::vector<double> gr(params.n_params(), 0);
       mem.reset();
-      double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
+      double const res
+        {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
       expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
+
+      for(size_t i = 0; i < 2; ++i)
+        expect_true
+          (std::abs(gr[params.fixef_vary_surv(0) + i] - d_gamma[i]) <
+            std::abs(d_gamma[i]) * 1e-3);
+      for(size_t i = 0; i < 3; ++i)
+        expect_true
+          (std::abs(gr[params.association(0) + i] - d_assoc[i]) <
+            std::abs(d_assoc[i]) * 1e-3);
+
+      for(size_t i = 0; i < 9; ++i)
+        expect_true
+          (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i]) <
+            std::abs(d_vcov_vary[i]) * 1e-3);
     }
-
-    std::vector<double> gr(params.n_params(), 0);
-    mem.reset();
-    double const res
-      {cmp_dat.grad(x.data(), gr.data(), mem, 0, gl_dat, ghq_dat)};
-    expect_true(std::abs(res - true_fn) < std::abs(true_fn) * 1e-6);
-
-    for(size_t i = 0; i < 2; ++i)
-      expect_true
-        (std::abs(gr[params.fixef_vary_surv(0) + i] - d_gamma[i]) <
-          std::abs(d_gamma[i]) * 1e-3);
-    for(size_t i = 0; i < 3; ++i)
-      expect_true
-        (std::abs(gr[params.association(0) + i] - d_assoc[i]) <
-          std::abs(d_assoc[i]) * 1e-3);
-
-    for(size_t i = 0; i < 9; ++i)
-      expect_true
-        (std::abs(gr[params.vcov_vary() + i] - d_vcov_vary[i]) <
-          std::abs(d_vcov_vary[i]) * 1e-3);
   }
 
   test_that("works with two survival outcomes of different types with fraitly") {

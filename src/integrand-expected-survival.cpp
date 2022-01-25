@@ -21,6 +21,7 @@ void expected_survival_term<comp_grad>::eval
    simple_mem_stack<double> &mem) const {
   size_t const n_lps = M_Sigma_chol_t.n_rows;
   double * const __restrict__ lps{mem.get(n_lps * n_points)};
+  auto mem_mark = mem.set_mark_raii();
 
   // add the offset
   for(size_t j = 0; j < n_points; ++j)

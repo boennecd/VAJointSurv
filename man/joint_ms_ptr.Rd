@@ -9,7 +9,8 @@ joint_ms_ptr(
   survival_terms = list(),
   max_threads = 1L,
   quad_rule = NULL,
-  cache_expansions = TRUE
+  cache_expansions = TRUE,
+  gh_quad_rule = NULL
 )
 }
 \arguments{
@@ -31,6 +32,14 @@ particularly with
 expansions that take longer to compute (like \code{\link{ns_term}} and
 \code{\link{bs_term}}). The computation time may be worse particularly if
 you use more threads as the CPU cache is not well utilized.}
+
+\item{gh_quad_rule}{list with two numeric vectors called node and weight
+with Gauss–Hermite quadrature nodes and weights to handle delayed entry.
+A low number of quadrature nodes and weights is used when \code{NULL} is
+passed.
+This seems to work well when delayed entry happens at time with large
+marginal survival probabilities. The nodes and weights can be obtained e.g.
+from \code{fastGHQuad::gaussHermiteData}.}
 }
 \description{
 Creates a joint_ms Object to Estimate a Joint Survival and Marker Model

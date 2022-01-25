@@ -730,6 +730,7 @@ public:
   /// sets the cached expansions for the survival terms
   void set_cached_expansions(survival::node_weight const &nws){
     s_dat.set_cached_expansions(nws);
+    d_dat.set_cached_expansions(nws, wmem::mem_stack());
   }
 
   /***
@@ -738,6 +739,7 @@ public:
    */
   void clear_cached_expansions(){
     s_dat.clear_cached_expansions();
+    d_dat.clear_cached_expansions();
   }
 
   lb_optim const & optim() const {

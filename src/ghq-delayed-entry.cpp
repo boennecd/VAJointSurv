@@ -162,6 +162,46 @@ delayed_dat::eval_data::eval_data
   }
 }
 
+void delayed_dat::set_cached_expansions
+  (node_weight const &nws, ghqCpp::simple_mem_stack<double> &mem){
+  if(has_cached_expansions()){
+    /// check if we already use the same quadrature rule
+    bool is_same_rule
+      {nws.n_nodes == cached_nodes.size() &&
+        nws.n_nodes == cached_weights.size()};
+    for(vajoint_uint i = 0; i < nws.n_nodes && is_same_rule; ++i)
+      is_same_rule &= nws.ns[i] == cached_nodes[i] &&
+        nws.ws[i] == cached_weights[i];
+
+    if(is_same_rule)
+      return;
+  }
+
+  vajoint_uint const n_nodes{nws.n_nodes};
+  cached_weights.resize(n_nodes);
+  std::copy(nws.ws, nws.ws + n_nodes, cached_weights.begin());
+  cached_nodes.resize(n_nodes);
+  std::copy(nws.ns, nws.ns + n_nodes, cached_nodes.begin());
+
+  cached_expansions.clear();
+  cached_expansions.reserve(cluster_info().size());
+
+  for(auto &info : cluster_infos()){
+    mem.reset_to_mark();
+    cached_expansions.emplace_back(*this, nws, info, mem);
+  }
+}
+
+void delayed_dat::clear_cached_expansions(){
+  cached_expansions.clear();
+  cached_expansions.shrink_to_fit();
+
+  cached_nodes.clear();
+  cached_nodes.shrink_to_fit();
+
+  cached_weights.clear();
+  cached_weights.shrink_to_fit();
+}
 
 struct delayed_dat::impl {
   delayed_dat const &dat;
@@ -290,7 +330,15 @@ double delayed_dat::operator()
    ghqCpp::ghq_data const &ghq_dat) const {
   // use the helper to set up the objects need for the quadrature
   auto const &info{cluster_infos()[cluster_index]};
-  eval_data e_dat{*this, nws, info, mem}; // TODO: can cache this
+
+  std::unique_ptr<eval_data> local_eval_data;
+  if(!has_cached_expansions())
+    local_eval_data.reset(new eval_data{*this, nws, info, mem});
+  eval_data const &e_dat
+    {has_cached_expansions()
+      ? cached_expansions[cluster_index]
+      : *local_eval_data.get()};
+
   impl im{*this, info, nws, e_dat, mem, param};
 
   // apply the quadrature
@@ -301,7 +349,8 @@ double delayed_dat::operator()
   vajoint_uint const n_gl_outcomes{im.n_gl_outcomes},
                      n_rng{im.n_rng};
 
-  arma::vec ws_vec(&e_dat.quad_weights[0], n_gl_outcomes, false),
+  arma::vec ws_vec
+      (const_cast<double*>(&e_dat.quad_weights[0]), n_gl_outcomes, false),
           etas_vec(etas, n_gl_outcomes, false);
   arma::mat rng_design_mat(rng_design, n_gl_outcomes, n_rng, false),
                   vcov_mat(vcov, n_rng, n_rng, false);
@@ -318,7 +367,15 @@ double delayed_dat::grad
    ghqCpp::ghq_data const &ghq_dat) const {
   // use the helper to set up the objects need for the quadrature
   auto const &info{cluster_infos()[cluster_index]};
-  eval_data e_dat{*this, nws, info, mem}; // TODO: can cache this
+
+  std::unique_ptr<eval_data> local_eval_data;
+  if(!has_cached_expansions())
+    local_eval_data.reset(new eval_data{*this, nws, info, mem});
+  eval_data const &e_dat
+    {has_cached_expansions()
+      ? cached_expansions[cluster_index]
+      : *local_eval_data.get()};
+
   impl im{*this, info, nws, e_dat, mem, param};
 
   // apply the quadrature
@@ -332,7 +389,8 @@ double delayed_dat::grad
                               n_gl{im.n_gl},
                           n_shared{im.n_shared};
 
-  arma::vec ws_vec(&e_dat.quad_weights[0], n_gl_outcomes, false),
+  arma::vec ws_vec
+      (const_cast<double*>(&e_dat.quad_weights[0]), n_gl_outcomes, false),
   etas_vec(etas, n_gl_outcomes, false);
   arma::mat rng_design_mat(rng_design, n_gl_outcomes, n_rng, false),
   vcov_mat(vcov, n_rng, n_rng, false);
