@@ -57,14 +57,14 @@ Loading required package: survival
 # A tibble: 1 × 13
   expression                                     min  median `itr/sec` mem_alloc
   <bch:expr>                                <bch:tm> <bch:t>     <dbl> <bch:byt>
-1 joint_ms_lb(comp_obj, comp_obj$start_val)   5.63ms  5.81ms      164.    31.9KB
+1 joint_ms_lb(comp_obj, comp_obj$start_val)   5.87ms     6ms      157.    31.9KB
 # … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
 #   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
 > bench::mark(joint_ms_lb_gr(comp_obj, comp_obj$start_val))
 # A tibble: 1 × 13
   expression                                      min median `itr/sec` mem_alloc
   <bch:expr>                                   <bch:> <bch:>     <dbl> <bch:byt>
-1 joint_ms_lb_gr(comp_obj, comp_obj$start_val) 14.9ms 15.5ms      60.7    44.7KB
+1 joint_ms_lb_gr(comp_obj, comp_obj$start_val) 13.5ms 14.1ms      71.5    44.7KB
 # … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
 #   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
 > 
@@ -72,23 +72,23 @@ Loading required package: survival
 +   comp_obj, par = comp_obj$start_val, max_it = 100L, pre_method = 3L,
 +   cg_tol = .2, c2 = .1, gr_tol = 1))
    user  system elapsed 
- 22.093   0.004   5.528 
+ 21.157   0.004   5.293 
 Warning message:
 In joint_ms_opt(comp_obj, par = comp_obj$start_val, max_it = 100L,  :
   Fit did not converge but returned with code -1. Perhaps increase the maximum number of iterations
 > 
 > opt_out$value
-[1] 944.8368
+[1] 944.9413
 > head(opt_out$par, 37)
- [1] -0.052354464  1.912213025  0.616574607  0.156253736  0.193029175
- [6] -0.926481677  0.661345396 -0.033481446  0.398078748 -0.024708738
-[11] -0.403854707 -1.601908792 -0.905204375 -5.245652221 -0.132220933
-[16] -0.262743565 -0.157867080  0.166345772  0.552666676 -0.292478850
-[21]  0.122546944 -0.168634358  0.095418508 -0.867840935 -0.077748404
-[26]  0.042748980 -0.059975412  0.076178225 -0.006881901 -0.200244871
-[31]  0.064652855 -0.039993206 -0.247224457 -0.850355827 -2.179176396
-[36] -0.280411229 -1.899340147
+ [1] -0.052023794  1.911622805  0.615863524  0.155929555  0.192712126
+ [6] -0.924576070  0.661434723 -0.033687392  0.397676665 -0.024688573
+[11] -0.403852877 -1.602129814 -0.905454940 -5.245694027 -0.132142693
+[16] -0.262953378 -0.158181289  0.166328931  0.553547934 -0.291969167
+[21]  0.121778216 -0.167398155  0.095528904 -0.866525573 -0.077649473
+[26]  0.042681563 -0.059891510  0.075990372 -0.006864717 -0.200023208
+[31]  0.064577680 -0.039906248 -0.246981415 -0.848926910 -2.179516321
+[36] -0.280012141 -1.900204840
 > 
 > proc.time()
    user  system elapsed 
- 27.582   0.077   7.880 
+ 26.628   0.084   7.671 

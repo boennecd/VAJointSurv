@@ -358,7 +358,7 @@ double delayed_dat::operator()
     (etas_vec, ws_vec, rng_design_mat, vcov_mat);
   ghqCpp::adaptive_problem prob(surv_term, mem, 1e-6);
 
-  return std::log(ghqCpp::ghq(ghq_dat, prob, mem, 1000)[0]);
+  return std::log(ghqCpp::ghq(ghq_dat, prob, mem, 200)[0]);
 }
 
 double delayed_dat::grad
@@ -402,7 +402,7 @@ double delayed_dat::grad
   ghqCpp::combined_problem prob_comb{problems};
   ghqCpp::adaptive_problem prob(prob_comb, mem, 1e-6);
 
-  auto res = ghqCpp::ghq(ghq_dat, prob, mem, 1000);
+  auto res = ghqCpp::ghq(ghq_dat, prob, mem, 200);
   double const fn_exp{res[0]},
                fn{std::log(fn_exp)};
 
