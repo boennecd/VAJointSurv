@@ -3204,10 +3204,10 @@ comp_obj <- joint_ms_ptr(
 # get the starting values
 system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #>    user  system elapsed 
-#>  14.426   0.016   3.931
+#>  14.904   0.020   4.041
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  21.845   0.007   5.746
+#>  21.046   0.004   5.534
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
@@ -3231,24 +3231,24 @@ system.time(opt_out_wrong <- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#>  75.459   0.016  18.870
+#>  73.848   0.024  18.470
 
 system.time(opt_out <- joint_ms_opt(
-  comp_obj, par = opt_out_wrong$par, max_it = 2000L, pre_method = 3L, 
+  comp_obj, par = start_val, max_it = 2000L, pre_method = 3L, 
   # the function is more expensive. Thus, it makes more sense to get a better
   # approximation in the conjugate gradient step
   cg_tol = .1, c2 = .1, 
   # it takes much longer to get the same precision
   gr_tol = 1))
 #>     user   system  elapsed 
-#> 1779.047    0.254  445.152
+#> 1091.795    0.128  273.064
 
 # we set gr_tol in the call so this is the convergence criterion for the
 # gradient
 sqrt(sum(joint_ms_lb_gr(comp_obj_wrong, opt_out_wrong$par)^2))
 #> [1] 0.09974
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
-#> [1] 1
+#> [1] 0.9939
 
 opt_out_wrong$info # convergence code (0 == 'OK')
 #> [1] 0
@@ -3258,14 +3258,14 @@ opt_out$info # convergence code (0 == 'OK')
 print(-opt_out_wrong$value, digits = 8) # maximum lower bound value
 #> [1] -8351.736
 print(-opt_out$value, digits = 8) # maximum lower bound value
-#> [1] -8333.202
+#> [1] -8332.9953
 
 opt_out_wrong$counts
 #> function gradient     n_cg 
 #>     1456     1015     3276
 opt_out$counts
 #> function gradient     n_cg 
-#>     3548     1527    13151
+#>     2674      738     4096
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests_wrong <- joint_ms_format(comp_obj_wrong, opt_out_wrong$par)
@@ -3278,12 +3278,12 @@ mapply(rbind, SIMPLIFY = FALSE,
 #> $fixef
 #>                    
 #> wrong -0.5421 2.004
-#> right -0.4727 2.006
+#> right -0.4792 2.006
 #> 
 #> $fixef_vary
 #>                         
 #> wrong 1.679 1.369 -1.675
-#> right 1.540 1.230 -2.051
+#> right 1.546 1.243 -2.044
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  2.0
@@ -3297,12 +3297,12 @@ mapply(rbind, SIMPLIFY = FALSE,
 #> $fixef
 #>            
 #> wrong 1.021
-#> right 1.002
+#> right 1.001
 #> 
 #> $fixef_vary
 #>                      
 #> wrong 0.6660 -0.02026
-#> right 0.5442 -0.01899
+#> right 0.5427 -0.01903
 
 fixef_marker[[2]] # true values
 #> [1] 1
@@ -3317,17 +3317,17 @@ mapply(rbind, SIMPLIFY = FALSE,
 #> $fixef
 #>                     
 #> wrong -1.0630 0.2639
-#> right -0.9801 0.2906
+#> right -0.9816 0.2899
 #> 
 #> $fixef_vary
 #>                                    
 #> wrong 0.3087 -0.2337 -0.6420 0.1967
-#> right 0.3407  0.1216 -0.4394 0.3743
+#> right 0.3227  0.1631 -0.5116 0.4737
 #> 
 #> $associations
 #>                     
 #> wrong 0.8757 -0.4008
-#> right 0.7787 -0.4141
+#> right 0.7726 -0.4136
 
 fixef_surv[[1]]
 #> [1] -1.00  0.25
@@ -3343,17 +3343,17 @@ mapply(rbind, SIMPLIFY = FALSE,
 #> $fixef
 #>             
 #> wrong 0.3081
-#> right 0.2553
+#> right 0.2599
 #> 
 #> $fixef_vary
 #>                     
 #> wrong -1.089 -0.3681
-#> right -1.227 -0.2882
+#> right -1.268 -0.3114
 #> 
 #> $associations
 #>                     
 #> wrong -0.6652 0.2161
-#> right -0.6633 0.2158
+#> right -0.6631 0.2177
 
 fixef_surv[[2]]
 #> [1] 0.2
@@ -3371,10 +3371,10 @@ fmt_ests_wrong$vcov$vcov_vary
 #> [4,]  0.03625 -0.06962  0.07415  0.09781
 fmt_ests      $vcov$vcov_vary
 #>          [,1]     [,2]     [,3]     [,4]
-#> [1,]  0.47681  0.14545 -0.03301  0.01932
-#> [2,]  0.14545  1.83995 -0.27543 -0.03288
-#> [3,] -0.03301 -0.27543  0.36609  0.08023
-#> [4,]  0.01932 -0.03288  0.08023  0.10760
+#> [1,]  0.47825  0.14430 -0.03061  0.01959
+#> [2,]  0.14430  1.82595 -0.27226 -0.03209
+#> [3,] -0.03061 -0.27226  0.36531  0.08051
+#> [4,]  0.01959 -0.03209  0.08051  0.10800
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.08 -0.05  0.01
@@ -3385,7 +3385,7 @@ vcov_vary # the true values
 norm(fmt_ests_wrong$vcov$vcov_vary - vcov_vary, "F")
 #> [1] 0.2473
 norm(fmt_ests      $vcov$vcov_vary - vcov_vary, "F")
-#> [1] 0.1921
+#> [1] 0.1977
 
 # the parameters for the error term covariance matrix
 fmt_ests_wrong$vcov$vcov_marker
@@ -3394,8 +3394,8 @@ fmt_ests_wrong$vcov$vcov_marker
 #> [2,] 0.08921 0.15723
 fmt_ests      $vcov$vcov_marker
 #>         [,1]    [,2]
-#> [1,] 0.35463 0.08862
-#> [2,] 0.08862 0.15694
+#> [1,] 0.35445 0.08861
+#> [2,] 0.08861 0.15694
 vcov_marker
 #>      [,1] [,2]
 #> [1,] 0.36 0.10
@@ -3404,7 +3404,7 @@ vcov_marker
 norm(fmt_ests_wrong$vcov$vcov_marker - vcov_marker, "F")
 #> [1] 0.01618
 norm(fmt_ests      $vcov$vcov_marker - vcov_marker, "F")
-#> [1] 0.01724
+#> [1] 0.0173
 
 # the parameters for the frailty covariance matrix
 fmt_ests_wrong$vcov$vcov_surv
@@ -3412,9 +3412,9 @@ fmt_ests_wrong$vcov$vcov_surv
 #> [1,] 0.01633 0.02719
 #> [2,] 0.02719 0.05935
 fmt_ests      $vcov$vcov_surv
-#>         [,1]    [,2]
-#> [1,] 0.01451 0.02405
-#> [2,] 0.02405 0.05478
+#>          [,1]    [,2]
+#> [1,] 0.007176 0.01764
+#> [2,] 0.017645 0.05650
 vcov_surv
 #>        [,1]   [,2]
 #> [1,] 0.0400 0.0225
@@ -3423,7 +3423,7 @@ vcov_surv
 norm(fmt_ests_wrong$vcov$vcov_surv - vcov_surv, "F")
 #> [1] 0.02478
 norm(fmt_ests      $vcov$vcov_surv - vcov_surv, "F")
-#> [1] 0.02672
+#> [1] 0.03407
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies

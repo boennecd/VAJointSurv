@@ -2350,7 +2350,7 @@ system.time(opt_out_wrong <- joint_ms_opt(
   cg_tol = .2, c2 = .1, gr_tol = .1))
 
 system.time(opt_out <- joint_ms_opt(
-  comp_obj, par = opt_out_wrong$par, max_it = 2000L, pre_method = 3L, 
+  comp_obj, par = start_val, max_it = 2000L, pre_method = 3L, 
   # the function is more expensive. Thus, it makes more sense to get a better
   # approximation in the conjugate gradient step
   cg_tol = .1, c2 = .1, 
