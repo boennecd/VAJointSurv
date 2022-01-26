@@ -2941,14 +2941,14 @@ slow if there are many random effects that needs to marginalized out.
 However, it seems that quite few quadrature nodes can be used to
 approximate the terms from delayed entry when the marginal survival
 probabilities are close to one (and the variance of the random effects
-is not extremely large). However, more quadrature nodes seems to be
+are not extremely large). However, more quadrature nodes seems to be
 needed for the gradient of marginal likelihood terms due to delayed
 entry. Thus, you may experience odd behavior (very small improvements in
 the likelihood approximation at each step) of the optimizer if more
 quadrature nodes are needed.
 
 We do believe that the maxmin problem mentioned in 1. can be solved
-efficiently but our current “brute force” attempts where not fast.
+efficiently but our preliminary “brute force” attempts were not fast.
 
 Delayed entry is handled by the `delayed` argument of `surv_term` as
 illustrated in the example below.
@@ -3201,89 +3201,143 @@ comp_obj <- joint_ms_ptr(
   survival_terms = list(surv_terminal, surv_obs),
   max_threads = 4L)
 
+# the default number of Gauss-Hermite quadrature nodes we use
+length(comp_obj$gh_quad_rule$node)
+#> [1] 4
+
+# we try with one fewer (has a big effect with this amount of random variables  
+# per individual)
+ghq_fewer <- with(fastGHQuad::gaussHermiteData(3), 
+                  list(node = x, weight = w))
+
 # get the starting values
 system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #>    user  system elapsed 
-#>  14.904   0.020   4.041
+#>  14.834   0.008   4.031
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  21.046   0.004   5.534
+#>  21.541   0.020   5.681
+system.time(start_val_few <- joint_ms_start_val(comp_obj, gr_tol = .1, 
+                                                gh_quad_rule = ghq_fewer))
+#>    user  system elapsed 
+#>  15.721   0.004   4.187
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
 #> [1] -8725.0019
 print(-attr(start_val, "value"), digits = 8)
 #> [1] -8725.0413
+print(-attr(start_val_few, "value"), digits = 8)
+#> [1] -8725.0413
 
 # check that the gradient is correct
-f <- function(x){
-  start_val[seq_along(x)] <- x
-  joint_ms_lb(comp_obj, start_val)
+test_grad <- function(cmp, par, gh_quad_rule = cmp$gh_quad_rule){
+  f <- function(x){
+    par[seq_along(x)] <- x
+    joint_ms_lb(cmp, par, gh_quad_rule = gh_quad_rule)
+  }
+  
+  all.equal(numDeriv::grad(f, head(par, 37 + 2 * 27)),
+            head(joint_ms_lb_gr(cmp, par, gh_quad_rule = gh_quad_rule), 
+                 37 + 2 * 27),
+            tolerance = 1e-6)
 }
-
-all.equal(numDeriv::grad(f, head(start_val, 37 + 2 * 27)),
-          head(joint_ms_lb_gr(comp_obj, start_val), 37 + 2 * 27),
-          tolerance = 1e-6)
+test_grad(comp_obj, start_val, comp_obj$gh_quad_rule)
 #> [1] TRUE
+test_grad(comp_obj, start_val_few, ghq_fewer) # less precise
+#> [1] "Mean relative difference: 9.482e-06"
 
 # find the maximum lower bound estimate
 system.time(opt_out_wrong <- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#>  73.848   0.024  18.470
+#>  76.745   0.024  19.194
 
-system.time(opt_out <- joint_ms_opt(
-  comp_obj, par = start_val, max_it = 2000L, pre_method = 3L, 
-  # the function is more expensive. Thus, it makes more sense to get a better
-  # approximation in the conjugate gradient step
-  cg_tol = .1, c2 = .1, 
-  # it takes much longer to get the same precision
-  gr_tol = 1))
-#>     user   system  elapsed 
-#> 1091.795    0.128  273.064
+# optimize in the right way with different number of Gauss-Hermite quadrature 
+# nodes
+est_w_ghq <- function(par, gh_quad_rule = comp_obj$gh_quad_rule)
+  joint_ms_opt(
+    comp_obj, par = par, max_it = 2000L, pre_method = 3L, 
+    # the function is more expensive. Thus, it makes more sense to get a better
+    # approximation in the conjugate gradient step
+    cg_tol = .1, c2 = .1, 
+    # it takes much longer to get the same precision
+    rel_eps = 1e-8, gh_quad_rule = gh_quad_rule)
 
-# we set gr_tol in the call so this is the convergence criterion for the
-# gradient
+system.time(opt_out <- est_w_ghq(start_val))
+#>    user  system elapsed 
+#> 618.627   0.028 154.669
+system.time(opt_out_fewer <- est_w_ghq(start_val_few, ghq_fewer))
+#>    user  system elapsed 
+#> 156.716   0.008  39.185
+
+# check the gradients again (expect to be somewhat off now)
+test_grad(comp_obj, opt_out$par, comp_obj$gh_quad_rule)
+#> [1] "Mean relative difference: 0.0529"
+test_grad(comp_obj, opt_out_fewer$par, ghq_fewer) # less precise
+#> [1] "Mean relative difference: 0.2334"
+
+# we set gr_tol in some of the calls so this is the convergence criterion 
+# for the gradient in those cases
 sqrt(sum(joint_ms_lb_gr(comp_obj_wrong, opt_out_wrong$par)^2))
 #> [1] 0.09974
 sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
-#> [1] 0.9939
+#> [1] 10.7
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out_fewer$par, 
+                        gh_quad_rule = ghq_fewer)^2))
+#> [1] 3.091
 
 opt_out_wrong$info # convergence code (0 == 'OK')
 #> [1] 0
 opt_out$info # convergence code (0 == 'OK')
 #> [1] 0
+opt_out_fewer$info # convergence code (0 == 'OK')
+#> [1] 0
 
 print(-opt_out_wrong$value, digits = 8) # maximum lower bound value
 #> [1] -8351.736
 print(-opt_out$value, digits = 8) # maximum lower bound value
-#> [1] -8332.9953
+#> [1] -8332.9954
+print(-opt_out_fewer$value, digits = 8) # maximum lower bound value
+#> [1] -8332.9287
+
+# the precision using fewer quadrature nodes may be a bit off. We evaluate the 
+# lower bound using more quadrature nodes to check this
+print(-joint_ms_lb(comp_obj, opt_out_fewer$par), digits = 8)
+#> [1] -8333.1089
 
 opt_out_wrong$counts
 #> function gradient     n_cg 
 #>     1456     1015     3276
 opt_out$counts
 #> function gradient     n_cg 
-#>     2674      738     4096
+#>      914      643     4001
+opt_out_fewer$counts
+#> function gradient     n_cg 
+#>      763      476     2676
 
 # compare the estimates with the actual values. Start with the fixed effects
 fmt_ests_wrong <- joint_ms_format(comp_obj_wrong, opt_out_wrong$par)
 fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+fmt_ests_fewer <- joint_ms_format(comp_obj, opt_out_fewer$par)
 
 # the parameters for the first marker
 mapply(rbind, SIMPLIFY = FALSE,
-       wrong = fmt_ests_wrong$markers[[1]], 
-       right = fmt_ests      $markers[[1]])
+       wrong           = fmt_ests_wrong$markers[[1]], 
+       right           = fmt_ests      $markers[[1]],
+       `right (fewer)` = fmt_ests_fewer$markers[[1]])
 #> $fixef
-#>                    
-#> wrong -0.5421 2.004
-#> right -0.4792 2.006
+#>                            
+#> wrong         -0.5421 2.004
+#> right         -0.4792 2.006
+#> right (fewer) -0.4906 2.006
 #> 
 #> $fixef_vary
-#>                         
-#> wrong 1.679 1.369 -1.675
-#> right 1.546 1.243 -2.044
+#>                                 
+#> wrong         1.679 1.369 -1.675
+#> right         1.546 1.243 -2.044
+#> right (fewer) 1.564 1.294 -2.008
 
 fixef_marker[[1]] # true values
 #> [1] -0.5  2.0
@@ -3292,17 +3346,20 @@ fixef_vary_marker[[1]] # true values
 
 # the parameters for the second marker
 mapply(rbind, SIMPLIFY = FALSE,
-       wrong = fmt_ests_wrong$markers[[2]], 
-       right = fmt_ests      $markers[[2]])
+       wrong           = fmt_ests_wrong$markers[[2]], 
+       right           = fmt_ests      $markers[[2]],
+       `right (fewer)` = fmt_ests_fewer$markers[[2]])
 #> $fixef
-#>            
-#> wrong 1.021
-#> right 1.001
+#>                     
+#> wrong         1.0211
+#> right         1.0009
+#> right (fewer) 0.9992
 #> 
 #> $fixef_vary
-#>                      
-#> wrong 0.6660 -0.02026
-#> right 0.5427 -0.01903
+#>                              
+#> wrong         0.6660 -0.02026
+#> right         0.5427 -0.01903
+#> right (fewer) 0.5429 -0.01894
 
 fixef_marker[[2]] # true values
 #> [1] 1
@@ -3312,22 +3369,26 @@ fixef_vary_marker[[2]] # true values
 # the fixed effects for the survival outcome and the association parameters
 # for the terminal event
 mapply(rbind, SIMPLIFY = FALSE,
-       wrong = fmt_ests_wrong$survival[[1]], 
-       right = fmt_ests      $survival[[1]])
+       wrong           = fmt_ests_wrong$survival[[1]], 
+       right           = fmt_ests      $survival[[1]],
+       `right (fewer)` = fmt_ests_fewer$survival[[1]])
 #> $fixef
-#>                     
-#> wrong -1.0630 0.2639
-#> right -0.9816 0.2899
+#>                             
+#> wrong         -1.0630 0.2639
+#> right         -0.9816 0.2899
+#> right (fewer) -0.9460 0.2876
 #> 
 #> $fixef_vary
-#>                                    
-#> wrong 0.3087 -0.2337 -0.6420 0.1967
-#> right 0.3227  0.1631 -0.5116 0.4737
+#>                                            
+#> wrong         0.3087 -0.2337 -0.6420 0.1967
+#> right         0.3227  0.1631 -0.5116 0.4737
+#> right (fewer) 0.2378  0.1633 -0.5215 0.4497
 #> 
 #> $associations
-#>                     
-#> wrong 0.8757 -0.4008
-#> right 0.7726 -0.4136
+#>                             
+#> wrong         0.8757 -0.4008
+#> right         0.7726 -0.4136
+#> right (fewer) 0.7722 -0.4154
 
 fixef_surv[[1]]
 #> [1] -1.00  0.25
@@ -3338,22 +3399,26 @@ associations[[1]]
 
 # same for the observation process
 mapply(rbind, SIMPLIFY = FALSE,
-       wrong = fmt_ests_wrong$survival[[2]], 
-       right = fmt_ests      $survival[[2]])
+       wrong           = fmt_ests_wrong$survival[[2]], 
+       right           = fmt_ests      $survival[[2]],
+       `right (fewer)` = fmt_ests_fewer$survival[[2]])
 #> $fixef
-#>             
-#> wrong 0.3081
-#> right 0.2599
+#>                     
+#> wrong         0.3081
+#> right         0.2599
+#> right (fewer) 0.2631
 #> 
 #> $fixef_vary
-#>                     
-#> wrong -1.089 -0.3681
-#> right -1.268 -0.3114
+#>                             
+#> wrong         -1.089 -0.3681
+#> right         -1.268 -0.3114
+#> right (fewer) -1.281 -0.3218
 #> 
 #> $associations
-#>                     
-#> wrong -0.6652 0.2161
-#> right -0.6631 0.2177
+#>                             
+#> wrong         -0.6652 0.2161
+#> right         -0.6631 0.2177
+#> right (fewer) -0.6627 0.2167
 
 fixef_surv[[2]]
 #> [1] 0.2
@@ -3371,10 +3436,16 @@ fmt_ests_wrong$vcov$vcov_vary
 #> [4,]  0.03625 -0.06962  0.07415  0.09781
 fmt_ests      $vcov$vcov_vary
 #>          [,1]     [,2]     [,3]     [,4]
-#> [1,]  0.47825  0.14430 -0.03061  0.01959
-#> [2,]  0.14430  1.82595 -0.27226 -0.03209
-#> [3,] -0.03061 -0.27226  0.36531  0.08051
-#> [4,]  0.01959 -0.03209  0.08051  0.10800
+#> [1,]  0.47823  0.14429 -0.03057  0.01962
+#> [2,]  0.14429  1.82599 -0.27222 -0.03205
+#> [3,] -0.03057 -0.27222  0.36530  0.08051
+#> [4,]  0.01962 -0.03205  0.08051  0.10801
+fmt_ests_fewer$vcov$vcov_vary
+#>          [,1]     [,2]     [,3]     [,4]
+#> [1,]  0.49261  0.14728 -0.03286  0.01854
+#> [2,]  0.14728  1.79138 -0.27075 -0.03532
+#> [3,] -0.03286 -0.27075  0.36375  0.08171
+#> [4,]  0.01854 -0.03532  0.08171  0.10751
 vcov_vary # the true values
 #>       [,1]  [,2]  [,3]  [,4]
 #> [1,]  0.35  0.08 -0.05  0.01
@@ -3386,6 +3457,8 @@ norm(fmt_ests_wrong$vcov$vcov_vary - vcov_vary, "F")
 #> [1] 0.2473
 norm(fmt_ests      $vcov$vcov_vary - vcov_vary, "F")
 #> [1] 0.1977
+norm(fmt_ests_fewer$vcov$vcov_vary - vcov_vary, "F")
+#> [1] 0.2254
 
 # the parameters for the error term covariance matrix
 fmt_ests_wrong$vcov$vcov_marker
@@ -3394,8 +3467,12 @@ fmt_ests_wrong$vcov$vcov_marker
 #> [2,] 0.08921 0.15723
 fmt_ests      $vcov$vcov_marker
 #>         [,1]    [,2]
-#> [1,] 0.35445 0.08861
-#> [2,] 0.08861 0.15694
+#> [1,] 0.35445 0.08862
+#> [2,] 0.08862 0.15694
+fmt_ests_fewer$vcov$vcov_marker
+#>         [,1]    [,2]
+#> [1,] 0.35423 0.08854
+#> [2,] 0.08854 0.15708
 vcov_marker
 #>      [,1] [,2]
 #> [1,] 0.36 0.10
@@ -3405,6 +3482,8 @@ norm(fmt_ests_wrong$vcov$vcov_marker - vcov_marker, "F")
 #> [1] 0.01618
 norm(fmt_ests      $vcov$vcov_marker - vcov_marker, "F")
 #> [1] 0.0173
+norm(fmt_ests_fewer$vcov$vcov_marker - vcov_marker, "F")
+#> [1] 0.01745
 
 # the parameters for the frailty covariance matrix
 fmt_ests_wrong$vcov$vcov_surv
@@ -3413,8 +3492,12 @@ fmt_ests_wrong$vcov$vcov_surv
 #> [2,] 0.02719 0.05935
 fmt_ests      $vcov$vcov_surv
 #>          [,1]    [,2]
-#> [1,] 0.007176 0.01764
-#> [2,] 0.017645 0.05650
+#> [1,] 0.007177 0.01765
+#> [2,] 0.017646 0.05650
+fmt_ests_fewer$vcov$vcov_surv
+#>         [,1]    [,2]
+#> [1,] 0.00793 0.01859
+#> [2,] 0.01859 0.05647
 vcov_surv
 #>        [,1]   [,2]
 #> [1,] 0.0400 0.0225
@@ -3424,6 +3507,8 @@ norm(fmt_ests_wrong$vcov$vcov_surv - vcov_surv, "F")
 #> [1] 0.02478
 norm(fmt_ests      $vcov$vcov_surv - vcov_surv, "F")
 #> [1] 0.03407
+norm(fmt_ests_fewer$vcov$vcov_surv - vcov_surv, "F")
+#> [1] 0.0331
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies
