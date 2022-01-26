@@ -168,7 +168,7 @@ class simple_mem_stack {
       // allocate just enough memory
       memory.emplace_back(n_ele);
 #else
-      memory.emplace_back(std::max(n_ele, memory.back().size() * 2L));
+      memory.emplace_back(std::max<size_t>(n_ele, memory.back().size() * 2L));
 #endif
       it = std::prev(memory.end());
     }

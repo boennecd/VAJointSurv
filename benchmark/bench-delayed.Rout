@@ -57,14 +57,14 @@ Loading required package: survival
 # A tibble: 1 × 13
   expression                                     min  median `itr/sec` mem_alloc
   <bch:expr>                                <bch:tm> <bch:t>     <dbl> <bch:byt>
-1 joint_ms_lb(comp_obj, comp_obj$start_val)   6.21ms  6.45ms      146.    31.9KB
+1 joint_ms_lb(comp_obj, comp_obj$start_val)   5.63ms  5.81ms      164.    31.9KB
 # … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
 #   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
 > bench::mark(joint_ms_lb_gr(comp_obj, comp_obj$start_val))
 # A tibble: 1 × 13
   expression                                      min median `itr/sec` mem_alloc
   <bch:expr>                                   <bch:> <bch:>     <dbl> <bch:byt>
-1 joint_ms_lb_gr(comp_obj, comp_obj$start_val) 17.1ms 17.4ms      53.0    44.7KB
+1 joint_ms_lb_gr(comp_obj, comp_obj$start_val) 14.9ms 15.5ms      60.7    44.7KB
 # … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
 #   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
 > 
@@ -72,7 +72,7 @@ Loading required package: survival
 +   comp_obj, par = comp_obj$start_val, max_it = 100L, pre_method = 3L,
 +   cg_tol = .2, c2 = .1, gr_tol = 1))
    user  system elapsed 
- 24.442   0.000   6.115 
+ 22.093   0.004   5.528 
 Warning message:
 In joint_ms_opt(comp_obj, par = comp_obj$start_val, max_it = 100L,  :
   Fit did not converge but returned with code -1. Perhaps increase the maximum number of iterations
@@ -91,4 +91,4 @@ In joint_ms_opt(comp_obj, par = comp_obj$start_val, max_it = 100L,  :
 > 
 > proc.time()
    user  system elapsed 
- 30.002   0.079   8.536 
+ 27.582   0.077   7.880 

@@ -168,8 +168,7 @@ The following is not supported
  - There cannot be multiple observed markers of the same type at each point
    $s_{ij}$ for each individual $i$.
  - There cannot be time-varying effects for a covariate. 
-   This is not too complicated to implement but not yet implemented. 
- - Competing events, and multi-state models are not supported.
+   This is not too complicated to implement but not yet implemented.
    
 ## Examples
 We show a few examples of using this package and illustrate its API in this 
@@ -190,8 +189,7 @@ section. The examples includes:
  - A similar example is provided but without the frailty in the 
    [Two Markers and a Recurrent Event Without Frailty](#two-markers-and-a-recurrent-event-without-frailty)
    section. Notice that this is the default with `surv_term`. It is also shown 
-   how one can get the variational parameters for each individual and change 
-   the starting values of the covariance matrices.
+   how one can get the variational parameters for each individual.
  - An example with two markers, the observation process, and a terminal event 
    is given in the 
    [Two Markers, the Observation Time Process, and a Terminal Event](#two-markers-the-observation-time-process-and-a-terminal-event)
@@ -213,7 +211,7 @@ We start first with some general remarks.
 
 There is not intercept by default in the splines. 
 Usually, you almost always want one in the 
-both the random effect and fixed effect part. The intercept in included by 
+both the random effect and fixed effect part. The intercept is included by 
 default in `formula` (unless you do `. ~ ... - 1` and there is not factor 
 variable). Thus, you do not want an intercept in the `time_fixef` in both 
 `marker_term` and `surv_term`. On the other hand, you do need yourself to 
