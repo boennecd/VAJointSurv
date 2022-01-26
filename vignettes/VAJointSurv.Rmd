@@ -2105,7 +2105,7 @@ sim_dat <- function(n_ids){
   gl_dat <- get_gl_rule(100L)
   dat <- lapply(1:n_ids, function(id){
     # sample the delayed entry time
-    delayed_entry <- pmax(runif(1, -1, 5), 0)
+    delayed_entry <- pmax(runif(1, -.2, 1), 0)
     
     # sample the censoring time
     cens <- -Inf
@@ -2372,9 +2372,10 @@ est_w_ghq <- function(par, gh_quad_rule = comp_obj$gh_quad_rule)
     comp_obj, par = par, max_it = 2000L, pre_method = 3L, 
     # the function is more expensive. Thus, it makes more sense to get a better
     # approximation in the conjugate gradient step
-    cg_tol = .1, c2 = .1, 
-    # it takes much longer to get the same precision
-    rel_eps = 1e-8, gh_quad_rule = gh_quad_rule)
+    cg_tol = .1, c2 = .9, 
+    # it takes much longer to get the same precision so we just stop when we do 
+    # at a lower threshold
+    gr_tol = 1, gh_quad_rule = gh_quad_rule)
 
 system.time(opt_out <- est_w_ghq(start_val))
 system.time(opt_out_fewer <- est_w_ghq(start_val_few, ghq_fewer))
