@@ -1,0 +1,94 @@
+
+R version 4.1.2 (2021-11-01) -- "Bird Hippie"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(VAJointSurv)
+Loading required package: survival
+> load("bench-delayed.RData")
+> 
+> # estimate the model with this package. Get the object we need for the
+> # optimization while NOT account and accounting for the delayed entry
+> marker_1 <- marker_term(
++   Y1 ~ X1_1, id = id, subset(dat$marker_data, !is.na(Y1)),
++   time_fixef = ns_term(time, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
++   time_rng = ns_term(time, knots = numeric(), Boundary.knots = c(0, 10),
++                      intercept = TRUE))
+> marker_2 <- marker_term(
++   Y2 ~ 1, id = id, subset(dat$marker_data, !is.na(Y2)),
++   time_fixef = poly_term(time, degree = 2, raw = TRUE),
++   time_rng = poly_term(time, degree = 1, raw = TRUE, intercept = TRUE))
+> 
+> # the right way
+> library(survival)
+> surv_terminal <- surv_term(
++   Surv(delayed_entry, y, event) ~ Z1, id = id, dat$terminal_outcome,
++   time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
++   with_frailty = TRUE,
++   # some have delayed entry
++   delayed = delayed_entry > 0)
+> 
+> surv_obs <- surv_term(
++   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
++   time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)),
++   with_frailty = TRUE)
+> 
+> # the right way
+> comp_obj <- joint_ms_ptr(
++   markers = list(marker_1, marker_2),
++   survival_terms = list(surv_terminal, surv_obs),
++   max_threads = 4L)
+> 
+> bench::mark(joint_ms_lb(comp_obj, comp_obj$start_val))
+# A tibble: 1 × 13
+  expression                                     min  median `itr/sec` mem_alloc
+  <bch:expr>                                <bch:tm> <bch:t>     <dbl> <bch:byt>
+1 joint_ms_lb(comp_obj, comp_obj$start_val)   6.21ms  6.45ms      146.    31.9KB
+# … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
+#   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
+> bench::mark(joint_ms_lb_gr(comp_obj, comp_obj$start_val))
+# A tibble: 1 × 13
+  expression                                      min median `itr/sec` mem_alloc
+  <bch:expr>                                   <bch:> <bch:>     <dbl> <bch:byt>
+1 joint_ms_lb_gr(comp_obj, comp_obj$start_val) 17.1ms 17.4ms      53.0    44.7KB
+# … with 8 more variables: gc/sec <dbl>, n_itr <int>, n_gc <dbl>,
+#   total_time <bch:tm>, result <list>, memory <list>, time <list>, gc <list>
+> 
+> system.time(opt_out <- joint_ms_opt(
++   comp_obj, par = comp_obj$start_val, max_it = 100L, pre_method = 3L,
++   cg_tol = .2, c2 = .1, gr_tol = 1))
+   user  system elapsed 
+ 24.442   0.000   6.115 
+Warning message:
+In joint_ms_opt(comp_obj, par = comp_obj$start_val, max_it = 100L,  :
+  Fit did not converge but returned with code -1. Perhaps increase the maximum number of iterations
+> 
+> opt_out$value
+[1] 944.8368
+> head(opt_out$par, 37)
+ [1] -0.052354464  1.912213025  0.616574607  0.156253736  0.193029175
+ [6] -0.926481677  0.661345396 -0.033481446  0.398078748 -0.024708738
+[11] -0.403854707 -1.601908792 -0.905204375 -5.245652221 -0.132220933
+[16] -0.262743565 -0.157867080  0.166345772  0.552666676 -0.292478850
+[21]  0.122546944 -0.168634358  0.095418508 -0.867840935 -0.077748404
+[26]  0.042748980 -0.059975412  0.076178225 -0.006881901 -0.200244871
+[31]  0.064652855 -0.039993206 -0.247224457 -0.850355827 -2.179176396
+[36] -0.280411229 -1.899340147
+> 
+> proc.time()
+   user  system elapsed 
+ 30.002   0.079   8.536 

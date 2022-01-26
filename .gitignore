@@ -4,6 +4,7 @@
 .Ruserdata
 inst/doc
 benchmark/*.out*
+benchmark/*.RData
 vignettes/cache/*
 vignettes/cache*
 vignettes/man/*
