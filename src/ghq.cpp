@@ -148,9 +148,9 @@ void ghq_fill_fixed
 }
 
 void ghq_inner
-  (std::vector<double> &res, double * const outs, size_t const lvl,
-   size_t const idx_fix, size_t const n_points, size_t const n_vars,
-   double * const points, double const * weights,
+  (double * __restrict__ res, size_t const n_res, double * const outs,
+   size_t const lvl, size_t const idx_fix, size_t const n_points,
+   size_t const n_vars, double * const points, double const * weights,
    ghq_problem const &problem, ghq_data const &dat,
    simple_mem_stack<double> &mem){
   if(lvl == idx_fix){
@@ -158,7 +158,6 @@ void ghq_inner
     problem.eval(points, n_points, outs, mem);
     mem.reset_to_mark();
 
-    size_t const n_res{res.size()};
     for(size_t i = 0; i < n_res; ++i)
       for(size_t j = 0; j < n_points; ++j)
         res[i] += weights[j] * outs[j + i * n_points];
@@ -179,22 +178,23 @@ void ghq_inner
     }
 
     // run the next level
-    ghq_inner(res, outs, lvl - 1, idx_fix, n_points, n_vars, points,
+    ghq_inner(res, n_res, outs, lvl - 1, idx_fix, n_points, n_vars, points,
               weights_scaled, problem, dat, mem);
   }
 }
 } // namespace
 
-std::vector<double> ghq
-  (ghq_data const &ghq_data_in, ghq_problem const &problem,
-   simple_mem_stack<double> &mem, size_t const target_size){
+void ghq
+  (double * __restrict__ res, ghq_data const &ghq_data_in,
+   ghq_problem const &problem, simple_mem_stack<double> &mem,
+   size_t const target_size){
   size_t const n_nodes{ghq_data_in.n_nodes},
                n_vars{problem.n_vars()},
                n_out{problem.n_out()};
 
   // checks
   if(n_out < 1)
-    return {};
+    return;
   else if(n_nodes < 1)
     throw std::invalid_argument("n_nodes < 1");
   else if(n_vars < 1)
@@ -218,7 +218,7 @@ std::vector<double> ghq
 
   // initialize the objects before the computation
   std::fill(weights, weights + n_points, 1);
-  std::vector<double> res(n_out, 0);
+  std::fill(res, res + n_out, 0);
 
   for(size_t i = 0; i < n_nodes; ++i){
     ghq_nodes[i] = ghq_data_in.nodes[i] * 1.4142135623731;  // sqrt(2)
@@ -233,10 +233,8 @@ std::vector<double> ghq
     (idx_fix, points + n_points * (n_vars - idx_fix), weights, n_points,
      ghq_data_use);
 
-  ghq_inner(res, outs, n_vars, idx_fix, n_points, n_vars, points, weights,
-            problem, ghq_data_use, mem);
-
-  return res;
+  ghq_inner(res, n_out, outs, n_vars, idx_fix, n_points, n_vars, points,
+            weights, problem, ghq_data_use, mem);
 }
 
 combined_problem::combined_problem

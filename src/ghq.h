@@ -76,10 +76,22 @@ struct ghq_data {
  * performs Gauss-Hermite quadrature. The target_size is the maximum number of
  * integrands to simultaneously process. However, at least the number of
  * quadrature nodes is simultaneously processed.
+ *
+ * The res pointer needs to have enough memory for problem.n_out().
  */
-std::vector<double> ghq
+void ghq
+  (double * __restrict__ res, ghq_data const &ghq_data_in,
+   ghq_problem const &problem, simple_mem_stack<double> &mem,
+   size_t const target_size = 128);
+
+/// overload where the user does not pre-allocated memory
+inline std::vector<double> ghq
   (ghq_data const &ghq_data_in, ghq_problem const &problem,
-   simple_mem_stack<double> &mem, size_t const target_size = 128);
+   simple_mem_stack<double> &mem, size_t const target_size = 128){
+  std::vector<double> out(problem.n_out());
+  ghq(out.data(), ghq_data_in, problem, mem, target_size);
+  return out;
+}
 
 /**
  * Takes the integral

@@ -3213,14 +3213,14 @@ ghq_fewer <- with(fastGHQuad::gaussHermiteData(3),
 # get the starting values
 system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #>    user  system elapsed 
-#>  14.827   0.004   3.978
+#>  14.775   0.016   4.006
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  21.157   0.008   5.578
+#>  21.700   0.004   5.707
 system.time(start_val_few <- joint_ms_start_val(comp_obj, gr_tol = .1, 
                                                 gh_quad_rule = ghq_fewer))
 #>    user  system elapsed 
-#>  16.333   0.004   4.345
+#>  18.673   0.004   4.942
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
@@ -3252,7 +3252,7 @@ system.time(opt_out_wrong <- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#>  91.019   0.024  22.763
+#>  90.172   0.016  22.550
 
 # optimize in the right way with different number of Gauss-Hermite quadrature 
 # nodes
@@ -3268,10 +3268,10 @@ est_w_ghq <- function(par, gh_quad_rule = comp_obj$gh_quad_rule)
 
 system.time(opt_out <- est_w_ghq(start_val))
 #>     user   system  elapsed 
-#> 1134.246    0.184  283.675
+#> 1079.701    0.107  269.954
 system.time(opt_out_fewer <- est_w_ghq(start_val_few, ghq_fewer))
 #>    user  system elapsed 
-#> 373.783   0.301  93.695
+#> 360.808   0.104  90.244
 
 # check the gradients again (expect to be somewhat off now)
 test_grad(comp_obj, opt_out$par, comp_obj$gh_quad_rule)

@@ -358,7 +358,9 @@ double delayed_dat::operator()
     (etas_vec, ws_vec, rng_design_mat, vcov_mat);
   ghqCpp::adaptive_problem prob(surv_term, mem, 1e-6);
 
-  return std::log(ghqCpp::ghq(ghq_dat, prob, mem, 200)[0]);
+  double res{};
+  ghqCpp::ghq(&res, ghq_dat, prob, mem, 200);
+  return std::log(res);
 }
 
 double delayed_dat::grad
@@ -402,15 +404,18 @@ double delayed_dat::grad
   ghqCpp::combined_problem prob_comb{problems};
   ghqCpp::adaptive_problem prob(prob_comb, mem, 1e-6);
 
-  auto res = ghqCpp::ghq(ghq_dat, prob, mem, 200);
+  size_t const n_res{prob.n_out()};
+  double * __restrict__ res{mem.get(n_res)};
+  auto mem_mark = mem.set_mark_raii();
+  ghqCpp::ghq(res, ghq_dat, prob, mem, 200);
   double const fn_exp{res[0]},
                fn{std::log(fn_exp)};
 
   // to get the derivative w.r.t. the logarithm
-  for(size_t i = 1; i < res.size(); ++i)
+  for(size_t i = 1; i < n_res; ++i)
     res[i] /= fn_exp;
 
-  double const * const d_eta{res.data() + 1},
+  double const * const d_eta{res + 1},
                * const d_rng_design{d_eta + n_gl_outcomes},
                * const d_vcov_inter{d_rng_design + n_rng * n_gl_outcomes};
 
