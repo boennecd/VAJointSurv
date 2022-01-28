@@ -8,7 +8,7 @@ inline void copy_sub_mat
   double const * ele{mat + offset * (offset + dim + 1)};
   for(vajoint_uint j = 0; j < dim; ++j, ele += n_vars, wk_mem += dim)
     std::copy(ele, ele + dim, wk_mem);
-};
+}
 
 kl_term::kl_term(subset_params const &idx):
   idx(idx),

@@ -403,7 +403,7 @@ system.time(
               # to compare with the lower bound from this package
               REML = FALSE))
 #&gt;    user  system elapsed 
-#&gt;   0.846   0.004   0.868
+#&gt;   1.012   0.012   1.026
 
 # the maximum log likelihood
 print(logLik(fit), digits = 8)
@@ -419,12 +419,12 @@ system.time(comp_obj &lt;- joint_ms_ptr(
                        intercept = TRUE)),
   max_threads = 4L))
 #&gt;    user  system elapsed 
-#&gt;   0.016   0.000   0.016
+#&gt;   0.018   0.000   0.018
 
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   2.127   0.007   0.954
+#&gt;   2.205   0.003   0.984
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -444,7 +444,7 @@ all.equal(numDeriv::grad(f, head(start_val, 12 + 2 * 9)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   0.906   0.004   0.229
+#&gt;   0.912   0.000   0.230
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -843,7 +843,7 @@ rm(marker_1, marker_2)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   2.002   0.003   0.597
+#&gt;   2.027   0.000   0.604
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -864,7 +864,7 @@ system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;   0.312   0.000   0.080
+#&gt;   0.346   0.004   0.091
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -885,7 +885,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 10000L)))
 #&gt;    user  system elapsed 
-#&gt;  44.903   0.056  11.260
+#&gt;  44.399   0.024  11.107
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 0
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1105,7 +1105,7 @@ rm(surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   0.245   0.000   0.159
+#&gt;   0.261   0.000   0.172
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1127,7 +1127,7 @@ all.equal(numDeriv::grad(f, head(comp_obj$start_val, 7 + 2 * 2)),
 system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L, 
                                     pre_method = 3L, cg_tol = .2, c2 = .1))
 #&gt;    user  system elapsed 
-#&gt;   0.864   0.000   0.217
+#&gt;   0.835   0.000   0.210
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -1479,7 +1479,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj, gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;   3.972   0.001   1.266
+#&gt;   3.886   0.004   1.238
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1500,7 +1500,7 @@ system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  14.130   0.003   3.537
+#&gt;  14.507   0.012   3.637
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -1521,7 +1521,7 @@ system.time(lbfgs_res &lt;- lbfgsb3c(
   function(x) joint_ms_lb_gr(comp_obj, x), 
   control = list(factr = 1e-8, maxit = 2000L)))
 #&gt;    user  system elapsed 
-#&gt;  63.223   0.008  15.810
+#&gt;  62.595   0.012  15.663
 lbfgs_res$convergence # convergence code (0 == &#39;OK&#39;)
 #&gt; [1] 1
 print(-lbfgs_res$value, digits = 8)  # maximum lower bound value
@@ -1618,7 +1618,7 @@ vcov_surv
 <pre class="r"><code># compute the Hessian
 system.time(hess &lt;- joint_ms_hess(comp_obj, par = opt_out$par))
 #&gt;    user  system elapsed 
-#&gt;   7.735   0.040   7.774
+#&gt;   7.622   0.057   7.677
 dim(hess$hessian_all) # the full matrix!
 #&gt; [1] 20029 20029
 
@@ -1796,7 +1796,7 @@ system.time(
 #&gt; LogLike: -7258.8517 at        -1.067638. Lb, target, ub: -7259.3109, -7258.9426, -7258.8517
 #&gt; LogLike: -7257.0219 at        -0.729927
 #&gt;    user  system elapsed 
-#&gt;  86.023   0.045  21.545</code></pre>
+#&gt;  88.040   0.051  22.051</code></pre>
 <pre class="r"><code>prof_conf$confs # the approximate confidence interval
 #&gt;  2.50 pct. 97.50 pct. 
 #&gt;    -1.0761    -0.4067
@@ -1841,7 +1841,7 @@ system.time(
 #&gt; LogLike: -7259.0338 at        -1.084992. Lb, target, ub: -7259.0338, -7258.9426, -7258.9017
 #&gt; LogLike: -7257.0219 at        -0.729927
 #&gt;    user  system elapsed 
-#&gt;  62.356   1.097  24.810</code></pre>
+#&gt;  63.221   2.256  26.153</code></pre>
 <pre class="r"><code># we got the same
 prof_conf$confs 
 #&gt;  2.50 pct. 97.50 pct. 
@@ -1924,7 +1924,7 @@ rm(marker_1, marker_2, surv_obj)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj))
 #&gt;    user  system elapsed 
-#&gt;   2.501   0.004   0.725
+#&gt;   2.429   0.004   0.703
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -1945,7 +1945,7 @@ system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L
                                     pre_method = 3L, cg_tol = .2, c2 = .1, 
                                     rel_eps = 1e-10))
 #&gt;    user  system elapsed 
-#&gt;  10.073   0.000   2.519
+#&gt;   9.703   0.000   2.428
 
 # check the gradient norm. We may need to reduce the convergence tolerance if 
 # this is not small. In can also be a sign of convergence issues
@@ -2380,10 +2380,10 @@ NROW(dat$marker_data) # number of observed markers less the individuals
 # distribution of observed marker per individual
 proportions(table(table(dat$obs_process$id)))
 #&gt; 
-#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23    24 
-#&gt; 0.353 0.194 0.135 0.076 0.069 0.045 0.030 0.024 0.023 0.010 0.005 0.006 0.008 0.003 0.001 0.004 0.001 0.003 0.001 0.001 0.001 0.003 0.001 0.001 
-#&gt;    25    26 
-#&gt; 0.001 0.001
+#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25 
+#&gt; 0.353 0.194 0.135 0.076 0.069 0.045 0.030 0.024 0.023 0.010 0.005 0.006 0.008 0.003 0.001 0.004 0.001 0.003 0.001 0.001 0.001 0.003 0.001 0.001 0.001 
+#&gt;    26 
+#&gt; 0.001
 
 # show data for one individual
 subset(dat$marker_data, id == 1)
@@ -2432,7 +2432,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val &lt;- joint_ms_start_val(comp_obj, gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  25.107   0.016   6.548
+#&gt;  28.010   0.016   7.292
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -2454,7 +2454,7 @@ system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  302.91    0.08   75.76
+#&gt; 314.013   0.461  78.879
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -2597,14 +2597,14 @@ w_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
 #&gt; # A tibble: 4 × 2
 #&gt;   expression            median
 #&gt;   &lt;bch:expr&gt;          &lt;bch:tm&gt;
-#&gt; 1 w/ caching 1 thread   7.22ms
-#&gt; 2 w/ caching 2 thread   3.83ms
-#&gt; 3 w/ caching 3 thread    2.6ms
-#&gt; 4 w/ caching 4 thread   2.26ms
+#&gt; 1 w/ caching 1 thread   7.01ms
+#&gt; 2 w/ caching 2 thread   3.79ms
+#&gt; 3 w/ caching 3 thread   2.59ms
+#&gt; 4 w/ caching 4 thread   2.16ms
 
 # difference between one and four threads
 with(w_caching, median[4] / median[1]) 
-#&gt; [1] 313ms
+#&gt; [1] 308ms
 
 # w/o caching
 wo_caching &lt;- bench::mark(
@@ -2620,14 +2620,14 @@ wo_caching[, c(&quot;expression&quot;, &quot;median&quot;)]
 #&gt; # A tibble: 4 × 2
 #&gt;   expression             median
 #&gt;   &lt;bch:expr&gt;           &lt;bch:tm&gt;
-#&gt; 1 w/o caching 1 thread  19.49ms
-#&gt; 2 w/o caching 2 thread  10.08ms
-#&gt; 3 w/o caching 3 thread   7.14ms
-#&gt; 4 w/o caching 4 thread   6.09ms
+#&gt; 1 w/o caching 1 thread  19.44ms
+#&gt; 2 w/o caching 2 thread  10.33ms
+#&gt; 3 w/o caching 3 thread   7.03ms
+#&gt; 4 w/o caching 4 thread   6.16ms
 
 # difference between one and four threads
 with(wo_caching, median[4] / median[1]) 
-#&gt; [1] 313ms</code></pre>
+#&gt; [1] 317ms</code></pre>
 </div>
 </div>
 <div id="two-markers-the-observation-time-process-and-a-terminal-event-with-delayed-entry" class="section level3">
@@ -2834,10 +2834,10 @@ mean(dat$terminal_outcome$delayed_entry &gt; 0)
 # distribution of observed marker per individual
 proportions(table(table(dat$obs_process$id)))
 #&gt; 
-#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    24    28 
-#&gt; 0.345 0.214 0.130 0.074 0.052 0.050 0.025 0.021 0.019 0.019 0.010 0.008 0.004 0.002 0.003 0.003 0.004 0.003 0.001 0.003 0.002 0.002 0.001 0.001 
-#&gt;    29    34    41    75 
-#&gt; 0.001 0.001 0.001 0.001
+#&gt;     1     2     3     4     5     6     7     8     9    10    11    12    13    14    15    16    17    18    19    20    21    22    24    28    29 
+#&gt; 0.345 0.214 0.130 0.074 0.052 0.050 0.025 0.021 0.019 0.019 0.010 0.008 0.004 0.002 0.003 0.003 0.004 0.003 0.001 0.003 0.002 0.002 0.001 0.001 0.001 
+#&gt;    34    41    75 
+#&gt; 0.001 0.001 0.001
 
 # show data for one individual
 subset(dat$marker_data, id == 1)
@@ -2910,14 +2910,14 @@ ghq_fewer &lt;- with(fastGHQuad::gaussHermiteData(3),
 # get the starting values
 system.time(start_val_wrong &lt;- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  15.113   0.020   4.096
+#&gt;  14.827   0.004   3.978
 system.time(start_val &lt;- joint_ms_start_val(comp_obj, gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  23.034   0.011   6.056
+#&gt;  21.157   0.008   5.578
 system.time(start_val_few &lt;- joint_ms_start_val(comp_obj, gr_tol = .1, 
                                                 gh_quad_rule = ghq_fewer))
 #&gt;    user  system elapsed 
-#&gt;  17.354   0.004   4.603
+#&gt;  16.333   0.004   4.345
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, &quot;value&quot;), digits = 8)
@@ -2949,7 +2949,7 @@ system.time(opt_out_wrong &lt;- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt;  92.805   0.032  23.213
+#&gt;  91.019   0.024  22.763
 
 # optimize in the right way with different number of Gauss-Hermite quadrature 
 # nodes
@@ -2965,10 +2965,10 @@ est_w_ghq &lt;- function(par, gh_quad_rule = comp_obj$gh_quad_rule)
 
 system.time(opt_out &lt;- est_w_ghq(start_val))
 #&gt;     user   system  elapsed 
-#&gt; 1155.698    0.152  289.360
+#&gt; 1134.246    0.184  283.675
 system.time(opt_out_fewer &lt;- est_w_ghq(start_val_few, ghq_fewer))
 #&gt;    user  system elapsed 
-#&gt; 374.904   0.104  93.757
+#&gt; 373.783   0.301  93.695
 
 # check the gradients again (expect to be somewhat off now)
 test_grad(comp_obj, opt_out$par, comp_obj$gh_quad_rule)
@@ -3515,7 +3515,7 @@ system.time(start_val &lt;- joint_ms_start_val(comp_obj, gr_tol = .1))
 #&gt; Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, : Model failed to converge with max|grad| = 0.00249365 (tol = 0.002,
 #&gt; component 1)
 #&gt;    user  system elapsed 
-#&gt;  17.803   0.020   4.727
+#&gt;  17.985   0.016   4.787
 
 # lower bound at the starting values
 print(-attr(start_val, &quot;value&quot;), digits = 8)
@@ -3537,7 +3537,7 @@ system.time(opt_out &lt;- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #&gt;    user  system elapsed 
-#&gt; 210.800   0.032  52.708
+#&gt; 216.585   0.052  54.161
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient

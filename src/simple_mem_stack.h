@@ -29,7 +29,7 @@ class simple_mem_stack {
 #ifdef DEBUG_SIMPLE_MEM_STACK
   class block_container {
     size_t const n_ele;
-    std::unique_ptr<double[]> mem{new double[n_ele]};
+    std::unique_ptr<T[]> mem{new T[n_ele]};
 
   public:
     using iterator = T*;
@@ -38,7 +38,7 @@ class simple_mem_stack {
     block_container(size_t const n_ele): n_ele{n_ele} { }
     block_container(const block_container &o):
       n_ele{o.n_ele},
-      mem{new double[n_ele]} {
+      mem{new T[n_ele]} {
         std::copy(o.begin(), o.end(), begin());
       }
 
@@ -180,6 +180,15 @@ public:
   simple_mem_stack() {
     clear();
   }
+
+  /// pointers etc. are invalided on copy so there is no point in doing any work
+  /// here (i.e. allocating any memory that is not used yet)
+  simple_mem_stack(const simple_mem_stack&) {
+    clear();
+  }
+  /// nothing is invalidated so this fine. Move over all the memory and keep
+  /// the current head as is
+  simple_mem_stack(simple_mem_stack &&o) = default;
 
   /// clears the object deallocating all memory
   void clear(){

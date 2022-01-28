@@ -2,50 +2,47 @@
 #include <vector>
 
 namespace wmem {
-using double_block = cfaad::blocklist<double       , max_ele>;
-using Number_block = cfaad::blocklist<cfaad::Number, max_ele>;
-std::vector<double_block> double_mem = std::vector<double_block>(1);
-std::vector<Number_block> Number_mem = std::vector<Number_block>(1);
 std::vector<ghqCpp::simple_mem_stack<double> > mem_stacks =
   std::vector<ghqCpp::simple_mem_stack<double> >(1);
+std::vector<ghqCpp::simple_mem_stack<cfaad::Number> > mem_stacks_Num =
+  std::vector<ghqCpp::simple_mem_stack<cfaad::Number> >(1);
 
 void setup_working_memory(const size_t n_threads){
-  double_mem.resize(n_threads);
-  Number_mem.resize(n_threads);
+  mem_stacks_Num.resize(n_threads);
   mem_stacks.resize(n_threads);
 }
 
 void rewind(const size_t idx){
-  double_mem[idx].rewind();
-  Number_mem[idx].rewind();
+  mem_stacks_Num[idx].reset();
+  mem_stacks[idx].reset();
 }
 
 void rewind_to_mark(const size_t idx){
-  double_mem[idx].rewind_to_mark();
-  Number_mem[idx].rewind_to_mark();
+  mem_stacks_Num[idx].reset_to_mark();
+  mem_stacks[idx].reset_to_mark();
 }
 
 void set_mark(const size_t idx){
-  double_mem[idx].setmark();
-  Number_mem[idx].setmark();
+  mem_stacks_Num[idx].set_mark();
+  mem_stacks[idx].set_mark();
 }
 
 void rewind_all(){
-  for(auto &x : double_mem) x.rewind();
-  for(auto &x : Number_mem) x.rewind();
+  for(auto &x : mem_stacks_Num) x.reset();
+  for(auto &x : mem_stacks) x.reset();
 }
 
 void clear_all(){
-  for(auto &x : double_mem) x.clear();
-  for(auto &x : Number_mem) x.clear();
+  for(auto &x : mem_stacks_Num) x.clear();
+  for(auto &x : mem_stacks) x.clear();
 }
 
 double * get_double_mem(const size_t n){
-  return double_mem[get_thread_num()].emplace_back_multi(n);
+  return mem_stacks[get_thread_num()].get(n);
 }
 
 cfaad::Number * get_Number_mem(const size_t n){
-  return Number_mem[get_thread_num()].emplace_back_multi(n);
+  return mem_stacks_Num[get_thread_num()].get(n);
 }
 
 ghqCpp::simple_mem_stack<double> &mem_stack(const size_t idx){

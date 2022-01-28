@@ -9,10 +9,10 @@
 #endif
 
 namespace wmem {
-/// maximum continuous range of memory
-constexpr size_t max_ele{131072};
-
-/// sets the working up for some maximum number of threads
+/**
+ * sets the working up for some maximum number of threads. This is not thread
+ * and possibly invalids all requested memory
+ */
 void setup_working_memory(const size_t);
 
 /**

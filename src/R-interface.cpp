@@ -247,6 +247,7 @@ public:
 
       double * const inter_mem{wmem::get_double_mem(n_wmem)};
       double * const par_vec{wmem::get_double_mem(par_idx.n_params_w_va())};
+      auto mem_mark = wmem::mem_stack().set_mark_raii();
 
       // copy the global parameters
       std::copy(caller.par_vec.begin(), caller.par_vec.end(), par_vec);
@@ -268,8 +269,6 @@ public:
 
         if(has_delayed_entry){
           ghqCpp::simple_mem_stack<double> &my_stack = wmem::mem_stack();
-          my_stack.reset();
-
           res += d_dat(par_vec, my_stack, delayed_entry_idx,
                        *cur_quad_rule, *cur_gh_quad_rule);
         }
@@ -301,6 +300,7 @@ public:
       {wmem::get_double_mem(par_idx.n_params_w_va<false>())};
     Number * const par_vec_num
       {wmem::get_Number_mem(par_idx.n_params_w_va<false>())};
+    auto mem_mark = wmem::mem_stack().set_mark_raii();
 
     Number::tape->rewind();
     std::fill(par_vec_gr, par_vec_gr + par_idx.n_params_w_va<false>(), 0);
@@ -339,8 +339,6 @@ public:
 
       if(has_delayed_entry){
         ghqCpp::simple_mem_stack<double> &my_stack = wmem::mem_stack();
-        my_stack.reset();
-
         res += d_dat.grad(par_vec_dub, par_vec_gr, my_stack, delayed_entry_idx,
                           *cur_quad_rule, *cur_gh_quad_rule);
       }
