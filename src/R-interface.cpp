@@ -141,7 +141,8 @@ NumericMatrix eval_expansion
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
-    (*basis)(&out.column(i)[0], wmem.get(), x[i], ders);
+    // TODO: handle weights
+    (*basis)(&out.column(i)[0], wmem.get(), x[i], nullptr, ders);
 
   return out;
 }
@@ -1104,7 +1105,8 @@ class ph_model {
       // the hazard term
       if(event(i) > 0){
         out -= cfaad::dotProd(Z.col(i), Z.col(i) + Z.n_rows(), fixef);
-        (*expansion)(wk_mem, wk_mem + expansion->n_basis(), ub(i));
+        // TODO: handle weights
+        (*expansion)(wk_mem, wk_mem + expansion->n_basis(), ub(i), nullptr);
         out -= cfaad::dotProd
           (wk_mem, wk_mem + expansion->n_basis(), fixef_vary);
       }

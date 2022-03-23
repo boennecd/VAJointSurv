@@ -166,7 +166,8 @@ public:
       } else {
         // compute the term from the time-varying fixed effects
         double const node_val{scale_node_val(lower, upper, nws.ns[i])};
-        (*b)(dwk_mem, dwk_mem_basis, node_val);
+        // TODO: handle weights
+        (*b)(dwk_mem, dwk_mem_basis, node_val, nullptr);
         fixef_term =
           cfaad::dotProd(dwk_mem, dwk_mem + b_n_basis(), fixef_vary);
 
@@ -177,7 +178,8 @@ public:
             association_M[idx + k] = 0;
 
           for(int der : ders()[j]){
-            (*bases_rng[j])(dwk_mem, dwk_mem_basis, node_val, der);
+            // TODO: handle weights
+            (*bases_rng[j])(dwk_mem, dwk_mem_basis, node_val, nullptr, der);
             for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
               association_M[idx + k] +=
                 association[idx_association] * dwk_mem[k];
@@ -233,12 +235,14 @@ public:
    */
   double * cache_expansion_at
     (double const at, double * cache_mem, double * wk_mem){
-    (*b)(cache_mem, wk_mem, at);
+    // TODO: handle weights
+    (*b)(cache_mem, wk_mem, at, nullptr);
     cache_mem += b_n_basis();
 
     for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
       for(int der : ders()[j]){
-        (*bases_rng[j])(cache_mem, wk_mem, at, der);
+        // TODO: handle weights
+        (*bases_rng[j])(cache_mem, wk_mem, at, nullptr, der);
         cache_mem += rng_n_basis(j);
       }
 
@@ -509,14 +513,16 @@ public:
         }
 
       } else {
-        (*bases_fix[type])(dwk_mem, basis_wmem, info.ub);
+        // TODO: handle weights
+        (*bases_fix[type])(dwk_mem, basis_wmem, info.ub, nullptr);
         out -= cfaad::dotProd(dwk_mem, dwk_mem + haz.b_n_basis(),
                               param + surv_info.idx_varying);
 
         vajoint_uint offset{}, idx_association{surv_info.idx_association};
         for(size_t i = 0; i < bases_rng.size(); ++i){
           for(int der : haz.ders()[i]){
-            (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, der);
+            // TODO: handle weights
+            (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, nullptr, der);
             auto M_VA_mean = cfaad::dotProd
               (dwk_mem, dwk_mem + haz.rng_n_basis(i),
                param + par_idx.va_mean() + offset);

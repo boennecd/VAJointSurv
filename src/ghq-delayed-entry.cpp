@@ -101,7 +101,8 @@ delayed_dat::eval_data::eval_data
       fixef_vary_basis.emplace_back(n_gl, n_basis);
       auto &mat = fixef_vary_basis.back();
       for(vajoint_uint i = 0; i < n_gl; ++i, ++time_points_i){
-        (*fixef_base)(basis_mem, basis_mem_wk, *time_points_i);
+        // TODO: handle weights
+        (*fixef_base)(basis_mem, basis_mem_wk, *time_points_i, nullptr);
 
         // copy the transpose
         for(vajoint_uint j = 0; j < n_basis; ++j)
@@ -134,7 +135,9 @@ delayed_dat::eval_data::eval_data
       for(size_t i = 0; i < ders_kl.size(); ++i){
         auto &simple_mat_i = marker_kl[i];
         for(size_t h = 0; h < n_gl; ++h){
-          (*fixef_base)(basis_mem, basis_mem_wk, time_points_i[h], ders_kl[i]);
+          // TODO: handle weights
+          (*fixef_base)(basis_mem, basis_mem_wk, time_points_i[h], nullptr,
+                        ders_kl[i]);
 
           // copy the transpose
           for(vajoint_uint j = 0; j < n_basis; ++j)

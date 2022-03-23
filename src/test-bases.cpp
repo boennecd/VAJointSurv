@@ -12,25 +12,26 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
   int const order(4);
 
   auto bas = Basis(bk, ik, intercept, order);
-  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 0.);
+  expect_true(bas.n_weights() == 0);
+  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), nullptr, 0);
 
   expect_true(y.size() == yy_val.size());
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
-  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 1);
+  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), nullptr, 1);
   expect_true(dx.size() == dx_val.size());
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 
   // work when a pointer is passed
   y.zeros();
-  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 0);
+  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, nullptr, 0);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
   dx.zeros();
-  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 1);
+  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, nullptr, 1);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 
@@ -39,7 +40,7 @@ void run_test(double const xx_val, std::array<double, N> const &yy_val,
 
   // test the integral
   bas.set_lower_limit(xx_lower);
-  arma::vec ix = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), -1);
+  arma::vec ix = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), nullptr, -1);
   expect_true(ix.size() == ix_val.size());
   for(unsigned i = 0; i < ix.size(); ++i)
     expect_true(pass_rel_err(ix[i], ix_val[i], 1e-6));
@@ -53,25 +54,25 @@ void run_test_use_log(double const xx_val, std::array<double, N> const &yy_val,
   int const order(4);
 
   auto bas = Basis(bk, ik, intercept, order, true);
-  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 0.);
+  arma::vec y = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), nullptr, 0);
 
   expect_true(y.size() == yy_val.size());
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
-  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), 1);
+  arma::vec dx = bas(xx_val, wmem::get_double_mem(bas.n_wmem()), nullptr, 1);
   expect_true(dx.size() == dx_val.size());
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 
   // work when a pointer is passed
   y.zeros();
-  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 0);
+  bas(y.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, nullptr, 0);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(y[i], yy_val[i]));
 
   dx.zeros();
-  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, 1);
+  bas(dx.memptr(), wmem::get_double_mem(bas.n_wmem()), xx_val, nullptr, 1);
   for(unsigned i = 0; i < y.size(); ++i)
     expect_true(pass_rel_err(dx[i], dx_val[i]));
 }
@@ -231,19 +232,19 @@ context("test bs") {
     // bk, ik, intercept, order
     joint_bases::bs bas(bk, ik, true, 4);
 
-    arma::vec res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), 1);
+    arma::vec res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), nullptr, 1);
     expect_true(res.size() == 5);
     for(vajoint_uint i = 0; i < res.size(); ++i)
       expect_true(pass_rel_err(res[i], derivs[i]));
 
     bas.set_lower_limit(bk[0]);
-    res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), -1);
+    res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), nullptr, -1);
     expect_true(res.size() == 5);
     for(vajoint_uint i = 0; i < res.size(); ++i)
       expect_true(pass_rel_err(res[i], int_1[i], 1e-7));
 
     bas.set_lower_limit(.5);
-    res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), -1);
+    res = bas(1.1, wmem::get_double_mem(bas.n_wmem()), nullptr, -1);
     expect_true(res.size() == 5);
     for(vajoint_uint i = 0; i < res.size(); ++i)
       expect_true(pass_rel_err(res[i], int_2[i], 1e-7));
@@ -614,7 +615,8 @@ context("test orth_poly") {
         expect_true(pass_rel_err(Xout.at(i, j), basis.at(i, j)));
 
     for(unsigned i = 0; i < Xout.n_rows; ++i){
-      arma::vec const b = obj(x[i], wmem::get_double_mem(obj.n_wmem()));
+      arma::vec const b = obj(x[i], wmem::get_double_mem(obj.n_wmem()),
+                              nullptr);
       expect_true(b.n_elem == Xout.n_cols);
       for(unsigned j = 0; j < Xout.n_cols; ++j)
         expect_true(pass_rel_err(Xout.at(i, j), b[j]));
@@ -629,8 +631,10 @@ context("test orth_poly") {
 
       constexpr double x{2};
       const double log_x{std::log(x)};
-      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem())),
-            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()));
+      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem()),
+                              nullptr),
+            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()),
+                              nullptr);
       double true_val{1}, true_val_log{1};
       for(unsigned j = 0; j <= i; ++j){
         expect_true(pass_rel_err(res    [j], true_val    ));
@@ -650,8 +654,10 @@ context("test orth_poly") {
 
       constexpr double x{3};
       const double log_x{std::log(x)};
-      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem())),
-            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()));
+      arma::vec res = obj    (x, wmem::get_double_mem(obj    .n_wmem()),
+                              nullptr),
+            res_log = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()),
+                              nullptr);
       double true_val{x}, true_val_log{log_x};
       for(unsigned j = 0; j < i; ++j){
         expect_true(pass_rel_err(res    [j], true_val));
@@ -680,27 +686,27 @@ context("test orth_poly") {
       joint_bases::orth_poly const obj{4, true},
                                obj_log{4, true, true};
 
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 1);
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d1[i]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 2);
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d2[i]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 3);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 3);
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d3[i]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 4);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 4);
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d4[i]));
 
-      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), 1);
+      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), nullptr, 1);
       expect_true(res.size() == 5);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d_log[i]));
@@ -711,27 +717,27 @@ context("test orth_poly") {
       joint_bases::orth_poly const obj{4, false},
                                obj_log{4, false, true};
 
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 1);
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d1[i + 1]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 2);
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d2[i + 1]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 3);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 3);
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d3[i + 1]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 4);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 4);
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d4[i + 1]));
 
-      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), 1);
+      res = obj_log(x, wmem::get_double_mem(obj_log.n_wmem()), nullptr, 1);
       expect_true(res.size() == 4);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d_log[i + 1]));
@@ -749,23 +755,23 @@ context("test orth_poly") {
 
       { // with an intercept
         joint_bases::orth_poly obj{3, true};
-        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
         expect_true(res.size() == 4);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i1[i]));
 
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -2);
         expect_true(res.size() == 4);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i]));
 
         obj.set_lower_limit(x_low);
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
         expect_true(res.size() == 4);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i1[i] - i1_low[i]));
 
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -2);
         expect_true(res.size() == 4);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i] - i2_low[i]));
@@ -773,23 +779,23 @@ context("test orth_poly") {
       }
       { // without an intercept
         joint_bases::orth_poly obj{3, false};
-        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
         expect_true(res.size() == 3);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i1[i + 1]));
 
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -2);
         expect_true(res.size() == 3);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i + 1]));
 
         obj.set_lower_limit(x_low);
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
         expect_true(res.size() == 3);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i1[i + 1] - i1_low[i + 1]));
 
-        res = obj(x, wmem::get_double_mem(obj.n_wmem()), -2);
+        res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -2);
         expect_true(res.size() == 3);
         for(vajoint_uint i = 0; i < res.size(); ++i)
           expect_true(pass_rel_err(res[i], i2[i + 1] - i2_low[i + 1]));
@@ -810,7 +816,7 @@ context("test orth_poly") {
     // with intercept
     {
       joint_bases::orth_poly const obj(alpha, norm2, true);
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr);
 
       expect_true(res[0] == 1);
       for(size_t i = 0; i < n_res; ++i)
@@ -821,7 +827,7 @@ context("test orth_poly") {
     // without an intercept
     {
       joint_bases::orth_poly const obj(alpha, norm2, false);
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()));
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr);
 
       for(size_t i = 0; i < n_res; ++i)
         expect_true(pass_rel_err(res[i], truth[i]));
@@ -853,12 +859,12 @@ context("test orth_poly") {
        */
 
       joint_bases::orth_poly const obj(alpha, norm2, false);
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 1);
       expect_true(res.size() == 3);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d1[i]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 2);
       expect_true(res.size() == 3);
       for(vajoint_uint i = 0; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d2[i]));
@@ -880,13 +886,13 @@ context("test orth_poly") {
 
       joint_bases::orth_poly const obj(alpha, norm2, true);
 
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), 1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 1);
       expect_true(res.size() == 4);
       expect_true(res[0] == 0);
       for(vajoint_uint i = 1; i < res.size(); ++i)
         expect_true(pass_rel_err(res[i], d1[i - 1]));
 
-      res = obj(x, wmem::get_double_mem(obj.n_wmem()), 2);
+      res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, 2);
       expect_true(res.size() == 4);
       expect_true(res[0] == 0);
       for(vajoint_uint i = 1; i < res.size(); ++i)
@@ -912,7 +918,7 @@ context("test orth_poly") {
 
     { // no intercept
       joint_bases::orth_poly const obj(alpha, norm2, false);
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
       expect_true(res.size() == 3);
 
       for(vajoint_uint i = 0; i < res.size(); ++i)
@@ -920,7 +926,7 @@ context("test orth_poly") {
     }
     { // with intercept
       joint_bases::orth_poly const obj(alpha, norm2, true);
-      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), -1);
+      arma::vec res = obj(x, wmem::get_double_mem(obj.n_wmem()), nullptr, -1);
       expect_true(res.size() == 4);
 
       expect_true(res[0] == x);

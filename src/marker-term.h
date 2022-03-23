@@ -174,11 +174,13 @@ public:
     for(vajoint_uint i = 0; i < n_obs_v; ++i, ++obs_time){
       double *mem = design_mats.col(i) + n_fixed_effects;
       for(auto &x : bases_fix){
-        (*x)(mem, basis_wmem, *obs_time);
+        // TODO: handle weights
+        (*x)(mem, basis_wmem, *obs_time, nullptr);
         mem += x->n_basis();
       }
       for(auto &x : bases_rng){
-        (*x)(mem, basis_wmem, *obs_time);
+        // TODO: handle weights
+        (*x)(mem, basis_wmem, *obs_time, nullptr);
         mem += x->n_basis();
       }
     }

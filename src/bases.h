@@ -24,7 +24,8 @@ class basisMixin {
 public:
   /// the required working memory
   virtual size_t n_wmem() const = 0;
-
+  /// the number of weights
+  virtual vajoint_uint n_weights() const { return 0; }
   /// the number of basis functions
   virtual vajoint_uint n_basis() const = 0;
 
@@ -32,27 +33,30 @@ public:
    * fills a vector with the (possibly derivatives) of the basis expansions
    * evaluated at x */
   void operator()
-    (vec &out, double *wk_mem, double const x,
+    (vec &out, double *wk_mem, double const x, double const *weights,
      const int ders = default_ders) const {
-    (*this)(out.memptr(), wk_mem, x, ders);
+    (*this)(out.memptr(), wk_mem, x, weights, ders);
   }
   /// returns an allocated vector
   vec operator()
-    (double const x, double * wk_mem,
+    (double const x, double * wk_mem, double const *weights,
      int const ders = default_ders) const {
     vec out(n_basis());
-    (*this)(out.begin(), wk_mem, x, ders);
+    (*this)(out.begin(), wk_mem, x, weights, ders);
     return out;
   }
   /// same as the other operator() calls but filling the out
   virtual void operator()
-    (double *out, double *wk_mem, double const x,
+    (double *out, double *wk_mem, double const x, double const *weights,
      int const ders = default_ders) const = 0;
 
   mat basis
     (const vec &x, double *wk_mem, const int ders = default_ders,
      const double centre = std::numeric_limits<double>::quiet_NaN())
     const  {
+    if(n_weights() > 0)
+      throw std::runtime_error("Not implemented with n_weights > 0");
+
     vajoint_uint const n_basis_v(n_basis()),
     n_x    (x.n_elem);
     rowvec centering =
@@ -62,7 +66,7 @@ public:
     mat out(n_x, n_basis_v);
     vec wrk(n_basis_v);
     for (vajoint_uint i = 0; i < n_x; i++){
-      (*this)(wrk, wk_mem, x[i], ders);
+      (*this)(wrk, wk_mem, x[i], nullptr, ders);
       out.row(i) = wrk.t() - centering;
     }
 
@@ -232,7 +236,7 @@ public:
    * own
    */
   void operator()
-    (double *out, double *wk_mem, double const x,
+    (double *out, double *wk_mem, double const x, double const *,
      const int ders = default_ders)
     const override {
     if(ders >= 0){
@@ -257,7 +261,7 @@ public:
       lim = std::min(knots.back(), lim);
 
       // evaluate the basis which is one order greater
-      (*integral_basis)(basis_mem, wk_mem, lim, ders + 1);
+      (*integral_basis)(basis_mem, wk_mem, lim, nullptr, ders + 1);
 
       // find the index j such that knots[j] <= lim < knots[j + 1]
       // use -1 if x < knots[0]
@@ -329,9 +333,9 @@ class bs final : public SplineBasis {
       // handle integration. First we handle the interior part. Then we address
       // the extrapolation if needed
       if(intercept)
-        SplineBasis::operator()(out, wk_mem, x, ders);
+        SplineBasis::operator()(out, wk_mem, x, nullptr, ders);
       else {
-        SplineBasis::operator()(my_wk_mem, wk_mem, x, ders);
+        SplineBasis::operator()(my_wk_mem, wk_mem, x, nullptr, ders);
         for(vajoint_uint i = 1; i < SplineBasis::n_basis(); ++i)
           out[i - 1L] = my_wk_mem[i];
       }
@@ -351,7 +355,7 @@ class bs final : public SplineBasis {
             : boundary_knots[1] - k_pivot;
 
         auto add_term = [&](int const d, double const f = 1){
-          bs::operator()(my_wk_mem, wk_mem, k_pivot, d);
+          bs::operator()(my_wk_mem, wk_mem, k_pivot, nullptr, d);
           for(vajoint_uint i = 0; i < bs::n_basis(); ++i)
             out[i] += sign * f * my_wk_mem[i];
         };
@@ -396,9 +400,9 @@ class bs final : public SplineBasis {
     }
 
     if(intercept)
-      SplineBasis::operator()(out, wk_mem, x, ders);
+      SplineBasis::operator()(out, wk_mem, x, nullptr, ders);
     else {
-      SplineBasis::operator()(my_wk_mem, wk_mem, x, ders);
+      SplineBasis::operator()(my_wk_mem, wk_mem, x, nullptr, ders);
       for(vajoint_uint i = 1; i < SplineBasis::n_basis(); ++i)
         out[i - 1L] = my_wk_mem[i];
     }
@@ -432,7 +436,7 @@ public:
   using SplineBasis::set_lower_limit;
   using SplineBasis::operator();
   void operator()
-      (double *out, double *wk_mem, double const x,
+      (double *out, double *wk_mem, double const x, double const *,
        const int ders = default_ders) const {
       if(!use_log){
         do_eval(out, wk_mem, x, ders);
@@ -475,7 +479,7 @@ class ns final : public basisMixin {
         wk_mem += q_matrix.n_rows;
         double * const b = wk_mem;
         wk_mem += s_basis.n_basis();
-        s_basis(b, wk_mem, x, ders);
+        s_basis(b, wk_mem, x, nullptr, ders);
 
         std::fill(lhs, lhs + q_matrix.n_rows, 0);
         lp_joint::mat_vec
@@ -549,7 +553,7 @@ class ns final : public basisMixin {
     wk_mem += q_matrix.n_rows;
     double * const b = wk_mem;
     wk_mem += s_basis.n_basis();
-    s_basis(b, wk_mem, x, ders);
+    s_basis(b, wk_mem, x, nullptr, ders);
 
     std::fill(lhs, lhs + q_matrix.n_rows, 0);
     lp_joint::mat_vec
@@ -608,7 +612,7 @@ public:
 
   using basisMixin::operator();
   void operator()
-    (double *out, double *wk_mem, double const x,
+    (double *out, double *wk_mem, double const x, double const *,
      int const ders = default_ders) const {
     if(!use_log){
       do_eval(out, wk_mem, x, ders);
@@ -661,7 +665,7 @@ public:
 
   using basisMixin::operator();
   void operator()
-    (double *out, double *wk_mem, double const x,
+    (double *out, double *wk_mem, double const x, double const *,
      int const ders = default_ders) const  {
     double * const b{wk_mem};
     vajoint_uint const n_b{bspline.n_basis()};
@@ -673,7 +677,7 @@ public:
 
     }
     else if(x <= 1){
-      bspline(b, wk_mem, x, ders);
+      bspline(b, wk_mem, x, nullptr, ders);
       vajoint_uint const js = bspline.knots.size() - 2 > 0 ?
         static_cast<vajoint_uint>(std::lower_bound(
           bspline.knots.begin(),
@@ -734,12 +738,12 @@ public:
 
   using basisMixin::operator();
   void operator()
-    (double *out, double *wk_mem, double const x,
+    (double *out, double *wk_mem, double const x, double const *,
      int const ders = default_ders) const {
     double * const wrk{wk_mem};
     wk_mem += bspline.n_basis();
 
-    bspline(wrk, wk_mem, x, ders);
+    bspline(wrk, wk_mem, x, nullptr, ders);
     for (vajoint_uint j = 0; j < bspline.n_basis(); ++j) {
       double denom = bspline.knots(j + bspline.order) - bspline.knots(j);
       wrk[j] *= denom > 0.0 ? bspline.order / denom : 0.0;
@@ -899,7 +903,7 @@ public:
    * intercept */
   using basisMixin::set_lower_limit;
   using basisMixin::operator();
-  void operator()(double *out, double *wk_mem, double const x,
+  void operator()(double *out, double *wk_mem, double const x, double const *,
                   int const ders = default_ders)
     const {
     if(!use_log){

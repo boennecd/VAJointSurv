@@ -92,13 +92,17 @@ ns::ns(const vec &bk, const vec &interior_knots,
   boundary_knots{bk[0], bk[1]},
   intercept(intercept),
   tl0(trans(s_basis
-              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()), 0.))),
+              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()),
+               nullptr, 0))),
   tl1(trans(s_basis
-              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()), 1.))),
+              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()),
+               nullptr, 1))),
   tr0(trans(s_basis
-              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()), 0.))),
+              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()),
+               nullptr, 0))),
   tr1(trans(s_basis
-              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()), 1.)))
+              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()),
+               nullptr, 1)))
   { }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,
