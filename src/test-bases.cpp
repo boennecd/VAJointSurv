@@ -936,3 +936,82 @@ context("test orth_poly") {
   }
 }
 
+context("testing weighted basis"){
+
+  /*
+   library(splines)
+   library(numDeriv)
+   xs <- 2
+   dput(interior_knots <- c(1,3))
+   dput(boundary_knots <- c(0, 5))
+   f <- function(z)
+   ns(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = FALSE)
+   dput(t(f(xs)))
+   dput(sapply(xs, function(zz) jacobian(f, zz)))
+   */
+  const arma::vec ik{1,3};
+  const arma::vec bk{0,5} ;
+  const double x{2};
+  const arma::vec basis_at_x{0.214240418913762, 0.519778743258714, -0.325685828839143};
+  const arma::vec jacobian{0.40546301825183, -0.128889054761228, 0.148426036506845};
+
+  test_that("single weighted"){
+    joint_bases::weighted_basis<joint_bases::ns> weight_1(bk, ik, false);
+    expect_true(weight_1.n_basis()==3);
+    expect_true(weight_1.n_weights()==1);
+    std::vector<double> mem(weight_1.n_wmem());
+    const double weight = 2;
+    arma::vec out = weight_1(x,mem.data(), &weight, 0);
+    expect_true(out.n_elem == 3);
+
+    for(unsigned i=0; i<out.n_elem;i++) {
+      expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
+    }
+
+    auto weight_1_clone = weight_1.clone();
+
+    expect_true(weight_1_clone->n_basis()==3);
+    expect_true(weight_1_clone->n_weights()==1);
+
+    out = (*weight_1_clone)(x,mem.data(), &weight, 0);
+    expect_true(out.n_elem == 3);
+
+    for(unsigned i=0; i<out.n_elem;i++) {
+      expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
+    }
+  }
+
+  test_that("weighted of weighted"){
+    joint_bases::weighted_basis
+      <joint_bases::weighted_basis<joint_bases::ns> > weight_1(bk, ik, false);
+
+    expect_true(weight_1.n_basis()==3);
+    expect_true(weight_1.n_weights()==2);
+
+    std::vector<double> mem(weight_1.n_wmem());
+
+    std::array<double,2> weights{2,4};
+
+    arma::vec out = weight_1(x,mem.data(), weights.data(), 0);
+    expect_true(out.n_elem == 3);
+
+    for(unsigned i=0; i<out.n_elem;i++) {
+      expect_true(pass_rel_err(weights[0]*weights[1]*basis_at_x[i],out[i]));
+    }
+
+    // tests for clone
+
+    auto weight_1_clone = weight_1.clone();
+
+    expect_true(weight_1_clone->n_basis()==3);
+    expect_true(weight_1_clone->n_weights()==2);
+
+    out = (*weight_1_clone)(x,mem.data(), weights.data(), 0);
+    expect_true(out.n_elem == 3);
+
+    for(unsigned i=0; i<out.n_elem;i++) {
+      expect_true(pass_rel_err(weights[0]*weights[1]*basis_at_x[i],out[i]));
+    }
+  }
+}
+

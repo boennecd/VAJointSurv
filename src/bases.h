@@ -9,6 +9,7 @@
 #include "wmem.h"
 #include "lp-joint.h"
 #include <algorithm>
+#include <vector>
 
 namespace joint_bases {
 
@@ -95,6 +96,58 @@ protected:
   /// lower limit of integrals. This is log transformed if use_log is true
   double lower_limit;
 };
+
+class stacked_basis : public basisMixin {
+  using bases_vec = std::vector<std::unique_ptr<basisMixin> >;
+  bases_vec my_basis;
+
+public:
+  stacked_basis(bases_vec const &basis_in){
+    my_basis.reserve(basis_in.size());
+    for(auto &bas : basis_in)
+      my_basis.emplace_back(bas->clone());
+  }
+  stacked_basis(stacked_basis const &other){
+    my_basis.reserve(other.my_basis.size());
+    for(auto &bas : other.my_basis)
+      my_basis.emplace_back(bas->clone());
+  }
+
+  size_t n_wmem() const;
+  vajoint_uint n_weights() const;
+  vajoint_uint n_basis() const;
+  void set_lower_limit(double const x);
+  void operator()
+    (double *out, double *wk_mem, double const x, double const *weights,
+     int const ders = default_ders) const;
+
+  std::unique_ptr<basisMixin> clone() const {
+    return std::make_unique<stacked_basis>(*this);
+  }
+};
+
+template<class basis_type>
+struct weighted_basis : public basis_type {
+  using basis_type::basis_type; // using the same constructors as basis_type
+  using basis_type::n_wmem;
+  using basis_type::n_basis;
+  using basis_type::operator();
+
+  vajoint_uint n_weights() const {
+    return basis_type::n_weights()+1;
+  }
+
+   void operator()
+    (double *out, double *wk_mem, double const x, double const *weights,
+     int const ders = default_ders) const {
+     std::fill(out, out + n_basis(), 0);
+   }
+
+  std::unique_ptr<basisMixin> clone() const override {
+    return std::make_unique<weighted_basis>(*this);
+  }
+};
+
 
 class SplineBasis : public basisMixin {
     void comp_basis(double const x, double *out,
@@ -322,7 +375,7 @@ private:
     };
 };
 
-class bs final : public SplineBasis {
+class bs  : public SplineBasis {
   void do_eval
     (double *out, double *wk_mem, double const x,
      const int ders = default_ders) const {
@@ -459,7 +512,7 @@ public:
   }
 };
 
-class ns final : public basisMixin {
+class ns  : public basisMixin {
   SplineBasis s_basis;
 
   void do_eval
@@ -635,7 +688,7 @@ public:
   }
 }; // class ns
 
-class iSpline final : public basisMixin {
+class iSpline  : public basisMixin {
 public:
   bool const intercept;
   vajoint_uint const order;
@@ -709,7 +762,7 @@ public:
   }
 }; // class iSpline
 
-class mSpline final : public basisMixin {
+class mSpline  : public basisMixin {
 public:
   bs bspline; // TODO: can be a SplineBasis
   bool const intercept;
@@ -756,7 +809,7 @@ public:
   }
 }; // class mSpline
 
-class orth_poly final : public basisMixin {
+class orth_poly  : public basisMixin {
   // coefficients for the orthogonal polynomial
   vec alpha,
       norm2,
