@@ -1015,3 +1015,33 @@ context("testing weighted basis"){
   }
 }
 
+context("stacked basis") {
+  /*
+   library(splines)
+   library(numDeriv)
+   xs <- 2
+   dput(interior_knots <- c(1,3))
+   dput(boundary_knots <- c(0, 5))
+   f <- function(z)
+   ns(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = FALSE)
+   dput(t(f(xs)))
+   dput(sapply(xs, function(zz) jacobian(f, zz)))
+ */
+  const arma::vec ik{1,3};
+  const arma::vec bk{0,5} ;
+  const double x{2};
+  const arma::vec basis_at_x{0.214240418913762, 0.519778743258714, -0.325685828839143};
+  const arma::vec jacobian{0.40546301825183, -0.128889054761228, 0.148426036506845};
+
+  test_that("properly stacked"){
+    std::vector<std::unique_ptr<joint_bases::basisMixin> > input_arg;
+    input_arg.emplace_back
+      (new joint_bases::weighted_basis<joint_bases::ns>(ik, bk, true));
+    input_arg.emplace_back
+      (new joint_bases::weighted_basis<joint_bases::orth_poly>(3, true));
+
+    joint_bases::stacked_basis test_basis(input_arg);
+  }
+}
+
+

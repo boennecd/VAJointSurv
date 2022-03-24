@@ -107,19 +107,18 @@ public:
     for(auto &bas : basis_in)
       my_basis.emplace_back(bas->clone());
   }
-  stacked_basis(stacked_basis const &other){
-    my_basis.reserve(other.my_basis.size());
-    for(auto &bas : other.my_basis)
-      my_basis.emplace_back(bas->clone());
-  }
+  stacked_basis(stacked_basis const &other):
+    stacked_basis(other.my_basis) { }
 
-  size_t n_wmem() const;
-  vajoint_uint n_weights() const;
-  vajoint_uint n_basis() const;
-  void set_lower_limit(double const x);
+  size_t n_wmem() const {
+    return 0;
+  }
+  vajoint_uint n_weights() const { return 0;}
+  vajoint_uint n_basis() const { return 0;}
+  void set_lower_limit(double const x) {}
   void operator()
     (double *out, double *wk_mem, double const x, double const *weights,
-     int const ders = default_ders) const;
+     int const ders = default_ders) const{}
 
   std::unique_ptr<basisMixin> clone() const {
     return std::make_unique<stacked_basis>(*this);
