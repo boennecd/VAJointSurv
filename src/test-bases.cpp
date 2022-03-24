@@ -956,62 +956,48 @@ context("testing weighted basis"){
   const arma::vec jacobian{0.40546301825183, -0.128889054761228, 0.148426036506845};
 
   test_that("single weighted"){
+    auto do_tests = [&](joint_bases::basisMixin &test_basis){
+      expect_true(test_basis.n_basis()==3);
+      expect_true(test_basis.n_weights()==1);
+      std::vector<double> mem(test_basis.n_wmem());
+      const double weight = 2;
+      arma::vec out = test_basis(x,mem.data(), &weight, 0);
+      expect_true(out.n_elem == 3);
+
+      for(unsigned i=0; i<out.n_elem;i++) {
+        expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
+      }
+    };
+
     joint_bases::weighted_basis<joint_bases::ns> weight_1(bk, ik, false);
-    expect_true(weight_1.n_basis()==3);
-    expect_true(weight_1.n_weights()==1);
-    std::vector<double> mem(weight_1.n_wmem());
-    const double weight = 2;
-    arma::vec out = weight_1(x,mem.data(), &weight, 0);
-    expect_true(out.n_elem == 3);
-
-    for(unsigned i=0; i<out.n_elem;i++) {
-      expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
-    }
-
+    do_tests(weight_1);
     auto weight_1_clone = weight_1.clone();
-
-    expect_true(weight_1_clone->n_basis()==3);
-    expect_true(weight_1_clone->n_weights()==1);
-
-    out = (*weight_1_clone)(x,mem.data(), &weight, 0);
-    expect_true(out.n_elem == 3);
-
-    for(unsigned i=0; i<out.n_elem;i++) {
-      expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
-    }
+    do_tests(*weight_1_clone);
   }
 
   test_that("weighted of weighted"){
+    auto do_test = [&](const joint_bases::basisMixin &test_basis){
+      expect_true(test_basis.n_basis()==3);
+      expect_true(test_basis.n_weights()==2);
+
+      std::vector<double> mem(test_basis.n_wmem());
+
+      std::array<double,2> weights{2,4};
+
+      arma::vec out = test_basis(x,mem.data(), weights.data(), 0);
+      expect_true(out.n_elem == 3);
+
+      for(unsigned i=0; i<out.n_elem; ++i) {
+        expect_true(pass_rel_err(out[i], weights[0]*weights[1]*basis_at_x[i]));
+      }
+    };
+
     joint_bases::weighted_basis
       <joint_bases::weighted_basis<joint_bases::ns> > weight_1(bk, ik, false);
 
-    expect_true(weight_1.n_basis()==3);
-    expect_true(weight_1.n_weights()==2);
-
-    std::vector<double> mem(weight_1.n_wmem());
-
-    std::array<double,2> weights{2,4};
-
-    arma::vec out = weight_1(x,mem.data(), weights.data(), 0);
-    expect_true(out.n_elem == 3);
-
-    for(unsigned i=0; i<out.n_elem;i++) {
-      expect_true(pass_rel_err(weights[0]*weights[1]*basis_at_x[i],out[i]));
-    }
-
-    // tests for clone
-
+    do_test(weight_1);
     auto weight_1_clone = weight_1.clone();
-
-    expect_true(weight_1_clone->n_basis()==3);
-    expect_true(weight_1_clone->n_weights()==2);
-
-    out = (*weight_1_clone)(x,mem.data(), weights.data(), 0);
-    expect_true(out.n_elem == 3);
-
-    for(unsigned i=0; i<out.n_elem;i++) {
-      expect_true(pass_rel_err(weights[0]*weights[1]*basis_at_x[i],out[i]));
-    }
+    do_test(*weight_1_clone);
   }
 }
 
@@ -1023,17 +1009,50 @@ context("stacked basis") {
    dput(interior_knots <- c(1,3))
    dput(boundary_knots <- c(0, 5))
    f <- function(z)
-   ns(z, knots = interior_knots, Boundary.knots = boundary_knots, intercept = FALSE)
+   cbind(
+   ns(z, knots = interior_knots, Boundary.knots = boundary_knots,
+   intercept = TRUE),
+   1, z, z^2, z^3)
+
    dput(t(f(xs)))
-   dput(sapply(xs, function(zz) jacobian(f, zz)))
+   g <- function(x, i) f(x)[, i]
+   dput(sapply(1:8, function(i) integrate(g, 1, xs, i = i)$value))
  */
   const arma::vec ik{1,3};
   const arma::vec bk{0,5} ;
   const double x{2};
-  const arma::vec basis_at_x{0.214240418913762, 0.519778743258714, -0.325685828839143};
-  const arma::vec jacobian{0.40546301825183, -0.128889054761228, 0.148426036506845};
+  const arma::vec basis_at_x{0.528510354544419, 0.333871840764373, 0.160884477706881,
+                             -0.0864229851379206, 1, 2, 4, 8};
+  const arma::vec integral_from_one_to_x
+    {0.579222604083723, 0.148606548120739, 0.194805355637782, -0.124661903758521,
+     1, 1.5, 2.33333333333333, 3.75};
 
   test_that("properly stacked"){
+    auto do_test = [&](joint_bases::basisMixin &test_basis){
+      expect_true(test_basis.n_weights()==2);
+      expect_true(test_basis.n_basis()==8);
+
+      arma::vec const weights{3,5};
+      std::vector<double> mem(test_basis.n_wmem());
+
+      arma::vec out = test_basis(x, mem.data(),weights.memptr());
+      expect_true(out.n_elem == 8);
+
+      for (arma::uword i = 0; i <out.n_elem;i++) {
+        expect_true(pass_rel_err(out[i],
+                                 weights[i > 3 ? 1 : 0] * basis_at_x[i]));
+      }
+
+      test_basis.set_lower_limit(1);
+      test_basis(out.memptr(), mem.data(),x, weights.memptr(),-1);
+
+      for (arma::uword i = 0; i <out.n_elem;i++) {
+        expect_true
+          (pass_rel_err(out[i],
+                        weights[i > 3 ? 1 : 0] * integral_from_one_to_x[i]));
+      }
+    };
+
     std::vector<std::unique_ptr<joint_bases::basisMixin> > input_arg;
     input_arg.emplace_back
       (new joint_bases::weighted_basis<joint_bases::ns>(ik, bk, true));
@@ -1041,7 +1060,8 @@ context("stacked basis") {
       (new joint_bases::weighted_basis<joint_bases::orth_poly>(3, true));
 
     joint_bases::stacked_basis test_basis(input_arg);
+    auto tests_basis_clone = test_basis.clone();
+    do_test(test_basis);
+    do_test(*tests_basis_clone);
   }
 }
-
-

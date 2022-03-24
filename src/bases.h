@@ -102,6 +102,7 @@ class stacked_basis : public basisMixin {
   bases_vec my_basis;
 
 public:
+  using basisMixin::operator();
   stacked_basis(bases_vec const &basis_in){
     my_basis.reserve(basis_in.size());
     for(auto &bas : basis_in)
