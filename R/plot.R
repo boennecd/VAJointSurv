@@ -27,8 +27,9 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
   sds <- sds * qnorm((1 + p) / 2)
   lbs <- mea - sds
   ubs <- mea + sds
-  plot(xs, mea, ylim = range(lbs, ubs), type = "n", xlab = xlab,
-       ylab = ylab, bty = "l", ...)
+
+  plot(xs, mea, ylim = range(lbs, ubs), type = "n", bty = "l", xlab = xlab,
+       ylab = ylab, ...)
   grid()
   polygon(x = c(xs, rev(xs)), y = c(lbs, rev(ubs)), border = NA,
           col = gray(0, .1))
