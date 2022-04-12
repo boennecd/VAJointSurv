@@ -33,7 +33,7 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
   grid()
   polygon(x = c(xs, rev(xs)), y = c(lbs, rev(ubs)), border = NA,
           col = gray(0, .1))
-  points(xs, mea, ylim = range(lbs, ubs), type = "l")
+  points(xs, mea, type = "l")
 
   invisible(list(lbs = lbs, ubs = ubs, mea = mea))
 }
