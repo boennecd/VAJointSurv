@@ -9,6 +9,7 @@
 #include "wmem.h"
 #include "lp-joint.h"
 #include <algorithm>
+#include <numeric>
 #include <vector>
 
 namespace joint_bases {
@@ -102,47 +103,73 @@ protected:
   double lower_limit;
 };
 
+using bases_vector = std::vector<std::unique_ptr<basisMixin> >;
+
+/// simple function clone bases
+inline bases_vector clone_bases(const bases_vector &bases){
+  std::vector<std::unique_ptr<basisMixin> > out;
+  out.reserve(bases.size());
+  for(auto &x : bases)
+    out.emplace_back(x->clone());
+  return out;
+}
+
 //-----------------------------stacked basis----------------------------------------
 
 class stacked_basis : public basisMixin {
-  using bases_vec = std::vector<std::unique_ptr<basisMixin> >;
-  bases_vec my_basis;
+  bases_vector my_basis;
+  size_t n_wmem_p;
+  vajoint_uint n_weights_p, n_basis_p;
 
 public:
   using basisMixin::operator();
-  stacked_basis(bases_vec const &basis_in){
-    my_basis.reserve(basis_in.size());
-    for(auto &bas : basis_in)
-      my_basis.emplace_back(bas->clone());
-  }
+  stacked_basis(bases_vector const &basis_in):
+    my_basis(clone_bases(basis_in)),
+    n_wmem_p
+    {
+      ([&]{
+        return std::accumulate
+          (my_basis.begin(), my_basis.end(), size_t{},
+           [](size_t cur, std::unique_ptr<basisMixin> const &bas) {
+             return std::max(cur, bas->n_wmem());
+           });
+      })()
+    },
+    n_weights_p
+    {
+      ([&]{
+        return std::accumulate
+          (my_basis.begin(), my_basis.end(), vajoint_uint{},
+           [](vajoint_uint sum, std::unique_ptr<basisMixin> const &bas) {
+             return sum + bas->n_weights();
+           });
+      })()
+    },
+    n_basis_p
+    {
+      ([&]{
+        return std::accumulate
+          (my_basis.begin(), my_basis.end(), vajoint_uint{},
+           [](vajoint_uint sum, std::unique_ptr<basisMixin> const &bas) {
+             return sum + bas->n_basis();
+           });
+      })()
+    } { }
+
   stacked_basis(stacked_basis const &other):
     stacked_basis(other.my_basis) { }
 
-  size_t n_wmem() const { // CHANGES:
-    size_t total_mem{};
-    for(auto &bas : my_basis)
-      total_mem = std::max(bas->n_wmem(),total_mem);
-    return total_mem;
-  }
+  size_t n_wmem() const { return n_wmem_p; }
 
-  vajoint_uint n_weights() const {
-    vajoint_uint n_weights{};
-    for(auto &bas : my_basis)
-      n_weights += bas ->n_weights();
-      return n_weights;} // CHANGES
+  vajoint_uint n_weights() const { return n_weights_p; }
 
-  vajoint_uint n_basis() const {
-    vajoint_uint total_bases{};
-    for(auto &bas : my_basis)
-      total_bases += bas->n_basis();
-    return total_bases;} //  CHANGES
-
+  vajoint_uint n_basis() const { return n_basis_p; }
 
   void set_lower_limit(double const x) {
-    for(auto &bas : my_basis)
-      bas->set_lower_limit(x);
+    std::for_each
+      (my_basis.begin(), my_basis.end(),
+       [&](std::unique_ptr<basisMixin> &bas) { bas->set_lower_limit(x); });
   }
-
 
   void operator()
     (double *out, double *wk_mem, double const x, double const *weights,
@@ -151,7 +178,7 @@ public:
         (*bas)(out, wk_mem, x, weights, ders);
         out += bas->n_basis();
         weights += bas->n_weights();
-        }
+      }
   }
 
   std::unique_ptr<basisMixin> clone() const {
@@ -1054,19 +1081,6 @@ public:
     return n_basis_v;
   }
 }; // orth_poly
-
-//----------------------------------------------------------------------------------
-
-using bases_vector = std::vector<std::unique_ptr<basisMixin> >;
-
-/// simple function clone bases
-inline bases_vector clone_bases(const bases_vector &bases){
-  std::vector<std::unique_ptr<basisMixin> > out;
-  out.reserve(bases.size());
-  for(auto &x : bases)
-    out.emplace_back(x->clone());
-  return out;
-}
 
 } // namespace joint_bases
 
