@@ -957,8 +957,12 @@ context("testing weighted basis"){
 
   test_that("single weighted"){
     auto do_tests = [&](joint_bases::basisMixin &test_basis){
+
       expect_true(test_basis.n_basis()==3);
       expect_true(test_basis.n_weights()==1);
+
+      // HELP
+      // create vector of working memory to allocate memory manually?
       std::vector<double> mem(test_basis.n_wmem());
       const double weight = 2;
       arma::vec out = test_basis(x,mem.data(), &weight, 0);
@@ -968,6 +972,7 @@ context("testing weighted basis"){
         expect_true(pass_rel_err(weight*basis_at_x[i],out[i]));
       }
     };
+
 
     joint_bases::weighted_basis<joint_bases::ns> weight_1(bk, ik, false);
     do_tests(weight_1);
@@ -996,6 +1001,7 @@ context("testing weighted basis"){
       <joint_bases::weighted_basis<joint_bases::ns> > weight_1(bk, ik, false);
 
     do_test(weight_1);
+
     auto weight_1_clone = weight_1.clone();
     do_test(*weight_1_clone);
   }
@@ -1055,7 +1061,7 @@ context("stacked basis") {
 
     std::vector<std::unique_ptr<joint_bases::basisMixin> > input_arg;
     input_arg.emplace_back
-      (new joint_bases::weighted_basis<joint_bases::ns>(ik, bk, true));
+      (new joint_bases::weighted_basis<joint_bases::ns>(bk, ik, true));
     input_arg.emplace_back
       (new joint_bases::weighted_basis<joint_bases::orth_poly>(3, true));
 

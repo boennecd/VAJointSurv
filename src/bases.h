@@ -20,6 +20,8 @@ constexpr bool default_intercept{false},
 
 using namespace arma;
 
+
+//-----------------------------basisMixin-------------------------------------------
 /// base class for basis expansions
 class basisMixin {
 public:
@@ -33,6 +35,8 @@ public:
   /**
    * fills a vector with the (possibly derivatives) of the basis expansions
    * evaluated at x */
+
+
   void operator()
     (vec &out, double *wk_mem, double const x, double const *weights,
      const int ders = default_ders) const {
@@ -44,6 +48,7 @@ public:
      int const ders = default_ders) const {
     vec out(n_basis());
     (*this)(out.begin(), wk_mem, x, weights, ders);
+
     return out;
   }
   /// same as the other operator() calls but filling the out
@@ -97,6 +102,8 @@ protected:
   double lower_limit;
 };
 
+//-----------------------------stacked basis----------------------------------------
+
 class stacked_basis : public basisMixin {
   using bases_vec = std::vector<std::unique_ptr<basisMixin> >;
   bases_vec my_basis;
@@ -111,20 +118,48 @@ public:
   stacked_basis(stacked_basis const &other):
     stacked_basis(other.my_basis) { }
 
-  size_t n_wmem() const {
-    return 0;
+  size_t n_wmem() const { // CHANGES:
+    size_t total_mem{};
+    for(auto &bas : my_basis)
+      total_mem = std::max(bas->n_wmem(),total_mem);
+    return total_mem;
   }
-  vajoint_uint n_weights() const { return 0;}
-  vajoint_uint n_basis() const { return 0;}
-  void set_lower_limit(double const x) {}
+
+  vajoint_uint n_weights() const {
+    vajoint_uint n_weights{};
+    for(auto &bas : my_basis)
+      n_weights += bas ->n_weights();
+      return n_weights;} // CHANGES
+
+  vajoint_uint n_basis() const {
+    vajoint_uint total_bases{};
+    for(auto &bas : my_basis)
+      total_bases += bas->n_basis();
+    return total_bases;} //  CHANGES
+
+
+  void set_lower_limit(double const x) {
+    for(auto &bas : my_basis)
+      bas->set_lower_limit(x);
+  }
+
+
   void operator()
     (double *out, double *wk_mem, double const x, double const *weights,
-     int const ders = default_ders) const{}
+     int const ders = default_ders) const{
+      for(auto &bas : my_basis) {
+        (*bas)(out, wk_mem, x, weights, ders);
+        out += bas->n_basis();
+        weights += bas->n_weights();
+        }
+  }
 
   std::unique_ptr<basisMixin> clone() const {
     return std::make_unique<stacked_basis>(*this);
   }
 };
+
+//-----------------------------weighted basis---------------------------------------
 
 template<class basis_type>
 struct weighted_basis : public basis_type {
@@ -133,14 +168,22 @@ struct weighted_basis : public basis_type {
   using basis_type::n_basis;
   using basis_type::operator();
 
-  vajoint_uint n_weights() const {
+  // CHANGES: override
+  vajoint_uint n_weights() const override{
     return basis_type::n_weights()+1;
   }
 
+  // CHANGES: override
    void operator()
     (double *out, double *wk_mem, double const x, double const *weights,
-     int const ders = default_ders) const {
-     std::fill(out, out + n_basis(), 0);
+     int const ders = default_ders) const override{
+
+  // CHANGES: implementation for operator of weighted basis
+
+      basis_type::operator()(out, wk_mem, x, weights+1, ders);
+       for(vajoint_uint i =0; i< n_basis();++i) {
+         out[i] *=  *weights;
+       }
    }
 
   std::unique_ptr<basisMixin> clone() const override {
@@ -148,6 +191,7 @@ struct weighted_basis : public basis_type {
   }
 };
 
+//-----------------------------Spline Basis-----------------------------------------
 
 class SplineBasis : public basisMixin {
     void comp_basis(double const x, double *out,
@@ -265,11 +309,12 @@ public:
                                            except for the boundary case */
                       ncoef =               /* number of coefficients */
                          nknots > order ? nknots - order : 0L;
-
+  // ASK HELP
   SplineBasis(const vec &knots, const vajoint_uint order = default_order,
               bool const use_log = default_use_log,
               bool const with_integral = true);
 
+  // ASK HELP
   SplineBasis(SplineBasis const &other):
     SplineBasis(other.knots, other.order, other.use_log,
                 static_cast<bool>(other.integral_basis)) { }
@@ -374,6 +419,8 @@ private:
       : ordm1
     };
 };
+
+//-----------------------------B-Splines--------------------------------------------
 
 class bs  : public SplineBasis {
   void do_eval
@@ -512,6 +559,8 @@ public:
   }
 };
 
+//-----------------------------Natural Splines--------------------------------------
+
 class ns  : public basisMixin {
   SplineBasis s_basis;
 
@@ -643,7 +692,7 @@ public:
   ns(const vec &boundary_knots, const vec &interior_knots,
      const bool intercept = default_intercept,
      const vajoint_uint order = default_order,
-     const bool use_log = default_use_log);
+     const bool use_log = default_use_log); // HELP: empty constructors are okay?
 
   size_t n_wmem() const {
     return s_basis.n_wmem() + q_matrix.n_rows +
@@ -663,12 +712,17 @@ public:
     s_basis.set_lower_limit(x);
   }
 
-  using basisMixin::operator();
+  using basisMixin::operator(); //HELP: which one
+
   void operator()
-    (double *out, double *wk_mem, double const x, double const *,
+    (double *out, double *wk_mem, double const x,
+     double const *,
      int const ders = default_ders) const {
     if(!use_log){
       do_eval(out, wk_mem, x, ders);
+     /* for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
+        out[i] = *weights * out[i];
+     } */ //HELP: does not work
       return;
     }
 
@@ -685,8 +739,16 @@ public:
       throw std::runtime_error
       ("not implemented with use_log and ders " + std::to_string(ders));
     }
+    /* for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
+     out[i] = *weights * out[i];
+    } */ //HELP: does not work
+
+
+
   }
 }; // class ns
+
+//-----------------------------I-Splines--------------------------------------------
 
 class iSpline  : public basisMixin {
 public:
@@ -762,6 +824,8 @@ public:
   }
 }; // class iSpline
 
+//-----------------------------M-Splines--------------------------------------------
+
 class mSpline  : public basisMixin {
 public:
   bs bspline; // TODO: can be a SplineBasis
@@ -808,6 +872,8 @@ public:
       std::copy(wrk + 1, wrk + bspline.n_basis(), out);
   }
 }; // class mSpline
+
+//-----------------------------Orthogonal polynomials-------------------------------
 
 class orth_poly  : public basisMixin {
   // coefficients for the orthogonal polynomial
@@ -988,6 +1054,8 @@ public:
     return n_basis_v;
   }
 }; // orth_poly
+
+//----------------------------------------------------------------------------------
 
 using bases_vector = std::vector<std::unique_ptr<basisMixin> >;
 
