@@ -1,7 +1,7 @@
 wrap_term <- function(term){
   ptr <- expansion_object(term)
   term$ptr <- ptr
-  term$eval <- function(x, der = 0, lower_limit = 0)
+  term$eval <- function(x, der = 0, lower_limit = 0, newdata = NULL)
     eval_expansion(ptr, x, der, lower_limit)
   term
 }
@@ -79,5 +79,64 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
   wrap_term(structure(out, class = "bs_term"))
 }
 
+#' Term for a Basis Matrix for Weighted Term
+#'
+#' @description
+#' Creates a weighted basis matrix where the entries are weighted with a
+#' numeric vector to e.g. create a varying-coefficient.
+#'
+#' @param x a term type from the package.
+#' @param weight a numeric vector with weights for x.
+#'
+#' @seealso
+#' \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
+#' \code{\link{stacked_term}}
+#'
+#' @examples
+#' # TODO: add an example
+#'
+#' @export
+weighted_term <- function(x, weight){
+  term <- x
+  weight_symb <- substitute(weight)
+
+  eval <- function(x, der = 0, lower_limit = 0, newdata = NULL){
+    weight <- base::eval(weight_symb, newdata, parent.frame())
+    weight
+  }
+
+  list(eval = eval)
+}
+
+#' Term for a Basis Matrix for of Different Types of Terms
+#'
+#' @description
+#' Creates a basis matrix consisting of different types of terms.
+#' E.g. to create a varying-coefficient.
+#'
+#' @param ... term objects from the package.
+#'
+#' @seealso
+#' \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
+#' \code{\link{weighted_term}}
+#'
+#' @examples
+#' # TODO: add an example
+#'
+#' @export
+stacked_term <- function(...){
+  if(...length() < 2)
+    stop("stacked_term created with less than two arguments")
+
+  terms <- list(...)
+  eval <- function(x, der = 0, lower_limit = 0, newdata = NULL)
+    stop("TODO: implement")
+  out <- list(terms = terms, eval = eval) # add stuff
+
+
+  stop("TODO: implement")
+}
+
 is_valid_expansion <- function(x)
-  stopifnot(inherits(x, c("poly_term", "ns_term", "bs_term")))
+  stopifnot(inherits(
+    x, c("poly_term", "ns_term", "bs_term", "weighted_term", "stacked_term")))

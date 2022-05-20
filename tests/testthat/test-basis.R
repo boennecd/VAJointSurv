@@ -130,3 +130,16 @@ test_that("The plot_surv works with one-dimensional basis", {
 
   expect_snapshot_value(res, cran = TRUE, style = "serialize")
 })
+
+test_that("A weighted poly_term gives the right resutls", {
+  # TODO: implement
+
+  # expect_equal
+  # expect_error
+  # expect_s3_class
+})
+
+test_that("A stacked_term gives the right resutls", {
+  expect_error(stacked_term(), "stacked_term created with less than two arguments")
+  expect_error(stacked_term(1), "stacked_term created with less than two arguments")
+})

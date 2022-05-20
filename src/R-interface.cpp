@@ -133,43 +133,53 @@ std::unique_ptr<joint_bases::basisMixin> ns_term_from_list(List dat){
     (b_knots, i_knots, intercept, degree + 1, use_log);
 }
 
+/// creates a stacked term
+std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat);
+
+template<class basisT>
+std::unique_ptr<joint_bases::basisMixin> stacked_term_from_list(List dat){
+  if(!Rf_inherits(dat, "stacked_term"))
+    throw std::runtime_error("wrong class of term was passed");
+
+  List terms = dat["terms"];
+
+  if(terms.size() < 1)
+    throw std::invalid_argument("stacked_term without terms");
+
+  joint_bases::bases_vector bases;
+  bases.reserve(terms.size());
+  for(auto sexp_term : terms){
+    bases.emplace_back(basis_from_list(List(sexp_term)));
+  }
+
+  return std::make_unique<basisT>(bases);
+}
+
 /// returns a pointer to an expansions given an R List with data.
 std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
-  if(Rf_inherits(dat, "stacked_term")){
-    if(dat.size() < 1)
-      throw std::invalid_argument("stacked_term without terms");
-
-    joint_bases::bases_vector bases;
-    for(auto sexp_term : dat){
-      bases.emplace_back(basis_from_list(List(sexp_term)));
-    }
-
-    return std::make_unique<joint_bases::stacked_basis>(bases);
-
-  } if(Rf_inherits(dat, "weighted_term")){
+  if(Rf_inherits(dat, "weighted_term")){
     if(Rf_inherits(dat, "weighted_term")){
       throw std::invalid_argument("weighted_term of weighted_term is not supported");
-
-    } else if(Rf_inherits(dat, "stacked_term")){
-      throw std::invalid_argument("weighted_term of stacked_term is not supported");
 
     } else if(Rf_inherits(dat, "poly_term")){
       return
         poly_term_from_list
-        <joint_bases::weighted_basis
-        <joint_bases::orth_poly> >(dat);
+        <joint_bases::weighted_basis<joint_bases::orth_poly> >(dat);
 
     } else if(Rf_inherits(dat, "bs_term")){
       return
         bs_term_from_list
-        <joint_bases::weighted_basis
-        <joint_bases::bs> >(dat);
+        <joint_bases::weighted_basis<joint_bases::bs> >(dat);
 
     } else if(Rf_inherits(dat, "ns_term")){
       return
         ns_term_from_list
-        <joint_bases::weighted_basis
-        <joint_bases::ns> >(dat);
+        <joint_bases::weighted_basis<joint_bases::ns> >(dat);
+
+    } else if(Rf_inherits(dat, "stacked_term")){
+      return
+        stacked_term_from_list
+        <joint_bases::weighted_basis<joint_bases::stacked_basis> >(dat);
 
     }
 
@@ -181,6 +191,9 @@ std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
 
   } else if(Rf_inherits(dat, "ns_term")){
     return ns_term_from_list<joint_bases::ns>(dat);
+
+  } else if(Rf_inherits(dat, "stacked_term")){
+    return stacked_term_from_list<joint_bases::stacked_basis>(dat);
 
   }
 
