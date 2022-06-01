@@ -158,28 +158,29 @@ std::unique_ptr<joint_bases::basisMixin> stacked_term_from_list(List dat){
 /// returns a pointer to an expansions given an R List with data.
 std::unique_ptr<joint_bases::basisMixin> basis_from_list(List dat){
   if(Rf_inherits(dat, "weighted_term")){
-    if(Rf_inherits(dat, "weighted_term")){
+    List term = dat["term"];
+    if(Rf_inherits(term, "weighted_term")){
       throw std::invalid_argument("weighted_term of weighted_term is not supported");
 
-    } else if(Rf_inherits(dat, "poly_term")){
+    } else if(Rf_inherits(term, "poly_term")){
       return
         poly_term_from_list
-        <joint_bases::weighted_basis<joint_bases::orth_poly> >(dat);
+        <joint_bases::weighted_basis<joint_bases::orth_poly> >(term);
 
-    } else if(Rf_inherits(dat, "bs_term")){
+    } else if(Rf_inherits(term, "bs_term")){
       return
         bs_term_from_list
-        <joint_bases::weighted_basis<joint_bases::bs> >(dat);
+        <joint_bases::weighted_basis<joint_bases::bs> >(term);
 
-    } else if(Rf_inherits(dat, "ns_term")){
+    } else if(Rf_inherits(term, "ns_term")){
       return
         ns_term_from_list
-        <joint_bases::weighted_basis<joint_bases::ns> >(dat);
+        <joint_bases::weighted_basis<joint_bases::ns> >(term);
 
-    } else if(Rf_inherits(dat, "stacked_term")){
+    } else if(Rf_inherits(term, "stacked_term")){
       return
         stacked_term_from_list
-        <joint_bases::weighted_basis<joint_bases::stacked_basis> >(dat);
+        <joint_bases::weighted_basis<joint_bases::stacked_basis> >(term);
 
     }
 
@@ -211,7 +212,7 @@ SEXP expansion_object(List dat){
 /// evaluates an expansion at x with using an XPtr
 // [[Rcpp::export(rng = false)]]
 NumericMatrix eval_expansion
-  (SEXP ptr, NumericVector const x, int const ders,
+  (SEXP ptr, NumericVector const x, NumericMatrix const weights, int const ders,
    double lower_limit){
   Rcpp::XPtr<joint_bases::basisMixin> basis(ptr);
   NumericMatrix out(basis->n_basis(), x.size());
@@ -220,7 +221,8 @@ NumericMatrix eval_expansion
   basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
     // TODO: handle weights
-    (*basis)(&out.column(i)[0], wmem.get(), x[i], nullptr, ders);
+
+    (*basis)(&out.column(i)[0], wmem.get(), x[i], &weights(0,i), ders);
 
   return out;
 }

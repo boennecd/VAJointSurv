@@ -1,8 +1,13 @@
 wrap_term <- function(term){
   ptr <- expansion_object(term)
   term$ptr <- ptr
-  term$eval <- function(x, der = 0, lower_limit = 0, newdata = NULL)
-    eval_expansion(ptr, x, der, lower_limit)
+  term$eval <- function(x, der = 0, lower_limit = 0, newdata = NULL) {
+    if(is.null(term$weights_symbol)) {} else {
+    weight_call <- as.call(c(list(as.name("rbind")), term$weights_symbol))
+    weights <- eval(weight_call,newdata,parent.frame())
+    eval_expansion(ptr, x, weights, der, lower_limit)
+    }
+  }
   term
 }
 
@@ -25,8 +30,8 @@ poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
       list(coefs = list(alpha = numeric(degree), norm2 = rep(1, 2 + degree)))
   else list(coefs = coefs)
 
-  out[c("time", "intercept", "raw", "use_log")] <-
-    list(x, intercept, raw, use_log)
+  out[c("time", "intercept", "raw", "use_log", "weights_symbol")] <-
+    list(x, intercept, raw, use_log, NULL)
   wrap_term(structure(out, class = "poly_term"))
 }
 
@@ -48,8 +53,8 @@ ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
   }
   else list(knots = knots)
 
-  out[c("Boundary.knots", "time", "degree", "intercept", "use_log")] <-
-    list(Boundary.knots, x, 3L, intercept, use_log)
+  out[c("Boundary.knots", "time", "degree", "intercept", "use_log", "weights_symbol")] <-
+    list(Boundary.knots, x, 3L, intercept, use_log, NULL)
   wrap_term(structure(out, class = "ns_term"))
 }
 
@@ -74,8 +79,8 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 
   } else list(knots = knots)
 
-  out[c("Boundary.knots", "time", "degree", "intercept", "use_log")] <-
-    list(Boundary.knots, x, degree, intercept, use_log)
+  out[c("Boundary.knots", "time", "degree", "intercept", "use_log", "weights_symbol")] <-
+    list(Boundary.knots, x, degree, intercept, use_log, NULL)
   wrap_term(structure(out, class = "bs_term"))
 }
 
@@ -98,14 +103,10 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 #' @export
 weighted_term <- function(x, weight){
   term <- x
-  weight_symb <- substitute(weight)
+  weights_symbol <- substitute(weight)
 
-  eval <- function(x, der = 0, lower_limit = 0, newdata = NULL){
-    weight <- base::eval(weight_symb, newdata, parent.frame())
-    weight
-  }
-
-  list(eval = eval)
+  out <- list(term=term, weights_symbol = c(weights_symbol,term$weights_symbol))
+  wrap_term(structure(out, class = "weighted_term"))
 }
 
 #' Term for a Basis Matrix for of Different Types of Terms
@@ -129,12 +130,9 @@ stacked_term <- function(...){
     stop("stacked_term created with less than two arguments")
 
   terms <- list(...)
-  eval <- function(x, der = 0, lower_limit = 0, newdata = NULL)
-    stop("TODO: implement")
-  out <- list(terms = terms, eval = eval) # add stuff
 
-
-  stop("TODO: implement")
+  out <- list(terms = terms, weights_symbol = unlist(lapply(terms,`[[`, 'weigths_symbol')))
+  wrap_term(structure(out, class ="stacked_term"))
 }
 
 is_valid_expansion <- function(x)

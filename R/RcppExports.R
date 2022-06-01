@@ -5,8 +5,8 @@ expansion_object <- function(dat) {
     .Call(`_VAJointSurv_expansion_object`, dat)
 }
 
-eval_expansion <- function(ptr, x, ders, lower_limit) {
-    .Call(`_VAJointSurv_eval_expansion`, ptr, x, ders, lower_limit)
+eval_expansion <- function(ptr, x, weights, ders, lower_limit) {
+    .Call(`_VAJointSurv_eval_expansion`, ptr, x, weights, ders, lower_limit)
 }
 
 .joint_ms_ptr <- function(markers, survival_terms, max_threads, delayed_terms) {
