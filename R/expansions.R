@@ -2,11 +2,13 @@ wrap_term <- function(term){
   ptr <- expansion_object(term)
   term$ptr <- ptr
   term$eval <- function(x, der = 0, lower_limit = 0, newdata = NULL) {
-    if(is.null(term$weights_symbol)) {} else {
-    weight_call <- as.call(c(list(as.name("rbind")), term$weights_symbol))
-    weights <- eval(weight_call,newdata,parent.frame())
-    eval_expansion(ptr, x, weights, der, lower_limit)
+    if(is.null(term$weights_symbol)) {
+      weights <- matrix(0., nrow = 0L, ncol = length(x))
+    } else {
+      weight_call <- as.call(c(list(as.name("rbind")), term$weights_symbol))
+      weights <- eval(weight_call,newdata,parent.frame())
     }
+    eval_expansion(ptr, x, weights, der, lower_limit)
   }
   term
 }
