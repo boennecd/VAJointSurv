@@ -133,7 +133,7 @@ stacked_term <- function(...){
 
   terms <- list(...)
 
-  out <- list(terms = terms, weights_symbol = unlist(lapply(terms,`[[`, 'weigths_symbol')))
+  out <- list(terms = terms, weights_symbol = unlist(lapply(terms,`[[`, 'weights_symbol')))
   wrap_term(structure(out, class ="stacked_term"))
 }
 
