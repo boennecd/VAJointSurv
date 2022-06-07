@@ -107,7 +107,8 @@ context("marker_term is correct") {
 
     // create the input data
     std::vector<marker::setup_marker_dat_helper> input_dat;
-    input_dat.emplace_back(X, 3, n_obs, ids, obs_time, obs);
+    input_dat.emplace_back(X, 3, n_obs, ids, obs_time, obs,
+                           nullptr, 0, nullptr, 0);
 
     subset_params par_idx;
     par_idx.add_marker({n_fixef, 1, 3});
@@ -342,11 +343,14 @@ context("marker_term is correct") {
     // create the data objects
     std::vector<marker::setup_marker_dat_helper> input_dat;
     input_dat.emplace_back
-      (X1, n_fixef[0], n_obs[0], ids_1, obs_time_1, obs_1);
+      (X1, n_fixef[0], n_obs[0], ids_1, obs_time_1, obs_1,
+       nullptr, 0, nullptr, 0);
     input_dat.emplace_back
-      (X2, n_fixef[1], n_obs[1], ids_2, obs_time_2, obs_2);
+      (X2, n_fixef[1], n_obs[1], ids_2, obs_time_2, obs_2,
+       nullptr, 0, nullptr, 0);
     input_dat.emplace_back
-      (X3, n_fixef[2], n_obs[2], ids_3, obs_time_3, obs_3);
+      (X3, n_fixef[2], n_obs[2], ids_3, obs_time_3, obs_3,
+       nullptr, 0, nullptr, 0);
 
     subset_params par_idx;
     for(size_t i = 0; i < 3; ++i)
@@ -428,7 +432,7 @@ context("marker_term is correct") {
     // clean up
     wmem::clear_all();
   }
-  
+
   test_that("marker_term gives the correct result with three markers and redudant survival terms"){
     // the bases
     joint_bases::bases_vector bases_fix;
@@ -480,22 +484,25 @@ context("marker_term is correct") {
                            // the VA mean
                            1.49150599050613, 1.33555216121127, 1.37553507975353, 0.537009551710603, 0.368763065310235, 0.239527429124941, -0.329806166426263,
                            // the VA covariance matrix
-                           0.462179286279196, 0.391479722800414, 0.388207958157325, -0.0165711898018102, -0.00828559438766372, 0.163201084019404, 0.141910708180098, 
+                           0.462179286279196, 0.391479722800414, 0.388207958157325, -0.0165711898018102, -0.00828559438766372, 0.163201084019404, 0.141910708180098,
                            0.391479722800414, 0.38820795867049, 0.425065695716578, -0.00828559398890858, -0.00414279778357616, 0.14191070799113, 0.143327554369823,
-                           0.388207958157325, 0.425065695716578, 0.489686907168083, -0.00414279749333691, -0.00207139883325205, 0.143327553908884, 0.158510416423749, 
-                           -0.0165711899557987, -0.00828559398890858, -0.00414279749333691, 0.138857600708758, 0.207108096726541, 0.0824939595780647, 0.129219173816305, 
-                           -0.00828559438766372, -0.00414279777137145, -0.00207139883325205, 0.207108096726541, 0.447752291924522, 0.129219173997635, 0.284540072044498, 
-                           0.163201084054493, 0.141910708781202, 0.143327553958512, 0.0824939595241982, 0.12921917399764, 0.454677338135144, 0.762630992085864, 
+                           0.388207958157325, 0.425065695716578, 0.489686907168083, -0.00414279749333691, -0.00207139883325205, 0.143327553908884, 0.158510416423749,
+                           -0.0165711899557987, -0.00828559398890858, -0.00414279749333691, 0.138857600708758, 0.207108096726541, 0.0824939595780647, 0.129219173816305,
+                           -0.00828559438766372, -0.00414279777137145, -0.00207139883325205, 0.207108096726541, 0.447752291924522, 0.129219173997635, 0.284540072044498,
+                           0.163201084054493, 0.141910708781202, 0.143327553958512, 0.0824939595241982, 0.12921917399764, 0.454677338135144, 0.762630992085864,
                            0.141910709822643, 0.143327554369823, 0.158510416423749, 0.129219174546085, 0.284540072044498, 0.762630992085871, 1.66213582927789 };
 
     // create the data objects
     std::vector<marker::setup_marker_dat_helper> input_dat;
     input_dat.emplace_back
-      (X1, n_fixef[0], n_obs[0], ids_1, obs_time_1, obs_1);
+      (X1, n_fixef[0], n_obs[0], ids_1, obs_time_1, obs_1,
+       nullptr, 0, nullptr, 0);
     input_dat.emplace_back
-      (X2, n_fixef[1], n_obs[1], ids_2, obs_time_2, obs_2);
+      (X2, n_fixef[1], n_obs[1], ids_2, obs_time_2, obs_2,
+       nullptr, 0, nullptr, 0);
     input_dat.emplace_back
-      (X3, n_fixef[2], n_obs[2], ids_3, obs_time_3, obs_3);
+      (X3, n_fixef[2], n_obs[2], ids_3, obs_time_3, obs_3,
+       nullptr, 0, nullptr, 0);
 
     subset_params par_idx;
     for(size_t i = 0; i < 3; ++i)
@@ -576,5 +583,9 @@ context("marker_term is correct") {
 
     // clean up
     wmem::clear_all();
+  }
+
+  test_that("marker_term gives the correct result with two markers and time-varying effects"){
+    expect_true(false); // TODO: implement
   }
 }

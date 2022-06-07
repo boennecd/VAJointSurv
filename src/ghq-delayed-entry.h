@@ -27,6 +27,16 @@ private:
   joint_bases::bases_vector bases_rng;
   /// design matrices for the fixed effects (one for each type of outcome)
   std::vector<simple_mat<double> > design_mats;
+  /**
+   * design matrices for the time-varying fixed effects (one for each type of
+   * outcome)
+   */
+  std::vector<simple_mat<double> > fixef_design_varying_mats;
+  /**
+   * design matrices for the time-varying random effects (one for each type of
+   * outcome)
+   */
+  std::vector<simple_mat<double> > rng_design_varying_mats;
   /// the number of basis functions of each rng base expansion
   std::vector<vajoint_uint> rng_n_basis_v {
     ([&]{
@@ -37,10 +47,25 @@ private:
       return out;
     })()
   };
+  /// the cumulative sum of the number weights starting at zero
+  std::vector<vajoint_uint> rng_n_weights_cumsum_v{
+    ([&]{
+      std::vector<vajoint_uint> out;
+      out.reserve(bases_rng.size() + 1L);
+      out.emplace_back(0);
+      for(auto &b : bases_rng)
+        out.emplace_back(out.back() + b->n_weights());
+      return out;
+    })()
+  };
 
   /// like calling bases_rng[idx]->n_basis()
   vajoint_uint rng_n_basis(size_t const idx) const {
     return rng_n_basis_v[idx];
+  }
+
+  vajoint_uint rng_n_weights_cumsum(size_t const idx) const {
+    return rng_n_weights_cumsum_v[idx];
   }
 
   /// the number of fixed effects
@@ -169,6 +194,8 @@ public:
   delayed_dat(joint_bases::bases_vector const &bases_fix_in,
               joint_bases::bases_vector const &bases_rng_in,
               std::vector<simple_mat<double> > &design_mats,
+              std::vector<simple_mat<double> > &fixef_design_varying,
+              std::vector<simple_mat<double> > &rng_design_varying,
               subset_params const &par_idx,
               std::vector<cluster_info> const &cluster_infos,
               std::vector<std::vector<std::vector<int> > > &ders);

@@ -56,7 +56,8 @@ context("expected_survival_term works as expected") {
                  true_hess[]{-0.0353126608783229, 0.053070744397719, 0.0613042167821518,  0.0361080494990776, -0.0394320292347374, 0.053070744397719, -0.0925309789513749,  -0.0854928729080763, -0.0416930675300463, 0.0592957212053608,  0.0613042167821518, -0.0854928729080763, -0.109878789901267,  -0.0692217454435289, 0.0684379040230279, 0.0361080494990776,  -0.0416930675300463, -0.0692217454435289, -0.0492986185590044,  0.0402866801416676, -0.0394320292347374, 0.0592957212053608,  0.0684379040230279, 0.0402866801416676, -0.0440320301326317};
 
     simple_mem_stack<double> mem;
-    expected_survival_term prob(etas, ws, M, V);
+    expected_survival_term surv_term(etas, ws, M);
+    rescale_problem prob(V, surv_term);
 
     expect_true
       (std::abs(prob.log_integrand(point, mem) - true_func) <
@@ -121,39 +122,27 @@ context("expected_survival_term works as expected") {
     ghq_data dat{ghq_nodes, ghq_weights, 6};
 
     {
-      expected_survival_term<false> prob(etas, ws, M, V);
+      expected_survival_term<false> surv_term(etas, ws, M);
+      rescale_problem<false> prob(V, surv_term);
       adaptive_problem prob_adap(prob, mem);
 
       auto res = ghq(dat, prob, mem);
       expect_true(res.size() == 1);
       expect_true(std::abs(res[0] - true_fn) < eps_fn);
     }
-    {
-      expected_survival_term<true> surv_term(etas, ws, M, V);
-      outer_prod_problem outer_term(V.n_cols);
 
-      std::vector<ghq_problem const *> const prob_dat
-          { &surv_term, &outer_term };
-      combined_problem prob(prob_dat);
-      adaptive_problem prob_adap(prob, mem);
+    expected_survival_term<true> surv_term(etas, ws, M);
+    rescale_problem<true> prob(V, surv_term);
+    adaptive_problem prob_adap(prob, mem);
 
-      auto res = ghq(dat, prob_adap, mem);
+    auto res = ghq(dat, prob_adap, mem);
 
-      // handle the derivatives w.r.t. Sigma
-      size_t const fixef_shift{surv_term.n_out()};
-      std::vector<double> out(fixef_shift + V.n_cols * V.n_cols);
-      std::copy(res.begin(), res.begin() + fixef_shift, &out[0]);
-      outer_term.d_Sig
-        (&out[fixef_shift], res.data() + fixef_shift, res[0], V);
+    size_t const n_grad = std::distance(std::begin(true_gr), std::end(true_gr));
+    expect_true(res.size() == 1 + n_grad);
 
-      size_t const n_grad =
-        std::distance(std::begin(true_gr), std::end(true_gr));
-      expect_true(out.size() == 1 + n_grad);
-
-      expect_true(std::abs(out[0] - true_fn) < eps_fn);
-      for(size_t i = 0; i < n_grad; ++i)
-        expect_true
-          (std::abs(out[i + 1] - true_gr[i]) < 1e-4 * std::abs(true_gr[i]));
-    }
+    expect_true(std::abs(res[0] - true_fn) < eps_fn);
+    for(size_t i = 0; i < n_grad; ++i)
+      expect_true
+        (std::abs(res[i + 1] - true_gr[i]) < 1e-4 * std::abs(true_gr[i]));
   }
 }

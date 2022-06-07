@@ -118,39 +118,39 @@ context("expected_cum_hazzard is correct") {
     {
       auto req_mem = comp_obj.n_wmem();
       double res = comp_obj(
-        {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-        nullptr);
+        {ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+        zeta, Psi, wmem::get_double_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val1, 1e-6));
 
       // with cached expansions
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val1, 1e-6));
     }
     {
       auto req_mem = comp_obj.n_wmem();
       double res = comp_obj(
-        {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
-        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-        nullptr);
+        {ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, delta, omega, alpha,
+        zeta, Psi, wmem::get_double_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val2, 1e-6));
 
       // with cached expansions
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val2, 1e-6));
     }
 
@@ -168,8 +168,8 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       auto req_mem = comp_obj.n_wmem();
       Number res = comp_obj(
-        {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-        ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        {ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+        ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
@@ -191,10 +191,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
@@ -217,8 +217,8 @@ context("expected_cum_hazzard is correct") {
 
       auto req_mem = comp_obj.n_wmem();
       Number res = comp_obj(
-        {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-        ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        {ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, ad_delta, ad_omega,
+        ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
@@ -240,10 +240,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
@@ -360,40 +360,40 @@ context("expected_cum_hazzard is correct") {
     std::vector<double> expansions(comp_obj.cache_mem_per_node() * n_nodes);
     {
       auto req_mem = comp_obj.n_wmem();
-      double res = comp_obj(
-        {ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-        nullptr);
+      double res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val1, 1e-6));
 
       // with cached expansions
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val1, 1e-6));
     }
     {
       auto req_mem = comp_obj.n_wmem();
       double res = comp_obj(
-        {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
-        wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-        nullptr);
+        {ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, delta, omega, alpha,
+        zeta, Psi, wmem::get_double_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val2, 1e-6));
 
       // with cached expansions
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val2, 1e-6));
     }
 
@@ -410,10 +410,10 @@ context("expected_cum_hazzard is correct") {
     {
       rewind_n_convert();
       auto req_mem = comp_obj.n_wmem();
-      Number res = comp_obj(
-        {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-        ad_Psi, wmem::get_Number_mem(req_mem[0]),
-        wmem::get_double_mem(req_mem[1]), nullptr);
+      Number res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
       res.propagateToStart();
@@ -434,10 +434,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
@@ -460,8 +460,8 @@ context("expected_cum_hazzard is correct") {
 
       auto req_mem = comp_obj.n_wmem();
       Number res = comp_obj(
-        {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-        ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        {ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, ad_delta, ad_omega,
+        ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
@@ -483,10 +483,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
@@ -507,6 +507,10 @@ context("expected_cum_hazzard is correct") {
 
     // clean-up
     wmem::clear_all();
+  }
+
+  test_that("expected_cum_hazzard gives the correct result without frailty and with time-varying effects"){
+    expect_true(false); // TODO: implement
   }
 
   test_that("expected_cum_hazzard gives the correct result with derivatives"){
@@ -608,41 +612,41 @@ context("expected_cum_hazzard is correct") {
     {
       auto req_mem = comp_obj.n_wmem();
       double res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         nullptr);
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val1, 1e-6));
 
       // with cached memory
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
 
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val1, 1e-6));
     }
     {
       auto req_mem = comp_obj.n_wmem();
-      double res = comp_obj(
-      {ns, ws, n_nodes}, lb2, ub2, z, delta, omega, alpha, zeta, Psi,
-      wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-      nullptr);
+      double res = comp_obj
+        ({ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res, true_val2, 1e-6));
 
       // with cached memory
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
 
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, delta, omega, alpha, zeta, Psi,
-         wmem::get_double_mem(req_mem[0]), wmem::get_double_mem(req_mem[1]),
-         expansions.data());
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val2, 1e-6));
     }
 
@@ -660,10 +664,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
 
       auto req_mem = comp_obj.n_wmem();
-      Number res = comp_obj(
-        {ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-        ad_Psi, wmem::get_Number_mem(req_mem[0]),
-        wmem::get_double_mem(req_mem[1]), nullptr);
+      Number res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta,ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
       res.propagateToStart();
@@ -684,11 +688,11 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
-         {ns, ws, n_nodes});
+         {ns, ws, n_nodes}, nullptr, nullptr);
 
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
@@ -710,10 +714,10 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
 
       auto req_mem = comp_obj.n_wmem();
-      Number res = comp_obj(
-      {ns, ws, n_nodes}, lb2, ub2, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-      ad_Psi, wmem::get_Number_mem(req_mem[0]),
-      wmem::get_double_mem(req_mem[1]), nullptr);
+      Number res = comp_obj
+        ({ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
       res.propagateToStart();
@@ -734,11 +738,11 @@ context("expected_cum_hazzard is correct") {
       rewind_n_convert();
       comp_obj.cache_expansions
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
-        {ns, ws, n_nodes});
+        {ns, ws, n_nodes}, nullptr, nullptr);
 
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, ad_delta, ad_omega, ad_alpha, ad_zeta,
-         ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
 
       expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
@@ -935,14 +939,23 @@ context("survival_dat is correct") {
     for(unsigned i = 0; i < 2; ++i)
       par_idx.add_surv({n_fixef[i], bases_fix[i]->n_basis(), {1, 1, 1}, true});
 
-    std::vector<simple_mat<double> > design_mats;
+    std::vector<simple_mat<double> > design_mats,
+                                     design_mats_varying_fix,
+                                     design_mats_varying_rng;
     design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);
     design_mats.emplace_back(Z2, n_fixef[1], n_obs[1]);
 
+    design_mats_varying_fix.emplace_back(nullptr, 0, n_obs[0]);
+    design_mats_varying_fix.emplace_back(nullptr, 0, n_obs[1]);
+
+    design_mats_varying_rng.emplace_back(nullptr, 0, n_obs[0]);
+    design_mats_varying_rng.emplace_back(nullptr, 0, n_obs[1]);
+
     std::vector<std::vector<std::vector<int> > > ders
       {{{0}, {0}, {0}}, {{0}, {0}, {0}}};
-    survival::survival_dat comp_obj(bases_fix, bases_rng, design_mats,
-                                    par_idx, surv_input, ders);
+    survival::survival_dat comp_obj
+      (bases_fix, bases_rng, design_mats, design_mats_varying_fix,
+       design_mats_varying_rng, par_idx, surv_input, ders);
 
     // basic checks
     expect_true(comp_obj.n_terms(0) == n_obs[0]);
@@ -1043,6 +1056,10 @@ context("survival_dat is correct") {
 
     // clean up
     wmem::clear_all();
+  }
+
+  test_that("survival_dat gives the correct result with time-varying effects"){
+    expect_true(false); // TODO: implement
   }
 
   test_that("survival_dat gives the correct result without one frailty"){
@@ -1222,14 +1239,23 @@ context("survival_dat is correct") {
     par_idx.add_surv({n_fixef[0], bases_fix[0]->n_basis(), {1, 1, 1}, false});
     par_idx.add_surv({n_fixef[1], bases_fix[1]->n_basis(), {1, 1, 1}, true});
 
-    std::vector<simple_mat<double> > design_mats;
+    std::vector<simple_mat<double> > design_mats,
+                                     design_mats_varying_fix,
+                                     design_mats_varying_rng;
     design_mats.emplace_back(Z1, n_fixef[0], n_obs[0]);
     design_mats.emplace_back(Z2, n_fixef[1], n_obs[1]);
 
+    design_mats_varying_fix.emplace_back(nullptr, 0, n_obs[0]);
+    design_mats_varying_fix.emplace_back(nullptr, 0, n_obs[1]);
+
+    design_mats_varying_rng.emplace_back(nullptr, 0, n_obs[0]);
+    design_mats_varying_rng.emplace_back(nullptr, 0, n_obs[1]);
+
     std::vector<std::vector<std::vector<int> > > ders
       {{{0}, {0}, {0}}, {{0}, {0}, {0}}};
-    survival::survival_dat comp_obj(bases_fix, bases_rng, design_mats,
-                                    par_idx, surv_input, ders);
+    survival::survival_dat comp_obj
+      (bases_fix, bases_rng, design_mats, design_mats_varying_fix,
+       design_mats_varying_rng, par_idx, surv_input, ders);
 
     // basic checks
     expect_true(comp_obj.n_terms(0) == n_obs[0]);

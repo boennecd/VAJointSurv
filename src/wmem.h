@@ -3,7 +3,7 @@
 
 #include "VA-joint-config.h"
 #include "cfaad/AAD.h"
-#include "simple_mem_stack.h"
+#include "simple-mem-stack.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif

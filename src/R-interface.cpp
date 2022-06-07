@@ -220,8 +220,6 @@ NumericMatrix eval_expansion
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
-    // TODO: handle weights
-
     (*basis)(&out.column(i)[0], wmem.get(), x[i], &weights(0,i), ders);
 
   return out;
@@ -575,7 +573,11 @@ public:
       bases_fix.emplace_back(basis_from_list(marker["time_fixef"]));
       bases_rng.emplace_back(basis_from_list(marker["time_rng"]));
 
-      NumericMatrix X{Rcpp::as<NumericMatrix>(marker["X"])};
+      NumericMatrix X{Rcpp::as<NumericMatrix>(marker["X"])},
+                    fixef_design_varying
+                      {Rcpp::as<NumericMatrix>(marker["fixef_design_varying"])},
+                    rng_design_varying
+                      {Rcpp::as<NumericMatrix>(marker["rng_design_varying"])};
       Rcpp::IntegerVector id = Rcpp::as<Rcpp::IntegerVector>(marker["id"]);
       NumericVector y = Rcpp::as<NumericVector>(marker["y"]),
                        time = Rcpp::as<NumericVector>(marker["time"]);
@@ -583,7 +585,10 @@ public:
       vajoint_uint const n_fixef = X.nrow(),
                          n_obs   = X.ncol();
 
-      input_dat.emplace_back(&X[0], n_fixef, n_obs, &id[0], &time[0], &y[0]);
+      input_dat.emplace_back(
+        &X[0], n_fixef, n_obs, &id[0], &time[0], &y[0],
+        &fixef_design_varying[0], fixef_design_varying.nrow(),
+        &rng_design_varying[0], rng_design_varying.nrow());
       par_idx.add_marker
         ({n_fixef, bases_fix.back()->n_basis(), bases_rng.back()->n_basis()});
     }
@@ -591,12 +596,16 @@ public:
     // handle the survival terms
     joint_bases::bases_vector bases_fix_surv;
     std::vector<survival::obs_input> surv_input;
-    std::vector<simple_mat<double> > s_fixef_design;
+    std::vector<simple_mat<double> > s_fixef_design,
+                                     s_fixef_design_varying,
+                                     s_rng_design_varying;
     std::vector<Rcpp::IntegerVector> s_id_vecs;
 
     surv_input.reserve(survival_terms.size());
     bases_fix_surv.reserve(survival_terms.size());
     s_fixef_design.reserve(survival_terms.size());
+    s_fixef_design_varying.reserve(survival_terms.size());
+    s_rng_design_varying.reserve(survival_terms.size());
     s_id_vecs.reserve(survival_terms.size());
 
     std::vector<std::vector<std::vector<int> > > ders;
@@ -605,7 +614,11 @@ public:
       List surv = s;
       bases_fix_surv.emplace_back(basis_from_list(surv["time_fixef"]));
 
-      NumericMatrix Z{Rcpp::as<NumericMatrix>(surv["Z"])};
+      NumericMatrix Z{Rcpp::as<NumericMatrix>(surv["Z"])},
+                    fixef_design_varying
+                      {Rcpp::as<NumericMatrix>(surv["fixef_design_varying"])},
+                    rng_design_varying
+                      {Rcpp::as<NumericMatrix>(surv["rng_design_varying"])};
       s_id_vecs.emplace_back(Rcpp::as<Rcpp::IntegerVector>(surv["id"]));
       NumericMatrix y{Rcpp::as<NumericMatrix>(surv["y"])};
 
@@ -633,6 +646,12 @@ public:
       surv_input.emplace_back
         (survival::obs_input{n_obs, &y[0], &y[y.nrow()], &y[2 * y.nrow()]});
       s_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
+      s_fixef_design_varying.emplace_back
+        (&fixef_design_varying[0], fixef_design_varying.nrow(),
+         fixef_design_varying.ncol());
+      s_rng_design_varying.emplace_back
+        (&rng_design_varying[0], rng_design_varying.nrow(),
+         rng_design_varying.ncol());
       par_idx.add_surv
         ({n_fixef, bases_fix_surv.back()->n_basis(), n_associations,
          with_frailty});
@@ -643,24 +662,38 @@ public:
       throw std::invalid_argument
         ("delayed_terms.size() != survival_terms.size()");
 
-    std::vector<simple_mat<double> > d_fixef_design;
+    std::vector<simple_mat<double> > d_fixef_design,
+                        d_fixef_design_varying_mats,
+                          d_rng_design_varying_mats;
     std::vector<Rcpp::IntegerVector> d_id_vecs;
     std::vector<Rcpp::NumericVector> delay_times;
 
     d_fixef_design.reserve(delayed_terms.size());
+    d_fixef_design_varying_mats.reserve(delayed_terms.size());
+    d_rng_design_varying_mats.reserve(delayed_terms.size());
     d_id_vecs.reserve(delayed_terms.size());
     delay_times.reserve(delayed_terms.size());
 
     for(auto d : delayed_terms){
       List delay = d;
 
-      NumericMatrix Z{Rcpp::as<NumericMatrix>(delay["Z"])};
+      NumericMatrix Z{Rcpp::as<NumericMatrix>(delay["Z"])},
+                    fixef_design_varying
+                      {Rcpp::as<NumericMatrix>(delay["fixef_design_varying"])},
+                    rng_design_varying
+                      {Rcpp::as<NumericMatrix>(delay["rng_design_varying"])};
       d_id_vecs.emplace_back(Rcpp::as<Rcpp::IntegerVector>(delay["id"]));
       delay_times.emplace_back(Rcpp::as<NumericVector>(delay["y"]));
 
       vajoint_uint const n_fixef = Z.nrow(),
                          n_obs   = Z.ncol();
       d_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
+      d_fixef_design_varying_mats.emplace_back
+        (&fixef_design_varying[0], fixef_design_varying.nrow(),
+         fixef_design_varying.ncol());
+      d_rng_design_varying_mats.emplace_back
+        (&rng_design_varying[0], rng_design_varying.nrow(),
+         rng_design_varying.ncol());
     }
 
     // construct the objects to compute the different terms of the lower bound
@@ -669,7 +702,8 @@ public:
     kl_dat = kl_term(par_idx);
     m_dat = std::move(dat_n_idx.dat);
     s_dat = survival::survival_dat
-      (bases_fix_surv, bases_rng, s_fixef_design, par_idx, surv_input, ders);
+      (bases_fix_surv, bases_rng, s_fixef_design, s_fixef_design_varying,
+       s_rng_design_varying, par_idx, surv_input, ders);
 
     // check that all ids are sorted
     for(auto b = dat_n_idx.id.begin(); b != dat_n_idx.id.end(); ++b)
@@ -735,8 +769,8 @@ public:
     delayed_cluster_obs.shrink_to_fit();
 
     d_dat = survival::delayed_dat
-      (bases_fix_surv, bases_rng, d_fixef_design, par_idx, delayed_cluster_obs,
-       ders);
+      (bases_fix_surv, bases_rng, d_fixef_design, d_fixef_design_varying_mats,
+       d_rng_design_varying_mats, par_idx, delayed_cluster_obs, ders);
 
     // create the object to use for optimization
     std::vector<lower_bound_term> ele_funcs;
@@ -1153,7 +1187,9 @@ List joint_ms_opt_lb
 class ph_model {
   std::unique_ptr<joint_bases::basisMixin> expansion;
   simple_mat<double> Z,
-                  surv;
+                     fixef_design_varying,
+                     rng_design_varying,
+                     surv;
 
   survival::expected_cum_hazzard cum_haz;
 
@@ -1192,18 +1228,25 @@ class ph_model {
       }
 
       // the cumulative hazard term
-      out += cum_haz(quad_rule, lb(i), ub(i), Z.col(i), fixef, fixef_vary,
-                     &association, &va_mean, &va_var, T_mem, wk_mem, nullptr);
+      out += cum_haz
+        (quad_rule, lb(i), ub(i), Z.col(i), fixef_design_varying.col(i),
+         rng_design_varying.col(i), fixef, fixef_vary, &association, &va_mean,
+         &va_var, T_mem, wk_mem, nullptr);
     }
 
     return out;
   }
 
 public:
-  ph_model(joint_bases::basisMixin const * expansion_in,
-           simple_mat<double> const &Z, simple_mat<double> const &surv,
-           bool const with_frailty):
-  expansion{expansion_in->clone()}, Z{Z}, surv{surv},
+  ph_model
+    (joint_bases::basisMixin const * expansion_in, simple_mat<double> const &Z,
+     simple_mat<double> const &fixef_design_varying,
+     simple_mat<double> const &rng_design_varying,
+     simple_mat<double> const &surv, bool const with_frailty):
+  expansion{expansion_in->clone()}, Z{Z},
+  fixef_design_varying{fixef_design_varying},
+  rng_design_varying{rng_design_varying},
+  surv{surv},
   cum_haz{*expansion, survival::bases_vector{}, Z.n_rows(),
           std::vector<std::vector<int> >{}, with_frailty},
   n_wmem_v{cum_haz.n_wmem()[0],
@@ -1262,21 +1305,34 @@ public:
 // [[Rcpp::export(rng = false)]]
 List ph_ll
   (List time_fixef, NumericMatrix Z, NumericMatrix surv,
-   bool const with_frailty){
+   bool const with_frailty, NumericMatrix fixef_design_varying,
+   NumericMatrix rng_design_varying){
   profiler pp("ph_ll");
 
   auto expansion = basis_from_list(time_fixef);
   simple_mat Z_sm(&Z[0], Z.nrow(), Z.ncol()),
-          surv_sm(&surv[0], surv.nrow(), surv.ncol());
+             fixef_design_varying_sm(&fixef_design_varying[0],
+                                     fixef_design_varying.nrow(),
+                                     fixef_design_varying.ncol()),
+             rng_design_varying_sm(&rng_design_varying[0],
+                                   rng_design_varying.nrow(),
+                                   rng_design_varying.ncol()),
+             surv_sm(&surv[0], surv.nrow(), surv.ncol());
 
   // basic check
   if(surv_sm.n_rows() != 3)
     throw std::invalid_argument("surv.nrow() != 3");
   if(Z_sm.n_cols() != surv_sm.n_cols())
     throw std::invalid_argument("Z_sm.n_cols() != surv_sm.n_cols()");
+  if(fixef_design_varying_sm.n_cols() != surv_sm.n_cols())
+    throw std::invalid_argument("fixef_design_varying_sm.n_cols() != surv_sm.n_cols()");
+  if(rng_design_varying_sm.n_cols() != surv_sm.n_cols())
+    throw std::invalid_argument("rng_design_varying_sm.n_cols() != surv_sm.n_cols()");
 
   Rcpp::XPtr<ph_model> ptr
-    (new ph_model(expansion.get(), Z_sm, surv_sm, with_frailty));
+    (new ph_model
+       (expansion.get(), Z_sm, fixef_design_varying_sm, rng_design_varying_sm,
+        surv_sm, with_frailty));
   vajoint_uint const n_params = ptr->n_params();
 
   return List::create(Rcpp::_("n_params") = n_params,

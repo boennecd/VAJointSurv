@@ -6,29 +6,26 @@
 namespace ghqCpp {
 
 /**
- * computes the expected survival. That is
+ * used to compute  the expected survival. Thus, it computes
  *
- *   E(exp(-sum w_i[i] * exp(eta[i] + (M.U)[i])))
+ *   g(U) = exp(-sum w_i[i] * exp(eta[i] + (M.U)[i]))
  *
- * given n weights and offsets w and eta and a matrix M of dimension n x R. U is
- * assumed to be a R dimensional random variable which is ~ N(0, Sigma).
+ * given n weights and offsets w and eta and a matrix M of dimension n x R.
  *
  * The derivatives are computed w.r.t. the vector eta and the matrix M
  */
 template<bool comp_grad = false>
 class expected_survival_term final : public ghq_problem {
   arma::vec const &eta, &weights;
-  arma::mat const Sigma_chol, M_Sigma_chol_t;
+  arma::mat const &M;
 
-  size_t const v_n_vars = M_Sigma_chol_t.n_cols,
+  size_t const v_n_vars = M.n_cols,
                v_n_out
-    {comp_grad ? 1  + eta.n_elem + M_Sigma_chol_t.n_rows * M_Sigma_chol_t.n_cols
-               : 1};
+    {comp_grad ? 1  + eta.n_elem + M.n_elem : 1};
 
 public:
   expected_survival_term
-  (arma::vec const &eta, arma::vec const &weights, arma::mat const &M,
-   arma::mat const &Sigma);
+  (arma::vec const &eta, arma::vec const &weights, arma::mat const &M);
 
   size_t n_vars() const { return v_n_vars; }
   size_t n_out() const { return v_n_out; }

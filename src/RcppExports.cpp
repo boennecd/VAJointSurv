@@ -187,15 +187,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // ph_ll
-List ph_ll(List time_fixef, NumericMatrix Z, NumericMatrix surv, bool const with_frailty);
-RcppExport SEXP _VAJointSurv_ph_ll(SEXP time_fixefSEXP, SEXP ZSEXP, SEXP survSEXP, SEXP with_frailtySEXP) {
+List ph_ll(List time_fixef, NumericMatrix Z, NumericMatrix surv, bool const with_frailty, NumericMatrix fixef_design_varying, NumericMatrix rng_design_varying);
+RcppExport SEXP _VAJointSurv_ph_ll(SEXP time_fixefSEXP, SEXP ZSEXP, SEXP survSEXP, SEXP with_frailtySEXP, SEXP fixef_design_varyingSEXP, SEXP rng_design_varyingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type time_fixef(time_fixefSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type surv(survSEXP);
     Rcpp::traits::input_parameter< bool const >::type with_frailty(with_frailtySEXP);
-    rcpp_result_gen = Rcpp::wrap(ph_ll(time_fixef, Z, surv, with_frailty));
+    Rcpp::traits::input_parameter< NumericMatrix >::type fixef_design_varying(fixef_design_varyingSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type rng_design_varying(rng_design_varyingSEXP);
+    rcpp_result_gen = Rcpp::wrap(ph_ll(time_fixef, Z, surv, with_frailty, fixef_design_varying, rng_design_varying));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -241,7 +243,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_VAJointSurv_joint_ms_n_params", (DL_FUNC) &_VAJointSurv_joint_ms_n_params, 1},
     {"_VAJointSurv_opt_priv", (DL_FUNC) &_VAJointSurv_opt_priv, 11},
     {"_VAJointSurv_joint_ms_opt_lb", (DL_FUNC) &_VAJointSurv_joint_ms_opt_lb, 19},
-    {"_VAJointSurv_ph_ll", (DL_FUNC) &_VAJointSurv_ph_ll, 4},
+    {"_VAJointSurv_ph_ll", (DL_FUNC) &_VAJointSurv_ph_ll, 6},
     {"_VAJointSurv_ph_eval", (DL_FUNC) &_VAJointSurv_ph_eval, 4},
     {"_VAJointSurv_ph_grad", (DL_FUNC) &_VAJointSurv_ph_grad, 4},
     {"run_testthat_tests", (DL_FUNC) &run_testthat_tests, 1},

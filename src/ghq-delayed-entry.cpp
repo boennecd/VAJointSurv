@@ -8,12 +8,17 @@ namespace survival {
 delayed_dat::delayed_dat
   (joint_bases::bases_vector const &bases_fix_in,
    joint_bases::bases_vector const &bases_rng_in,
-   std::vector<simple_mat<double> > &design_mats, subset_params const &par_idx,
+   std::vector<simple_mat<double> > &design_mats,
+   std::vector<simple_mat<double> > &fixef_design_varying_mats,
+   std::vector<simple_mat<double> > &rng_design_varying_mats,
+   subset_params const &par_idx,
    std::vector<cluster_info> const &cluster_infos,
    std::vector<std::vector<std::vector<int> > > &ders):
   bases_fix{joint_bases::clone_bases(bases_fix_in)},
   bases_rng{joint_bases::clone_bases(bases_rng_in)},
   design_mats{design_mats},
+  fixef_design_varying_mats{fixef_design_varying_mats},
+  rng_design_varying_mats{rng_design_varying_mats},
   ders_v{ders},
   par_idx{par_idx},
   v_cluster_infos{cluster_infos},
@@ -39,6 +44,13 @@ delayed_dat::delayed_dat
     else if(design_mats.size() != par_idx.surv_info().size())
       throw std::invalid_argument
         ("design_mats.size() != par_idx.surv_info().size()");
+    else if(fixef_design_varying_mats.size() != par_idx.surv_info().size())
+      throw std::invalid_argument
+      ("fixef_design_varying_mats.size() != par_idx.surv_info().size()");
+    else if(rng_design_varying_mats.size() != par_idx.surv_info().size())
+      throw std::invalid_argument
+      ("rng_design_varying_mats.size() != par_idx.surv_info().size()");
+
     for(size_t i = 0; i < par_idx.surv_info().size(); ++i)
       if(design_mats[i].n_rows() != par_idx.surv_info()[i].n_fix)
         throw std::invalid_argument
@@ -52,6 +64,12 @@ delayed_dat::delayed_dat
         else if(obs.index >= design_mats[obs.type].n_cols())
           throw std::invalid_argument
             ("obs.index >= design_mats[obs.type].n_cols()");
+        else if(obs.index >= fixef_design_varying_mats[obs.type].n_cols())
+          throw std::invalid_argument
+          ("obs.index >= fixef_design_varying_mats[obs.type].n_cols()");
+        else if(obs.index >= rng_design_varying_mats[obs.type].n_cols())
+          throw std::invalid_argument
+          ("obs.index >= rng_design_varying_mats[obs.type].n_cols()");
 
     for(size_t i = 0; i < ders.size(); ++i){
       if(ders[i].size() != bases_rng_in.size())
@@ -68,7 +86,6 @@ delayed_dat::eval_data::eval_data
   (delayed_dat const &dat, node_weight const &nws,
    delayed_dat::cluster_info const &info,
    ghqCpp::simple_mem_stack<double> &mem){
-
   vajoint_uint const n_outcomes = info.size(),
                            n_gl = nws.n_nodes,
                   n_gl_outcomes{n_gl * n_outcomes},
@@ -92,7 +109,8 @@ delayed_dat::eval_data::eval_data
   fixef_vary_basis.reserve(n_outcomes);
   {
     double *time_points_i{time_points};
-    for(auto &obs : info){
+    for(size_t obs_idx = 0; obs_idx < info.size(); ++obs_idx){
+      auto &obs = info[obs_idx];
       auto const &fixef_base = dat.bases_fix[obs.type];
       auto const n_basis = fixef_base->n_basis();
       double * const basis_mem{mem.get(fixef_base->n_wmem() + n_basis)},
@@ -101,8 +119,9 @@ delayed_dat::eval_data::eval_data
       fixef_vary_basis.emplace_back(n_gl, n_basis);
       auto &mat = fixef_vary_basis.back();
       for(vajoint_uint i = 0; i < n_gl; ++i, ++time_points_i){
-        // TODO: handle weights
-        (*fixef_base)(basis_mem, basis_mem_wk, *time_points_i, nullptr);
+        (*fixef_base)
+          (basis_mem, basis_mem_wk, *time_points_i,
+           dat.fixef_design_varying_mats[obs.type].col(obs.index));
 
         // copy the transpose
         for(vajoint_uint j = 0; j < n_basis; ++j)
@@ -114,30 +133,33 @@ delayed_dat::eval_data::eval_data
   // fill in the design matrix for the random effects
   rng_basis.reserve(n_markers);
 
-  for(vajoint_uint k = 0; k < n_markers; ++k){
+  for(vajoint_uint mark = 0; mark < n_markers; ++mark){
     rng_basis.emplace_back();
     std::vector<std::vector<simple_mat<double> > > &marker_k{rng_basis.back()};
     marker_k.reserve(n_outcomes);
 
-    auto const &fixef_base = dat.bases_rng[k];
-    auto const n_basis = fixef_base->n_basis();
-    double * const basis_mem{mem.get(fixef_base->n_wmem() + n_basis)},
+    auto const &rng_base = dat.bases_rng[mark];
+    auto const n_basis = rng_base->n_basis();
+    double * const basis_mem{mem.get(rng_base->n_wmem() + n_basis)},
            * const basis_mem_wk{basis_mem + n_basis};
 
     double *time_points_i{time_points};
-    for(vajoint_uint l = 0; l < n_outcomes; ++l, time_points_i += n_gl){
-      auto &obs = info[l];
+    for(vajoint_uint obs_idx = 0; obs_idx < n_outcomes;
+        ++obs_idx, time_points_i += n_gl){
+      auto &obs = info[obs_idx];
 
-      auto &ders_kl = dat.ders_v[obs.type][k];
+      auto &ders_kl = dat.ders_v[obs.type][mark];
       marker_k.emplace_back(ders_kl.size(), simple_mat<double>{n_gl, n_basis});
       std::vector<simple_mat<double> > &marker_kl{marker_k.back()};
 
-      for(size_t i = 0; i < ders_kl.size(); ++i){
-        auto &simple_mat_i = marker_kl[i];
+      for(size_t der = 0; der < ders_kl.size(); ++der){
+        auto &simple_mat_i = marker_kl[der];
         for(size_t h = 0; h < n_gl; ++h){
-          // TODO: handle weights
-          (*fixef_base)(basis_mem, basis_mem_wk, time_points_i[h], nullptr,
-                        ders_kl[i]);
+          (*rng_base)
+            (basis_mem, basis_mem_wk, time_points_i[h],
+             dat.rng_design_varying_mats[obs.type].col(obs.index) +
+               dat.rng_n_weights_cumsum(mark),
+             ders_kl[der]);
 
           // copy the transpose
           for(vajoint_uint j = 0; j < n_basis; ++j)
@@ -357,8 +379,9 @@ double delayed_dat::operator()
           etas_vec(etas, n_gl_outcomes, false);
   arma::mat rng_design_mat(rng_design, n_gl_outcomes, n_rng, false),
                   vcov_mat(vcov, n_rng, n_rng, false);
-  ghqCpp::expected_survival_term<false> surv_term
-    (etas_vec, ws_vec, rng_design_mat, vcov_mat);
+  ghqCpp::expected_survival_term<false> surv_term_inner
+    (etas_vec, ws_vec, rng_design_mat);
+  ghqCpp::rescale_problem<false> surv_term(vcov_mat, surv_term_inner);
   ghqCpp::adaptive_problem prob(surv_term, mem, 1e-6);
 
   double res{};
@@ -399,13 +422,10 @@ double delayed_dat::grad
   etas_vec(etas, n_gl_outcomes, false);
   arma::mat rng_design_mat(rng_design, n_gl_outcomes, n_rng, false),
   vcov_mat(vcov, n_rng, n_rng, false);
-  ghqCpp::expected_survival_term<true> surv_term
-    (etas_vec, ws_vec, rng_design_mat, vcov_mat);
-  ghqCpp::outer_prod_problem outer_term(n_rng);
-
-  std::vector<ghqCpp::ghq_problem const *> problems{&surv_term, &outer_term};
-  ghqCpp::combined_problem prob_comb{problems};
-  ghqCpp::adaptive_problem prob(prob_comb, mem, 1e-6);
+  ghqCpp::expected_survival_term<true> surv_term_inner
+    (etas_vec, ws_vec, rng_design_mat);
+  ghqCpp::rescale_problem<true> surv_term(vcov_mat, surv_term_inner);
+  ghqCpp::adaptive_problem prob(surv_term, mem, 1e-6);
 
   size_t const n_res{prob.n_out()};
   double * __restrict__ res{mem.get(n_res)};
@@ -419,8 +439,7 @@ double delayed_dat::grad
     res[i] /= fn_exp;
 
   double const * const d_eta{res + 1},
-               * const d_rng_design{d_eta + n_gl_outcomes},
-               * const d_vcov_inter{d_rng_design + n_rng * n_gl_outcomes};
+               * const d_rng_design{d_eta + n_gl_outcomes};
 
   // handle the derivatives w.r.t. eta
   {
@@ -480,10 +499,7 @@ double delayed_dat::grad
   }
 
   // the derivatives w.r.t. the covariance matrix
-  double * const d_vcov{mem.get(n_rng * n_rng)};
-  outer_term.d_Sig(d_vcov, d_vcov_inter, 1, vcov_mat);
-
-  double const * d_vcov_j{d_vcov};
+  double const * d_vcov_j{d_rng_design + n_rng * n_gl_outcomes};
   double * gr_vcov_vary{gr + par_idx.vcov_vary()};
   for(size_t j = 0; j < n_shared; ++j, d_vcov_j += n_rng,
       gr_vcov_vary += n_shared){

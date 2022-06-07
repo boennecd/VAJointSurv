@@ -155,14 +155,17 @@ context("delayed_dat functions") {
       std::copy(vcov_surv, vcov_surv + 1, x.data() + params.vcov_surv());
 
       double dsgn[]{1, 1};
-      std::vector<simple_mat<double> > design_mats{{dsgn, 1, 2}};
+      std::vector<simple_mat<double> > design_mats{{dsgn, 1, 2}},
+                              fixef_design_varying{{nullptr, 0, 2}},
+                              rng_design_varying{{nullptr, 0, 2}};
 
       std::vector<std::vector<std::vector<int> > > ders{{{0}, {0}}};
       std::vector<delayed_dat::cluster_info>
         info{{{0, 0, delay[0]}, {0, 1, delay[1]}}};
 
       survival::delayed_dat cmp_dat
-        {bases_fix, bases_rng, design_mats, params, info, ders};
+        {bases_fix, bases_rng, design_mats, fixef_design_varying,
+         rng_design_varying, params, info, ders};
 
       {
         double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
@@ -226,7 +229,10 @@ context("delayed_dat functions") {
     x[params.vcov_surv() + 3] = *vcov_surv;
 
     double dsgn_dum[]{0, 1, 2, 3}, dsgn[]{0, 1, 1};
-    std::vector<simple_mat<double> > design_mats{{dsgn_dum, 2, 1}, {dsgn, 1, 3}};
+    std::vector<simple_mat<double> >
+      design_mats{{dsgn_dum, 2, 1}, {dsgn, 1, 3}},
+      fixef_design_varying{{nullptr, 0, 1}, {nullptr, 0, 3}},
+      rng_design_varying{{nullptr, 0, 1}, {nullptr, 0, 3}};
 
     std::vector<std::vector<std::vector<int> > > ders{{{1}, {-1}}, {{0}, {0}}};
     std::vector<delayed_dat::cluster_info>
@@ -234,7 +240,8 @@ context("delayed_dat functions") {
            {{1, 1, delay[0]}, {1, 2, delay[1]}}};
 
     survival::delayed_dat cmp_dat
-      {bases_fix, bases_rng, design_mats, params, info, ders};
+      {bases_fix, bases_rng, design_mats, fixef_design_varying,
+       rng_design_varying, params, info, ders};
 
     for(size_t n_evals = 0; n_evals < 4; ++n_evals){
       if(n_evals > 0)
@@ -358,14 +365,18 @@ context("delayed_dat functions") {
 
       std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
 
-      std::vector<simple_mat<double> > design_mats{{nullptr, 0, 2}};
+      std::vector<simple_mat<double> >
+        design_mats{{nullptr, 0, 2}},
+        fixef_design_varying{{nullptr, 0, 2}},
+        rng_design_varying{{nullptr, 0, 2}};
 
       std::vector<std::vector<std::vector<int> > > ders{{{0, 1}, {1}}};
       std::vector<delayed_dat::cluster_info>
         info{{{0, 0, delay[0]}, {0, 1, delay[1]}}};
 
       survival::delayed_dat cmp_dat
-        {bases_fix, bases_rng, design_mats, params, info, ders};
+        {bases_fix, bases_rng, design_mats, fixef_design_varying,
+         rng_design_varying, params, info, ders};
 
       {
         double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
@@ -406,8 +417,10 @@ context("delayed_dat functions") {
     std::copy(vcov_vary, vcov_vary + 9, x.data() + params.vcov_vary());
 
     double dum[]{0,1,3};
-    std::vector<simple_mat<double> > design_mats
-      {{nullptr, 0, 2}, {dum, 3, 1}};
+    std::vector<simple_mat<double> >
+      design_mats{{nullptr, 0, 2}, {dum, 3, 1}},
+      fixef_design_varying{{nullptr, 0, 2}, {nullptr, 0, 1}},
+      rng_design_varying{{nullptr, 0, 2}, {nullptr, 0, 1}};
 
     std::vector<std::vector<std::vector<int> > > ders{{{0, 1}, {1}},
                                                       {{-1, 1}, {0, 2}}};
@@ -416,7 +429,8 @@ context("delayed_dat functions") {
            {{1, 0, 4}}};
 
     survival::delayed_dat cmp_dat
-      {bases_fix, bases_rng, design_mats, params, info, ders};
+      {bases_fix, bases_rng, design_mats, fixef_design_varying,
+       rng_design_varying, params, info, ders};
 
     for(size_t n_evals = 0; n_evals < 4; ++n_evals){
       if(n_evals > 0)
@@ -570,8 +584,10 @@ context("delayed_dat functions") {
       std::copy(vcov_surv, vcov_surv + 4, x.data() + params.vcov_surv());
 
       double dsgn1[]{1};
-      std::vector<simple_mat<double> > design_mats
-        {{dsgn1, 1, 1}, {nullptr, 0, 1}};
+      std::vector<simple_mat<double> >
+        design_mats{{dsgn1, 1, 1}, {nullptr, 0, 1}},
+        fixef_design_varying{{nullptr, 0, 1}, {nullptr, 0, 1}},
+        rng_design_varying{{nullptr, 0, 1}, {nullptr, 0, 1}};
 
       std::vector<std::vector<std::vector<int> > > ders
         {{{0}, {0}}, {{0}, {0}}};
@@ -579,7 +595,8 @@ context("delayed_dat functions") {
         info{{{1, 0, delay[0]}, {0, 0, delay[1]}}};
 
       survival::delayed_dat cmp_dat
-        {bases_fix, bases_rng, design_mats, params, info, ders};
+        {bases_fix, bases_rng, design_mats, fixef_design_varying,
+         rng_design_varying, params, info, ders};
 
       {
         double const res{cmp_dat(x.data(), mem, 0, gl_dat, ghq_dat)};
@@ -651,8 +668,10 @@ context("delayed_dat functions") {
                 x.data() + params.vcov_surv() + 1 + (i + 1) * 3);
 
     double dsgn0[]{0, 1}, dsgn1[]{1};
-    std::vector<simple_mat<double> > design_mats
-      {{dsgn0, 2, 1}, {dsgn1, 1, 1}, {nullptr, 0, 2}};
+    std::vector<simple_mat<double> >
+      design_mats{{dsgn0, 2, 1}, {dsgn1, 1, 1}, {nullptr, 0, 2}},
+      fixef_design_varying{{nullptr, 0, 1}, {nullptr, 0, 1}, {nullptr, 0, 2}},
+      rng_design_varying{{nullptr, 0, 1}, {nullptr, 0, 1}, {nullptr, 0, 2}};
 
     std::vector<std::vector<std::vector<int> > > ders
       {{{0, 1}, {0}}, {{0}, {0}}, {{0}, {0}}};
@@ -661,7 +680,8 @@ context("delayed_dat functions") {
            {{2, 1, delay[0]}, {1, 0, delay[1]}}};
 
     survival::delayed_dat cmp_dat
-      {bases_fix, bases_rng, design_mats, params, info, ders};
+      {bases_fix, bases_rng, design_mats, fixef_design_varying,
+       rng_design_varying, params, info, ders};
 
     {
       mem.reset();
@@ -707,5 +727,9 @@ context("delayed_dat functions") {
       expect_true
       (std::abs(gr[params.vcov_surv() + i + 7] - d_vcov_surv[i + 2])
          < std::abs(d_vcov_surv[i + 2]) * 1e-3);
+  }
+
+  test_that("works with two survival outcomes of different types with fraitly and time-varying effects") {
+    expect_true(false);
   }
 }

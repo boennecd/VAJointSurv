@@ -154,12 +154,29 @@ public:
 
   /**
    * sets design matrices for the varying effects using an iterator over the
-   * observation times.
+   * observation times and vectors of design matrices for the weights of the
+   * bases.
    */
   template<class I>
-  void set_design_mats(I obs_time){
+  void set_design_mats
+    (I obs_time, std::vector<simple_mat<double> > const &fix_design_varying,
+     std::vector<simple_mat<double> > const &rng_design_varying){
     static_assert(std::is_same<typename std::iterator_traits<I>::value_type,
                                double>::value, "iterator is not to doubles");
+
+    if(fix_design_varying.size() != bases_fix.size())
+      throw std::invalid_argument("not enough fixed effect design matrices");
+    if(rng_design_varying.size() != bases_rng.size())
+      throw std::invalid_argument("not enough random effect design matrices");
+
+    for(auto &design : fix_design_varying)
+      if(design.n_cols() != n_obs_v)
+        throw std::runtime_error
+          ("not the correct number of columns for the fixed effect design matrices");
+    for(auto &design : rng_design_varying)
+      if(design.n_cols() != n_obs_v)
+        throw std::runtime_error
+          ("not the correct number of columns for the random effect design matrices");
 
     // compute the maximum needed working memory
     size_t n_wmem_basis{};
@@ -173,15 +190,15 @@ public:
 
     for(vajoint_uint i = 0; i < n_obs_v; ++i, ++obs_time){
       double *mem = design_mats.col(i) + n_fixed_effects;
-      for(auto &x : bases_fix){
-        // TODO: handle weights
-        (*x)(mem, basis_wmem, *obs_time, nullptr);
-        mem += x->n_basis();
+      for(size_t j = 0; j < bases_fix.size(); ++j){
+        (*bases_fix[j])
+          (mem, basis_wmem, *obs_time, fix_design_varying[j].col(i));
+        mem += bases_fix[j]->n_basis();
       }
-      for(auto &x : bases_rng){
-        // TODO: handle weights
-        (*x)(mem, basis_wmem, *obs_time, nullptr);
-        mem += x->n_basis();
+      for(size_t j = 0; j < bases_rng.size(); ++j){
+        (*bases_rng[j])
+          (mem, basis_wmem, *obs_time, rng_design_varying[j].col(i));
+        mem += bases_rng[j]->n_basis();
       }
     }
   }
@@ -384,6 +401,10 @@ public:
 struct setup_marker_dat_helper {
   /// the fixed effect design matrix
   simple_mat<double> fixef_design;
+  /// the fixed effect design matrix for the time varying effects
+  simple_mat<double> fixef_design_varying;
+  /// the random effect design matrix for the time varying effects
+  simple_mat<double> rng_design_varying;
   /// pointer to id of each observation (sorted)
   int const * ids;
   /// pointer to the observation time of each observation (sorted within id)
@@ -399,9 +420,13 @@ struct setup_marker_dat_helper {
   /// constructs the helper class and validates the data
   setup_marker_dat_helper
     (double * fixef, vajoint_uint const n_fixef, vajoint_uint const arg_n_obs,
-     int const *ids, double const *obs_time, double const *obs):
-    fixef_design{fixef, n_fixef, arg_n_obs}, ids{ids}, obs_time{obs_time},
-    obs{obs} {
+     int const *ids, double const *obs_time, double const *obs,
+     double * fixef_varying, vajoint_uint const n_fixef_varying,
+     double * rng_varying, vajoint_uint const n_rng_varying):
+    fixef_design{fixef, n_fixef, arg_n_obs},
+    fixef_design_varying{fixef_varying, n_fixef_varying, arg_n_obs},
+    rng_design_varying{rng_varying, n_rng_varying, arg_n_obs},
+    ids{ids}, obs_time{obs_time}, obs{obs} {
       // checks that the ids and observations times are sorted
       int const * ids_i{ids};
       double const * obs_time_i{obs_time};

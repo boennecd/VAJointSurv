@@ -1,6 +1,7 @@
 #ifndef SURVIVAL_TERM_H
 #define SURVIVAL_TERM_H
 
+#include <numeric>
 #include "bases.h"
 #include "cfaad/AAD.h"
 #include <array>
@@ -43,6 +44,16 @@ class expected_cum_hazzard {
       out.reserve(bases_rng.size());
       for(auto &b : bases_rng)
         out.emplace_back(b->n_basis());
+      return out;
+    })()
+  };
+  /// the number weights of each rng base expansion
+  std::vector<vajoint_uint> rng_n_weights_v{
+    ([&]{
+      std::vector<vajoint_uint> out;
+      out.reserve(bases_rng.size());
+      for(auto &b : bases_rng)
+        out.emplace_back(b->n_weights());
       return out;
     })()
   };
@@ -112,6 +123,9 @@ public:
   vajoint_uint rng_n_basis(size_t const idx) const {
     return rng_n_basis_v[idx];
   }
+  vajoint_uint rng_n_weights(size_t const idx) const {
+    return rng_n_weights_v[idx];
+  }
 
   bool with_frailty() const { return with_frailty_v; }
 
@@ -122,11 +136,12 @@ public:
    * Use a null pointer if there is no caching
    */
   template<class T>
-  T operator()(node_weight const &nws, double const lower,
-               double const upper, double const *design, T const * fixef,
-               T const * fixef_vary, T const * association, T const *VA_mean,
-               T const * VA_vcov, T * wk_mem, double * dwk_mem,
-               double const * cached_expansions) const {
+  T operator()
+    (node_weight const &nws, double const lower, double const upper,
+     double const *design, double const *fixef_design_varying,
+     double const * rng_design_varying, T const * fixef, T const * fixef_vary,
+     T const * association, T const *VA_mean, T const * VA_vcov,
+     T * wk_mem, double * dwk_mem, double const * cached_expansions) const {
     T out{0};
     bool const use_cache = cached_expansions;
 
@@ -166,8 +181,7 @@ public:
       } else {
         // compute the term from the time-varying fixed effects
         double const node_val{scale_node_val(lower, upper, nws.ns[i])};
-        // TODO: handle weights
-        (*b)(dwk_mem, dwk_mem_basis, node_val, nullptr);
+        (*b)(dwk_mem, dwk_mem_basis, node_val, fixef_design_varying);
         fixef_term =
           cfaad::dotProd(dwk_mem, dwk_mem + b_n_basis(), fixef_vary);
 
@@ -178,14 +192,15 @@ public:
             association_M[idx + k] = 0;
 
           for(int der : ders()[j]){
-            // TODO: handle weights
-            (*bases_rng[j])(dwk_mem, dwk_mem_basis, node_val, nullptr, der);
+            (*bases_rng[j])
+              (dwk_mem, dwk_mem_basis, node_val, rng_design_varying, der);
             for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
               association_M[idx + k] +=
                 association[idx_association] * dwk_mem[k];
             ++idx_association;
           }
           idx += rng_n_basis(j);
+          rng_design_varying += rng_n_weights(j);
         }
         association_M[idx] = 1;
       }
@@ -220,13 +235,15 @@ public:
   }
 
   /// sets the cached basis expansions
-  void cache_expansions(double const lower, double const upper,
-                        double * cache_mem, double * wk_mem,
-                        node_weight const &nws){
+  void cache_expansions
+    (double const lower, double const upper, double * cache_mem,
+     double * wk_mem, node_weight const &nws,
+     double const *fixef_design_varying, double const * rng_design_varying){
     // evaluates the cached expansions
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i)
       cache_mem = cache_expansion_at
-        (scale_node_val(lower, upper, nws.ns[i]), cache_mem, wk_mem);
+        (scale_node_val(lower, upper, nws.ns[i]), cache_mem, wk_mem,
+         fixef_design_varying, rng_design_varying);
   }
 
   /***
@@ -234,16 +251,16 @@ public:
    * of the used memory
    */
   double * cache_expansion_at
-    (double const at, double * cache_mem, double * wk_mem){
-    // TODO: handle weights
-    (*b)(cache_mem, wk_mem, at, nullptr);
+    (double const at, double * cache_mem, double * wk_mem,
+     double const *fixef_design_varying, double const * rng_design_varying){
+    (*b)(cache_mem, wk_mem, at, fixef_design_varying);
     cache_mem += b_n_basis();
 
     for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
       for(int der : ders()[j]){
-        // TODO: handle weights
-        (*bases_rng[j])(cache_mem, wk_mem, at, nullptr, der);
+        (*bases_rng[j])(cache_mem, wk_mem, at, rng_design_varying, der);
         cache_mem += rng_n_basis(j);
+        rng_design_varying += rng_n_weights(j);
       }
 
     return cache_mem;
@@ -284,6 +301,16 @@ class survival_dat {
   /// design matrices for the fixed effects (one for each type of outcome)
   std::vector<simple_mat<double> > design_mats;
   /**
+   * design matrices for the time-varying fixed effects (one for each type of
+   * outcome)
+   */
+  std::vector<simple_mat<double> > fixef_design_varying_mats;
+  /**
+   * design matrices for the time-varying random effects (one for each type of
+   * outcome)
+   */
+  std::vector<simple_mat<double> > rng_design_varying_mats;
+  /**
    * functors to compute the approximation of the expected cumulative hazard
    * (one for each type of outcome)
    */
@@ -320,17 +347,25 @@ public:
   survival_dat
     (bases_vector const &bases_fix_in, bases_vector const &bases_rng_in,
      std::vector<simple_mat<double> > &design_mats,
+     std::vector<simple_mat<double> > &fixef_design_varying_mats,
+     std::vector<simple_mat<double> > &rng_design_varying_mats,
      subset_params const &par_idx, std::vector<obs_input> const &input,
      std::vector<std::vector<std::vector<int> > > &ders):
     bases_fix{joint_bases::clone_bases(bases_fix_in)},
     bases_rng{joint_bases::clone_bases(bases_rng_in)},
     design_mats{design_mats},
+    fixef_design_varying_mats{fixef_design_varying_mats},
+    rng_design_varying_mats{rng_design_varying_mats},
     par_idx{par_idx}
   {
     if(par_idx.surv_info().size() != n_outcomes_v)
       throw std::invalid_argument("surv_info().size() != n_outcomes");
     if(design_mats.size() != n_outcomes_v)
       throw std::invalid_argument("design_mats.size() != n_outcomes");
+    if(fixef_design_varying_mats.size() != n_outcomes_v)
+      throw std::invalid_argument("fixef_design_varying_mats.size() != n_outcomes");
+    if(rng_design_varying_mats.size() != n_outcomes_v)
+      throw std::invalid_argument("rng_design_varying_mats.size() != n_outcomes");
     if(bases_fix.size() != n_outcomes_v)
       throw std::invalid_argument("bases_fix.size() != n_outcomes");
     if(input.size() != n_outcomes_v)
@@ -368,29 +403,38 @@ public:
 
     // add the observations
     obs_info.resize(n_outcomes_v);
-    for(vajoint_uint i = 0; i < n_outcomes_v; ++i){
+    for(vajoint_uint type = 0; type < n_outcomes_v; ++type){
       // check the par_info matches
-      auto &surv_info_i = par_idx.surv_info()[i];
-      if(design_mats[i].n_rows() != surv_info_i.n_fix)
-        throw std::invalid_argument("esign_mats[i].n_rows() != surv_info_i.n_fix");
-      if(bases_fix[i]->n_basis() != surv_info_i.n_variying)
-        throw std::invalid_argument("bases_fix[i]->n_basis() != surv_info_i.n_variying");
-      if(ders[i].size() != par_idx.marker_info().size())
-        throw std::invalid_argument("ders[i].size() != par_idx.marker_info().size()");
+      auto &surv_info_type = par_idx.surv_info()[type];
+      if(design_mats[type].n_rows() != surv_info_type.n_fix)
+        throw std::invalid_argument("esign_mats[type].n_rows() != surv_info_type.n_fix");
+      if(bases_fix[type]->n_basis() != surv_info_type.n_variying)
+        throw std::invalid_argument("bases_fix[type]->n_basis() != surv_info_type.n_variying");
+      if(ders[type].size() != par_idx.marker_info().size())
+        throw std::invalid_argument("ders[type].size() != par_idx.marker_info().size()");
       for(unsigned j = 0; j < par_idx.marker_info().size(); ++j)
-        if(ders[i][j].size() != surv_info_i.n_associations[j])
-          throw std::invalid_argument("ders[i][j].size() != surv_info_i.n_associations[j]");
+        if(ders[type][j].size() != surv_info_type.n_associations[j])
+          throw std::invalid_argument("ders[type][j].size() != surv_info_type.n_associations[j]");
+
+      if(fixef_design_varying_mats[type].n_rows() != bases_fix[type]->n_weights())
+        throw std::invalid_argument("fixef_design_varying_mats[type].n_rows() != bases_fix[type]->n_weights()");
+
+      unsigned n_weights_rng{};
+      for(unsigned j = 0; j < par_idx.marker_info().size(); ++j)
+        n_weights_rng += cum_hazs[type].rng_n_weights(j);
+      if(rng_design_varying_mats[type].n_rows() != n_weights_rng)
+        throw std::invalid_argument("rng_design_varying_mats[type].n_rows() != n_weights_rng");
 
       // add the outcomes
-      obs_info[i].reserve(input[i].n_obs);
-      if(input[i].n_obs != design_mats[i].n_cols())
+      obs_info[type].reserve(input[type].n_obs);
+      if(input[type].n_obs != design_mats[type].n_cols())
         throw std::invalid_argument
-          ("input[i].n_obs != design_mats[i].n_cols()");
+          ("input[type].n_obs != design_mats[type].n_cols()");
 
-      for(vajoint_uint j = 0; j < input[i].n_obs; ++j)
-        obs_info[i].push_back
+      for(vajoint_uint obs = 0; obs < input[type].n_obs; ++obs)
+        obs_info[type].push_back
           (obs_info_obj
-            {input[i].lbs[j], input[i].ubs[j], input[i].event[j] == 1});
+            {input[type].lbs[obs], input[type].ubs[obs], input[type].event[obs] == 1});
     }
   }
 
@@ -416,24 +460,32 @@ public:
 
     cached_expansions.clear();
     cached_expansions.reserve(obs_info.size());
-    for(size_t i = 0; i < obs_info.size(); ++i){
-      auto &info_objs = obs_info[i];
-      auto &haz_i = cum_hazs[i];
-      size_t const n_basis_cols{(n_nodes + 1) * info_objs.size()};
-      std::vector<double> wk_mem(haz_i.n_wmem()[1]);
+    for(size_t type = 0; type < obs_info.size(); ++type){
+      auto &info_objs = obs_info[type];
+      auto &haz_type = cum_hazs[type];
+      auto const &fixef_design_varying_mat = fixef_design_varying_mats[type];
+      auto const &rng_design_varying_mat = fixef_design_varying_mats[type];
 
-      cached_expansions.emplace_back(haz_i.cache_mem_per_node(), n_basis_cols);
-      for(size_t i = 0; i < info_objs.size(); ++i){
-        double * cache_mem{cached_expansions.back().col(i * (n_nodes + 1))};
+      size_t const n_basis_cols{(n_nodes + 1) * info_objs.size()};
+      std::vector<double> wk_mem(haz_type.n_wmem()[1]);
+
+      cached_expansions.emplace_back
+        (haz_type.cache_mem_per_node(), n_basis_cols);
+      for(size_t obs = 0; obs < info_objs.size(); ++obs){
+        double * cache_mem{cached_expansions.back().col(obs * (n_nodes + 1))};
 
         // store the event time as the first column
-        if(info_objs[i].event)
-          cache_mem = haz_i.cache_expansion_at
-            (info_objs[i].ub, cache_mem, wk_mem.data());
+        if(info_objs[obs].event)
+          cache_mem = haz_type.cache_expansion_at
+            (info_objs[obs].ub, cache_mem, wk_mem.data(),
+             fixef_design_varying_mat.col(obs),
+             rng_design_varying_mat.col(obs));
 
         // use the rest of the columns for the terms from the cumulative hazard
-        haz_i.cache_expansions
-          (info_objs[i].lb, info_objs[i].ub, cache_mem, wk_mem.data(), nws);
+        haz_type.cache_expansions
+          (info_objs[obs].lb, info_objs[obs].ub, cache_mem, wk_mem.data(), nws,
+           fixef_design_varying_mat.col(obs),
+           rng_design_varying_mat.col(obs));
       }
     }
   }
@@ -482,7 +534,11 @@ public:
 
     // compute the approximate expected log hazard if needed
     T out{0};
-    double const * const design = design_mats[type].col(idx);
+    double const * const design{design_mats[type].col(idx)},
+                 * const fixef_design_varying
+                  {fixef_design_varying_mats[type].col(idx)},
+                 * const rng_design_varying
+                 {rng_design_varying_mats[type].col(idx)};
     vajoint_uint const n_shared{par_idx.n_shared()},
                     n_shared_p1{n_shared + 1};
     if(info.event){
@@ -513,16 +569,16 @@ public:
         }
 
       } else {
-        // TODO: handle weights
-        (*bases_fix[type])(dwk_mem, basis_wmem, info.ub, nullptr);
+        (*bases_fix[type])(dwk_mem, basis_wmem, info.ub, fixef_design_varying);
         out -= cfaad::dotProd(dwk_mem, dwk_mem + haz.b_n_basis(),
                               param + surv_info.idx_varying);
 
+        double const * rng_design_varying_j{rng_design_varying};
         vajoint_uint offset{}, idx_association{surv_info.idx_association};
         for(size_t i = 0; i < bases_rng.size(); ++i){
           for(int der : haz.ders()[i]){
-            // TODO: handle weights
-            (*bases_rng[i])(dwk_mem, basis_wmem, info.ub, nullptr, der);
+            (*bases_rng[i])
+              (dwk_mem, basis_wmem, info.ub, rng_design_varying_j, der);
             auto M_VA_mean = cfaad::dotProd
               (dwk_mem, dwk_mem + haz.rng_n_basis(i),
                param + par_idx.va_mean() + offset);
@@ -530,6 +586,7 @@ public:
           }
 
           offset += haz.rng_n_basis(i);
+          rng_design_varying_j += haz.rng_n_weights(i);
 
         }
       }
@@ -580,9 +637,10 @@ public:
     wk_mem += n_shared_p1 * n_shared_p1;
 
     out += haz
-      (nws, info.lb, info.ub, design, param + surv_info.idx_fix,
-       param + surv_info.idx_varying, param + surv_info.idx_association,
-       VA_mean, VA_vcov, wk_mem, dwk_mem, cached_expansions_pass);
+      (nws, info.lb, info.ub, design, fixef_design_varying, rng_design_varying,
+       param + surv_info.idx_fix, param + surv_info.idx_varying,
+       param + surv_info.idx_association, VA_mean, VA_vcov, wk_mem, dwk_mem,
+       cached_expansions_pass);
 
     return out;
   }

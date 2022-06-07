@@ -102,7 +102,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   is_valid_expansion(time_fixef)
 
   # check for a singular design matrix
-  XZ <- cbind(Z, t(time_fixef$eval(y[, 2])))
+  XZ <- cbind(Z, t(time_fixef$eval(y[, 2]))) # TODO: use the newdata argument
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
     stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
@@ -114,8 +114,12 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   id <- id[ord]
   delayed <- delayed[ord]
 
+  # TODO: set this the correct way
+  fixef_design_varying <- matrix(0., 0L, length(y))
+
   structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
-                 ders = ders, with_frailty = with_frailty, delayed = delayed),
+                 ders = ders, with_frailty = with_frailty, delayed = delayed,
+                 fixef_design_varying = fixef_design_varying, data = data),
             class = "surv_term")
 }
 
@@ -128,8 +132,11 @@ surv_term_start_value <- function(object, quad_rule, va_var){
   # create the object to perform the optimization
   Z <- object$Z
   surv <- t(object$y)
-  comp <- ph_ll(time_fixef = object$time_fixef, Z = Z, surv = surv,
-                object$with_frailty)
+  comp <- ph_ll(
+    time_fixef = object$time_fixef, Z = Z, surv = surv,
+    fixef_design_varying = object$fixef_design_varying,
+    rng_design_varying = object$rng_design_varying,
+    object$with_frailty)
 
   # define the likelihood and gradient function. Then optimize
   ll <- function(par)

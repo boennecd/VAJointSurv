@@ -100,6 +100,9 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   survival_terms <- lapply(survival_terms, function(x){
     idx_delayed <- which(x$delayed)
 
+    # TODO: compute this the right way
+    x$rng_design_varying <- matrix(0., 0L, length(x$delayed))
+
     if(length(idx_delayed) > 0){
       y_delayed <- x$y[idx_delayed, "start"]
       x$y[idx_delayed, "start"] <- 0
@@ -109,8 +112,15 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 
     id_delayed <- x$id[idx_delayed]
     Z_delayed <- x$Z[, idx_delayed, drop = FALSE]
+    fixef_design_varying_delayed <- x$fixef_design_varying[
+      , idx_delayed, drop = FALSE]
+    rng_design_varying_delayed <- x$rng_design_varying[
+      , idx_delayed, drop = FALSE]
 
-    x$delayed_data <- list(y = y_delayed, id = id_delayed, Z = Z_delayed)
+    x$delayed_data <- list(
+      y = y_delayed, id = id_delayed, Z = Z_delayed,
+      fixef_design_varying = fixef_design_varying_delayed,
+      rng_design_varying = rng_design_varying_delayed)
     x
   })
 

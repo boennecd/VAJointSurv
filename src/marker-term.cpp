@@ -105,6 +105,37 @@ comp_dat_return get_comp_dat
     return true;
   };
 
+  // the time varying effect design matrices
+  auto init_design_varying_mats =
+    [&](joint_bases::bases_vector const &bases){
+      std::vector<simple_mat<double> > out;
+      out.reserve(bases.size());
+      for(auto &basis : bases){
+        out.emplace_back(basis->n_weights(), max_obs);
+        std::fill(out.back().begin(), out.back().end(), 0);
+      }
+      return out;
+    };
+
+  std::vector<simple_mat<double> > fix_design_varying
+    {init_design_varying_mats(bases_fix)};
+  std::vector<simple_mat<double> > rng_design_varying
+    {init_design_varying_mats(bases_rng)};
+
+  // adds values a time varying effect design matrix
+  auto add_varying_covarites = [&]
+    (vajoint_uint const variable){
+    auto const input_colum =
+      std::distance(input_dat[variable].ids, ids_ptr[variable]);
+
+    std::copy(input_dat[variable].fixef_design_varying.col(input_colum),
+              input_dat[variable].fixef_design_varying.col(input_colum + 1),
+              rng_design_varying[variable].col(unique_ids.size() - 1));
+    std::copy(input_dat[variable].rng_design_varying.col(input_colum),
+              input_dat[variable].rng_design_varying.col(input_colum + 1),
+              rng_design_varying[variable].col(unique_ids.size() - 1));
+  };
+
   // compute the number of observations
   for(; !all_finished();){
     int min_id{std::numeric_limits<int>::max()};
@@ -131,6 +162,7 @@ comp_dat_return get_comp_dat
          *obs_time_ptr[i] > min_time)
          continue;
 
+      add_varying_covarites(i);
       inc_ptrs(i);
     }
   }
@@ -139,8 +171,25 @@ comp_dat_return get_comp_dat
   vajoint_uint const n_obs(unique_ids.size());
   marker_dat out{par_idx, n_obs, bases_fix, bases_rng};
 
+  // possibly reduce the size of the time-varying effects
+  auto reduce_design_matrices =
+    [&](std::vector<simple_mat<double> > & matrices){
+      for(auto &mat : matrices){
+        if(mat.n_cols() == n_obs)
+          continue;
+        simple_mat<double> reduced_mat(mat.n_rows(), n_obs);
+        std::copy(mat.begin(), mat.begin() + mat.n_rows() * n_obs,
+                  reduced_mat.begin());
+        mat = reduced_mat;
+      }
+    };
+
+  reduce_design_matrices(fix_design_varying);
+  reduce_design_matrices(rng_design_varying);
+
   // fill in the design matrices for the time-varying effects
-  out.set_design_mats(unique_obs_time.begin());
+  out.set_design_mats
+    (unique_obs_time.begin(), fix_design_varying, rng_design_varying);
 
   // fill in the outcomes and fixed effect design matrix
   fill_ptrs();
