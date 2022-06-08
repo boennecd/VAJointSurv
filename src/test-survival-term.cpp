@@ -391,7 +391,7 @@ context("expected_cum_hazzard is correct") {
         (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
         {ns, ws, n_nodes}, nullptr, nullptr);
       res = comp_obj
-        ({ns, ws, n_nodes}, lb1, ub1, z, nullptr, nullptr, delta, omega, alpha,
+        ({ns, ws, n_nodes}, lb2, ub2, z, nullptr, nullptr, delta, omega, alpha,
          zeta, Psi, wmem::get_double_mem(req_mem[0]),
          wmem::get_double_mem(req_mem[1]), expansions.data());
       expect_true(pass_rel_err(res, true_val2, 1e-6));
@@ -510,7 +510,290 @@ context("expected_cum_hazzard is correct") {
   }
 
   test_that("expected_cum_hazzard gives the correct result without frailty and with time-varying effects"){
-    expect_true(false); // TODO: implement
+    /*
+     raw_poly <- function(x, degree, intercept){
+     out <- if(intercept)
+     outer(x, 0:degree, `^`)
+     else
+     outer(x, 1:degree, `^`)
+     out
+     }
+
+# parameters
+     Z <- c(1, -.5, .33)
+     delta <- c(.1, .2, -.3)
+     g <- function(x, data)
+     cbind(raw_poly(x, 2, FALSE),
+     raw_poly(x, 1, FALSE) * data$y)
+     omega <- c(.2, -.33, .1)
+     alpha <- c(.1, .4, -.2)
+     ms <- list(function(x, data) raw_poly(x, 1, FALSE),
+     function(x, data){
+     cbind(raw_poly(x, 2, TRUE),
+     raw_poly(x, 2, FALSE) * data$y)
+     },
+     function(x, data) {
+     cbind(raw_poly(x, 1, TRUE),
+     raw_poly(x, 1, FALSE) * data$x)
+     })
+     data <- data.frame(y = .1, x = -.5)
+     zeta <- c(
+     -0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.02, -.011)
+     set.seed(1)
+     dput(Psi <- drop(round(rWishart(1, 18, diag(1/18, 9)), 3)))
+     stopifnot(all(eigen(Psi)$value > 0))
+
+     f <- function(args, lb, ub){
+     get_next <- function(n){
+     out <- head(args, n)
+     args <<- tail(args, -n)
+     out
+     }
+     delta <- get_next(length(delta))
+     omega <- get_next(length(omega))
+     alpha <- get_next(length(alpha))
+     zeta <- get_next(length(zeta))
+     Psi <- matrix(args, NROW(Psi))
+
+     integrand <- function(x){
+     M <- matrix(0, length(zeta), length(ms))
+     offset <- 0L
+     for(i in seq_along(ms)){
+     z <- ms[[i]](x, data)
+     M[offset + seq_along(z), i] <- z
+     offset <- offset + length(z)
+     }
+
+     M_alpha <- drop(M %*% alpha)
+
+     exp(delta %*% Z + g(x, data) %*% omega + M_alpha %*% zeta +
+     M_alpha %*% Psi %*% M_alpha / 2)
+     }
+
+     integrate(Vectorize(integrand), lb, ub, rel.tol = 1e-10)$value
+     }
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), 0, 2))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = 0, ub = 2))
+
+     dput(f(c(delta, omega, alpha, zeta, Psi), .5, 2))
+     dput(numDeriv::grad(f, c(delta, omega, alpha, zeta, Psi), lb = .5, ub = 2))
+     */
+     constexpr double z[] {1, -.5, .33},
+                 delta[] {.1, .2, -.3},
+                 alpha[] {.1, .4, -.2},
+                 omega[] {.2, -.33, .1},
+                  zeta[] {-0.1, -0.186, -0.049, 0.015, -0.056, 0.114, -0.126, 0.02, -.011},
+                   Psi[] {0.752, 0.26, -0.315, 0.118, -0.127, 0.089, -0.012, -0.021, 0.156, 0.26, 1.446, -0.364, -0.043, -0.652, -0.309, 0.134, 0.099, 0.009, -0.315, -0.364, 1.144, 0.316, 0.428, -0.025, 0.23, -0.024, -0.115, 0.118, -0.043, 0.316, 0.844, 0.103, 0.09, -0.055, -0.285, 0.143, -0.127, -0.652, 0.428, 0.103, 1.201, 0.151, -0.267, -0.134, 0.096, 0.089, -0.309, -0.025, 0.09, 0.151, 0.77, -0.065, -0.136, -0.08, -0.012, 0.134, 0.23, -0.055, -0.267, -0.065, 1.037, 0.077, -0.243, -0.021, 0.099, -0.024, -0.285, -0.134, -0.136, 0.077, 0.631, 0.005, 0.156, 0.009, -0.115, 0.143, 0.096, -0.08, -0.243, 0.005, 0.936},
+                   lb1   {0},
+                   ub1   {2},
+                   lb2   {.5},
+                   ub2   {2},
+             true_val1   {2.51812386932439},
+             true_val2   {2.0242554499387},
+                   gr1[] {2.5181238692058, -1.2590619346029, 0.830980876894, 2.92900680618558, 4.33359156377796, 0.292900680639297, 0.218578864421935, 8.1366715126149, -2.41300872996659, 0.292900680895945, 1.00724954761863, 1.17160272224091, 1.73343662649363, 0.117160272275118, 0.173343662542859, -0.503624773978331, -0.585801362703901, 0.292900681432927, 0.0216679578636582, 0.0585801360609895, 0.0866718313054816, 0.140342476169216, 0.00866718305457884, 0.014034247523365, -0.029290065659119, -0.0433359164019923, 0.0216679578000626, 0.0585801360609895, 0.201449909534325, 0.234320544505777, 0.346687325646349, 0.0234320544426472, 0.0346687325234064, -0.10072495493656, -0.117160271976558, 0.0585801381763835, 0.0866718312921171, 0.234320544505777, 0.346687325110625, 0.561369904193237, 0.0346687325161476, 0.0561369920679391, -0.117160272079747, -0.173343661147655, 0.0866718310721906, 0.140342476169223, 0.346687325049494, 0.561369904193232, 0.952615655627377, 0.0561369905852745, 0.0952615655494229, -0.173343662963713, -0.280684952055365, 0.140342476189847, 0.00866718325666968, 0.0234320544493082, 0.0346687325758045, 0.0561369905852745, 0.00346687325335039, 0.0056136991983753, -0.0117160272000772, -0.0173343660864489, 0.00866718303983848, 0.0140342475233826, 0.0346687323709182, 0.0561369920573813, 0.0952615655494055, 0.00561369880267494, 0.00952615655622393, -0.0173343657547551, -0.0280684952704858, 0.0140342478133186, -0.0292900681487338, -0.100724954967983, -0.117160272173595, -0.173343662887156, -0.0117160272804297, -0.0173343660848186, 0.0503624773485985, 0.0585801362349841, -0.02929006811118, -0.0433359164019923, -0.117160271976558, -0.173343662217052, -0.280684952145417, -0.0173343660844849, -0.0280684952714533, 0.0585801362349841, 0.0866718312621262, -0.0433359110560862, 0.0216679579106029, 0.0585801381764706, 0.0866718311088115, 0.140342476159477, 0.0086671827724973, 0.0140342477606956, -0.0292900681285077, -0.0433359221379525, 0.021667957817358},
+                   gr2[] {2.0242554503133, -1.01212772515665, 0.668004298526528, 2.80537196853754, 4.29237317628355, 0.280537196809834, 0.218490231102619, 7.98381127761016, -2.27221678034981, 0.280537196808503, 0.809702180045274, 1.12214878767269, 1.71694927102127, 0.112214879122012, 0.171694927197257, -0.404851089870516, -0.561074391490146, 0.280537194360157, 0.0214618658381316, 0.0561074393621272, 0.0858474635157608, 0.140033362614155, 0.00858474668735725, 0.0140033360298784, -0.0280537211571978, -0.0429237330800941, 0.0214618660942135, 0.0561074393621272, 0.161940435974797, 0.224429757547274, 0.343389854720276, 0.0224429757335334, 0.0343389853648397, -0.080970218184685, -0.112214878607649, 0.0561074415465729, 0.0858474635153431, 0.224429757547274, 0.343389854092868, 0.560133450875638, 0.0343389854641402, 0.0560133459367531, -0.112214878667684, -0.171694927340098, 0.0858474636283345, 0.140033362614155, 0.343389854720276, 0.560133450875221, 0.952121137351656, 0.0560133448637547, 0.0952121137487438, -0.171694927276824, -0.280066725505136, 0.140033362715983, 0.00858474648527258, 0.0224429757270753, 0.0343389854641402, 0.056013345112927, 0.00343389856358349, 0.00560133446854981, -0.0112214879553826, -0.0171694928214321, 0.00858474625265879, 0.0140033360298784, 0.0343389854474713, 0.0560133450785879, 0.0952121137472818, 0.00560133449730613, 0.0095212113638492, -0.0171694926310244, -0.0280066725366566, 0.014003335947512, -0.0280537190184683, -0.0809702181532566, -0.112214878667112, -0.171694927587964, -0.0112214879553826, -0.0171694930258667, 0.0404851090177457, 0.0561074397170957, -0.0280537198522577, -0.0429237332806, -0.112214878607641, -0.171694926095291, -0.280066725505136, -0.0171694928214321, -0.0280066725366566, 0.0561074397170957, 0.0858474634870973, -0.042923734717171, 0.0214618660942135, 0.0561074386948466, 0.0858474636283345, 0.140033362715983, 0.00858474620879813, 0.0140033362683214, -0.0280537198517162, -0.0429237346908546, 0.0214618658837173};
+
+    Number ad_delta[3],
+           ad_alpha[3],
+           ad_omega[3],
+            ad_zeta[9],
+             ad_Psi[81];
+
+    constexpr double fixef_desing_varying[]{.1},
+                     rng_desing_varying[]{.1, -.5};
+
+    joint_bases::bases_vector g_basis;
+    g_basis.emplace_back
+      (new joint_bases::orth_poly(2, false));
+    g_basis.emplace_back
+      (new joint_bases::weighted_basis<joint_bases::orth_poly>(1, false));
+    joint_bases::stacked_basis g(g_basis);
+
+    joint_bases::bases_vector bases_rng;
+    bases_rng.emplace_back(new joint_bases::orth_poly(1, false));
+    {
+      joint_bases::bases_vector m_basis;
+      m_basis.emplace_back
+        (new joint_bases::orth_poly(2, true));
+      m_basis.emplace_back
+        (new joint_bases::weighted_basis<joint_bases::orth_poly>(2, false));
+      bases_rng.emplace_back(new joint_bases::stacked_basis(m_basis));
+    }
+    {
+      joint_bases::bases_vector m_basis;
+      m_basis.emplace_back
+        (new joint_bases::orth_poly(1, true));
+      m_basis.emplace_back
+        (new joint_bases::weighted_basis<joint_bases::orth_poly>(1, false));
+      bases_rng.emplace_back(new joint_bases::stacked_basis(m_basis));
+    }
+
+    // we get the correct value
+    std::vector<std::vector<int> > ders{{0}, {0}, {0}};
+    survival::expected_cum_hazzard comp_obj(g, bases_rng, 3, ders, false);
+    std::vector<double> expansions(comp_obj.cache_mem_per_node() * n_nodes);
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, fixef_desing_varying,
+         rng_desing_varying, delta, omega, alpha, zeta, Psi,
+         wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
+
+      // with cached expansions
+      comp_obj.cache_expansions
+        (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
+         {ns, ws, n_nodes}, fixef_desing_varying,
+         rng_desing_varying);
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, fixef_desing_varying,
+         rng_desing_varying, delta, omega, alpha, zeta, Psi,
+         wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+      expect_true(pass_rel_err(res, true_val1, 1e-6));
+    }
+    {
+      auto req_mem = comp_obj.n_wmem();
+      double res = comp_obj(
+        {ns, ws, n_nodes}, lb2, ub2, z, fixef_desing_varying,
+        rng_desing_varying, delta, omega, alpha,
+        zeta, Psi, wmem::get_double_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
+
+      // with cached expansions
+      comp_obj.cache_expansions
+        (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
+        {ns, ws, n_nodes}, fixef_desing_varying,
+        rng_desing_varying);
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb2, ub2, z, fixef_desing_varying,
+         rng_desing_varying, delta, omega, alpha,
+         zeta, Psi, wmem::get_double_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+      expect_true(pass_rel_err(res, true_val2, 1e-6));
+    }
+
+    auto rewind_n_convert = [&]{
+      Number::tape->rewind();
+      cfaad::convertCollection(begin(delta), end(delta), ad_delta);
+      cfaad::convertCollection(begin(omega), end(omega), ad_omega);
+      cfaad::convertCollection(begin(alpha), end(alpha), ad_alpha);
+      cfaad::convertCollection(begin(zeta), end(zeta), ad_zeta);
+      cfaad::convertCollection(begin(Psi), end(Psi), ad_Psi);
+    };
+
+    // we get the correct gradient
+    {
+      rewind_n_convert();
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, fixef_desing_varying,
+         rng_desing_varying, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
+      res.propagateToStart();
+      double const *g{gr1};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+
+      // with cached memory
+      rewind_n_convert();
+      comp_obj.cache_expansions
+        (lb1, ub1, expansions.data(), wmem::get_double_mem(req_mem[1]),
+         {ns, ws, n_nodes}, fixef_desing_varying,
+         rng_desing_varying);
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb1, ub1, z, fixef_desing_varying,
+         rng_desing_varying, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+
+      expect_true(pass_rel_err(res.value(), true_val1, 1e-6));
+      res.propagateToStart();
+
+      g = gr1;
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+    {
+      rewind_n_convert();
+
+      auto req_mem = comp_obj.n_wmem();
+      Number res = comp_obj(
+        {ns, ws, n_nodes}, lb2, ub2, z, fixef_desing_varying,
+        rng_desing_varying, ad_delta, ad_omega,
+        ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+        wmem::get_double_mem(req_mem[1]), nullptr);
+
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
+      res.propagateToStart();
+      double const *g{gr2};
+
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+
+      // with cached memory
+      rewind_n_convert();
+      comp_obj.cache_expansions
+        (lb2, ub2, expansions.data(), wmem::get_double_mem(req_mem[1]),
+        {ns, ws, n_nodes}, fixef_desing_varying,
+        rng_desing_varying);
+      res = comp_obj
+        ({ns, ws, n_nodes}, lb2, ub2, z, fixef_desing_varying,
+         rng_desing_varying, ad_delta, ad_omega,
+         ad_alpha, ad_zeta, ad_Psi, wmem::get_Number_mem(req_mem[0]),
+         wmem::get_double_mem(req_mem[1]), expansions.data());
+
+      expect_true(pass_rel_err(res.value(), true_val2, 1e-6));
+      res.propagateToStart();
+
+      g = gr2;
+      for(auto &x : ad_delta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_omega)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_alpha)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_zeta)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+      for(auto &x : ad_Psi)
+        expect_true(pass_rel_err(x.adjoint(), *g++, 1e-6));
+    }
+
+    // clean-up
+    wmem::clear_all();
   }
 
   test_that("expected_cum_hazzard gives the correct result with derivatives"){

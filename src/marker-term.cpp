@@ -112,7 +112,8 @@ comp_dat_return get_comp_dat
       out.reserve(bases.size());
       for(auto &basis : bases){
         out.emplace_back(basis->n_weights(), max_obs);
-        std::fill(out.back().begin(), out.back().end(), 0);
+        std::fill(out.back().begin(), out.back().end(),
+                  std::numeric_limits<double>::quiet_NaN());
       }
       return out;
     };

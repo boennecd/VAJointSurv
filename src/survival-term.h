@@ -138,8 +138,8 @@ public:
   template<class T>
   T operator()
     (node_weight const &nws, double const lower, double const upper,
-     double const *design, double const *fixef_design_varying,
-     double const * rng_design_varying, T const * fixef, T const * fixef_vary,
+     double const *design, double const * const fixef_design_varying,
+     double const * const rng_design_varying, T const * fixef, T const * fixef_vary,
      T const * association, T const *VA_mean, T const * VA_vcov,
      T * wk_mem, double * dwk_mem, double const * cached_expansions) const {
     T out{0};
@@ -187,20 +187,21 @@ public:
 
         // construct the (association^T, 1).hat(M)(s) vector
         vajoint_uint idx{}, idx_association{};
+        double const * rng_design_varying_j{rng_design_varying};
         for(vajoint_uint j = 0; j < bases_rng.size(); ++j){
           for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
             association_M[idx + k] = 0;
 
           for(int der : ders()[j]){
             (*bases_rng[j])
-              (dwk_mem, dwk_mem_basis, node_val, rng_design_varying, der);
+              (dwk_mem, dwk_mem_basis, node_val, rng_design_varying_j, der);
             for(vajoint_uint k = 0; k < rng_n_basis(j); ++k)
               association_M[idx + k] +=
                 association[idx_association] * dwk_mem[k];
             ++idx_association;
           }
           idx += rng_n_basis(j);
-          rng_design_varying += rng_n_weights(j);
+          rng_design_varying_j += rng_n_weights(j);
         }
         association_M[idx] = 1;
       }
