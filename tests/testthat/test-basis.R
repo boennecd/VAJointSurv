@@ -146,6 +146,7 @@ test_that("A weighted poly_term gives the right resutls", {
   expect_error(weighted_term(w_term,2),"weighted_term of weighted_term is not supported")
 
   expect_s3_class(w_term,"weighted_term")
+  expect_error(weighted_term(1,x))
 
 })
 
@@ -166,6 +167,7 @@ test_that("A stacked_term gives the right resutls", {
   z <- c(10,10)
 
 
+
   correct_main_term <- matrix(c(s,s*x,s^2*x,s*y,s^2*y,s^3*y,s,s^2,s^3,s*x,s^2*x,s,s^2,s^3,s*z,s^2*z,s^3*z,s*x*z,s^2*x*z),
                               ncol=length(s),
                               byrow = TRUE)
@@ -178,4 +180,7 @@ test_that("A stacked_term gives the right resutls", {
 
   expect_error(stacked_term(), "stacked_term created with less than two arguments")
   expect_error(stacked_term(1), "stacked_term created with less than two arguments")
+  expect_error(main_term$eval(s,newdata = dat[1, ]))
+  expect_error(main_term$eval(s,newdata = transform(dat, x = as.character(x))))
+  expect_error(stacked_term(1,2,3))
 })

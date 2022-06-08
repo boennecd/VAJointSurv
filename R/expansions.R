@@ -2,15 +2,21 @@ wrap_term <- function(term){
   ptr <- expansion_object(term)
   term$ptr <- ptr
   term$eval <- function(x, der = 0, lower_limit = 0, newdata = NULL) {
-    if(is.null(term$weights_symbol)) {
-      weights <- matrix(0., nrow = 0L, ncol = length(x))
-    } else {
-      weight_call <- as.call(c(list(as.name("rbind")), term$weights_symbol))
-      weights <- eval(weight_call,newdata,parent.frame())
-    }
+    weights <- bases_weights(term$weights_symbol,newdata,parent.frame(),length(x))
     eval_expansion(ptr, x, weights, der, lower_limit)
   }
   term
+}
+
+bases_weights <- function(weights_symbol, newdata,enclos, expected_length) {
+  if(is.null(weights_symbol)) {
+    weights <- matrix(0., nrow = 0L, ncol = expected_length)
+  } else {
+    weight_call <- as.call(c(list(as.name("rbind")),weights_symbol))
+    weights <- eval(weight_call,newdata,enclos)
+  }
+  stopifnot(ncol(weights) == expected_length,is.numeric(weights))
+  weights
 }
 
 #' Term for Orthogonal Polynomials
@@ -104,11 +110,13 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 #'
 #' @export
 weighted_term <- function(x, weight){
+  is_valid_expansion(x)
   term <- x
   weights_symbol <- substitute(weight)
 
   out <- list(term=term, weights_symbol = c(weights_symbol,term$weights_symbol))
   wrap_term(structure(out, class = "weighted_term"))
+
 }
 
 #' Term for a Basis Matrix for of Different Types of Terms
@@ -128,13 +136,18 @@ weighted_term <- function(x, weight){
 #'
 #' @export
 stacked_term <- function(...){
+
+
+
   if(...length() < 2)
     stop("stacked_term created with less than two arguments")
 
   terms <- list(...)
+  for (x in terms) is_valid_expansion(x)
 
   out <- list(terms = terms, weights_symbol = unlist(lapply(terms,`[[`, 'weights_symbol')))
   wrap_term(structure(out, class ="stacked_term"))
+
 }
 
 is_valid_expansion <- function(x)

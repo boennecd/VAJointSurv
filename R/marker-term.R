@@ -54,7 +54,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   is_valid_expansion(time_rng)
 
   # check for a rank deficient design matrix
-  XZ <- cbind(X, t(with(time_fixef, eval(time)))) # TODO: use new data argument
+  XZ <- cbind(X, t(with(time_fixef, eval(time,newdata=data))))
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
     stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
@@ -71,9 +71,10 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   X <- t(X)[, ord, drop = FALSE]
   y <- y[ord]
 
-  # TODO: set correctly
-  fixef_design_varying <- matrix(0., 0L, length(y))
-  rng_design_varying <- matrix(0., 0L, length(y))
+  fixef_design_varying <-
+    bases_weights(time_fixef$weights_symbol,data,parent.frame(),length(y))
+  rng_design_varying <-
+    bases_weights(time_rng$weights_symbol,data,parent.frame(),length(y))
 
   structure(list(
     time = time_var, X = X, y = y, id = id, mt = mt, time_fixef = time_fixef,

@@ -102,7 +102,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   is_valid_expansion(time_fixef)
 
   # check for a singular design matrix
-  XZ <- cbind(Z, t(time_fixef$eval(y[, 2]))) # TODO: use the newdata argument
+  XZ <- cbind(Z, t(time_fixef$eval(y[, 2],newdata = data)))
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
     stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
@@ -114,8 +114,8 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   id <- id[ord]
   delayed <- delayed[ord]
 
-  # TODO: set this the correct way
-  fixef_design_varying <- matrix(0., 0L, length(y))
+  fixef_design_varying <-
+    bases_weights(time_fixef$weights_symbol,data,parent.frame(),length(y))
 
   structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
                  ders = ders, with_frailty = with_frailty, delayed = delayed,

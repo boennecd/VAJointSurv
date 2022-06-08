@@ -97,11 +97,16 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   # we need to to alter the start times and add new observations for the delayed
   # entries
   survival_terms_org <- survival_terms
+  marker_symbols <- unlist(lapply(markers,function(marker) {
+    marker$time_rng$weights_symbol
+  }))
+  bases_weights_enclose <- parent.frame()
   survival_terms <- lapply(survival_terms, function(x){
     idx_delayed <- which(x$delayed)
 
-    # TODO: compute this the right way
-    x$rng_design_varying <- matrix(0., 0L, length(x$delayed))
+    x$rng_design_varying <- bases_weights(
+      marker_symbols,x$data,bases_weights_enclose,length(x$delayed))
+
 
     if(length(idx_delayed) > 0){
       y_delayed <- x$y[idx_delayed, "start"]
