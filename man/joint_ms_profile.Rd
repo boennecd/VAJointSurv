@@ -46,35 +46,15 @@ standard deviation is a good value.}
 \item{max_step}{maximum number of steps to take in each direction when
 constructing the approximate profile likelihood curve.}
 
-\item{rel_eps}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{max_it}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{n_threads}{number of threads to use.}
-
-\item{c1}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{c2}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{use_bfgs}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{trace}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{cg_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{strong_wolfe}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{max_cg}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{pre_method}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}
 
 \item{verbose}{logical for whether to print output during the construction
 of the approximate profile likelihood curve.}
-
-\item{mask}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{cache_expansions}{\code{TRUE} if the expansions in the numerical
 integration in the survival parts of the lower bound should be cached (not
@@ -83,8 +63,6 @@ particularly with
 expansions that take longer to compute (like \code{\link{ns_term}} and
 \code{\link{bs_term}}). The computation time may be worse particularly if
 you use more threads as the CPU cache is not well utilized.}
-
-\item{gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{hess}{the Hessian from \code{\link{joint_ms_hess}}. It is used to get
 better starting values along the profile likelihood curve. Use \code{NULL}

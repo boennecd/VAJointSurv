@@ -17,6 +17,7 @@ plot_surv(
   xlab = "Time",
   ylab = "Hazard",
   ders = NULL,
+  newdata = NULL,
   ...
 )
 }
@@ -54,6 +55,8 @@ supplied.}
 the survival outcome is linked to the markers. 0 implies present values,
 -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
 value of the random effect for all markers.}
+
+\item{newdata}{\code{data.frame} with data for the weights if any.}
 }
 \description{
 Plots Quantiles of the Conditional Hazards

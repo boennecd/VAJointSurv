@@ -35,22 +35,8 @@ joint_ms_start_val(
 
 \item{n_threads}{number of threads to use.}
 
-\item{use_bfgs}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{trace}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{cg_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{strong_wolfe}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{max_cg}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
-\item{pre_method}{arguments to pass to the C++ version of \code{\link{psqn}}.}
-
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}
-
-\item{mask}{arguments to pass to the C++ version of \code{\link{psqn}}.}
 
 \item{cache_expansions}{\code{TRUE} if the expansions in the numerical
 integration in the survival parts of the lower bound should be cached (not

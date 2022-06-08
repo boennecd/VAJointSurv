@@ -6,13 +6,16 @@
 #' @param vcov_vary the covariance matrix for \code{time_rng}.
 #' @param p coverage of the two quantiles.
 #' @param xlab,ylab,... arguments passed to \code{\link{plot}}.
+#' @param newdata \code{data.frame} with data for the weights if any.
 #'
 #' @importFrom stats qnorm
 #' @importFrom graphics polygon grid
 #' @importFrom grDevices gray
 #' @export
 plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
-                        p = .95, xlab = "Time", ylab = "Marker", ...){
+                        p = .95, xlab = "Time", ylab = "Marker",
+                        newdata = NULL, ...){
+
   is_valid_expansion(time_fixef)
   is_valid_expansion(time_rng)
   stopifnot(length(x_range) == 2, is.numeric(x_range), all(is.finite(x_range)),
@@ -20,8 +23,9 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
             length(p) == 1, is.finite(p), p > 0, p < 1)
 
   xs <- seq(x_range[1], x_range[2], length.out = 200)
-  mea <- drop(fixef_vary %*% time_fixef$eval(xs))
-  M <- time_rng$eval(xs)
+  mea <- drop(
+    fixef_vary %*% extend_newdata_n_eval(time_fixef, xs, newdata = newdata))
+  M <- extend_newdata_n_eval(time_rng, xs, newdata = newdata)
   sds <- sqrt(diag(crossprod(M, vcov_vary %*% M))) # very inefficient
 
   sds <- sds * qnorm((1 + p) / 2)
@@ -53,14 +57,14 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' possible multiple parameters for each \code{time_rng} if \code{ders} is
 #' supplied.
 #' @param xlab,ylab,... arguments passed to \code{\link{matplot}}.
-#'
+#' @param newdata \code{data.frame} with data for the weights if any.
 #'
 #' @importFrom graphics matplot
 #' @export
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
                       associations, xlab = "Time", ylab = "Hazard",
-                      ders = NULL, ...){
+                      ders = NULL, newdata = NULL, ...){
   # checks
   is_valid_expansion(time_fixef)
   if(is.list(time_rng))
@@ -86,7 +90,10 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
   # assign function to evaluate the hazard pointwise
   time_rngs <- function(x){
     bases <- mapply(function(expansion, ders, assoc) {
-      basis_vecs <- sapply(ders, expansion$eval, x = x)
+      basis_vecs <- sapply(ders, function(der){
+        extend_newdata_n_eval(
+          term = expansion, x = x, newdata = newdata, der = der)
+      })
       res <- basis_vecs * rep(assoc, each = NROW(basis_vecs))
       if(is.matrix(res)) rowSums(res) else res
     }, expansion = time_rng, ders = ders, assoc = associations,
@@ -96,7 +103,8 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
 
   tis <- seq(x_range[1], x_range[2], length.out = 100)
   hazs <- t(sapply(tis, function(ti){
-    log_haz <- log_hazard_shift + fixef_vary %*% time_fixef$eval(ti)
+    log_haz <- log_hazard_shift + fixef_vary %*%
+      extend_newdata_n_eval(time_fixef, ti, newdata=newdata)
     ti_basis <- time_rngs(ti)
     log_haz_var <- drop(frailty_var) + ti_basis %*% vcov_vary %*% ti_basis
 
@@ -108,4 +116,14 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
   grid()
 
   invisible(list(time = tis, hazard = hazs))
+}
+
+extend_newdata_n_eval <- function(term, x, newdata, ...){
+  is_valid_expansion(term)
+  if(!is.null(newdata)){
+    stopifnot(is.data.frame(newdata), nrow(newdata) == 1)
+    newdata <- lapply(newdata, replicate, n = length(x))
+    newdata <- as.data.frame(newdata)
+  }
+  term$eval(x = x, newdata = newdata, ...)
 }

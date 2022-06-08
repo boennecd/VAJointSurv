@@ -13,6 +13,7 @@ plot_marker(
   p = 0.95,
   xlab = "Time",
   ylab = "Marker",
+  newdata = NULL,
   ...
 )
 }
@@ -32,6 +33,8 @@ plot_marker(
 \item{p}{coverage of the two quantiles.}
 
 \item{xlab, ylab, ...}{arguments passed to \code{\link{plot}}.}
+
+\item{newdata}{\code{data.frame} with data for the weights if any.}
 }
 \description{
 Plots a Markers Mean Curve with Pointwise Quantiles
