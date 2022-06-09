@@ -126,12 +126,11 @@ comp_dat_return get_comp_dat
   // adds values a time varying effect design matrix
   auto add_varying_covarites = [&]
     (vajoint_uint const variable){
-    auto const input_colum =
-      std::distance(input_dat[variable].ids, ids_ptr[variable]);
+    auto const input_colum = idx[variable];
 
     std::copy(input_dat[variable].fixef_design_varying.col(input_colum),
               input_dat[variable].fixef_design_varying.col(input_colum + 1),
-              rng_design_varying[variable].col(unique_ids.size() - 1));
+              fix_design_varying[variable].col(unique_ids.size() - 1));
     std::copy(input_dat[variable].rng_design_varying.col(input_colum),
               input_dat[variable].rng_design_varying.col(input_colum + 1),
               rng_design_varying[variable].col(unique_ids.size() - 1));
@@ -174,7 +173,7 @@ comp_dat_return get_comp_dat
 
   // possibly reduce the size of the time-varying effects
   auto reduce_design_matrices =
-    [&](std::vector<simple_mat<double> > & matrices){
+    [&](std::vector<simple_mat<double> > &matrices){
       for(auto &mat : matrices){
         if(mat.n_cols() == n_obs)
           continue;
