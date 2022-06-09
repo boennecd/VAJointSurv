@@ -215,7 +215,7 @@ NumericMatrix eval_expansion
   (SEXP ptr, NumericVector const x, NumericMatrix const weights, int const ders,
    double lower_limit){
   Rcpp::XPtr<joint_bases::basisMixin> basis(ptr);
-  if(basis->n_weights()!=weights.nrow())
+  if(basis->n_weights()!=static_cast<unsigned>(weights.nrow()))
     throw std::invalid_argument("Number of weights does not match");
 
   NumericMatrix out(basis->n_basis(), x.size());

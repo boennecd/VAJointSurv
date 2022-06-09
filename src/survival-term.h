@@ -239,7 +239,8 @@ public:
   void cache_expansions
     (double const lower, double const upper, double * cache_mem,
      double * wk_mem, node_weight const &nws,
-     double const *fixef_design_varying, double const * rng_design_varying){
+     double const * const fixef_design_varying,
+     double const * const rng_design_varying){
     // evaluates the cached expansions
     for(vajoint_uint i = 0; i < nws.n_nodes; ++i)
       cache_mem = cache_expansion_at
@@ -257,12 +258,13 @@ public:
     (*b)(cache_mem, wk_mem, at, fixef_design_varying);
     cache_mem += b_n_basis();
 
-    for(vajoint_uint j = 0; j < bases_rng.size(); ++j)
-      for(int der : ders()[j]){
-        (*bases_rng[j])(cache_mem, wk_mem, at, rng_design_varying, der);
-        cache_mem += rng_n_basis(j);
-        rng_design_varying += rng_n_weights(j);
+    for(vajoint_uint base = 0; base < bases_rng.size(); ++base){
+      for(int der : ders()[base]){
+        (*bases_rng[base])(cache_mem, wk_mem, at, rng_design_varying, der);
+        cache_mem += rng_n_basis(base);
       }
+      rng_design_varying += rng_n_weights(base);
+    }
 
     return cache_mem;
   }
@@ -465,7 +467,7 @@ public:
       auto &info_objs = obs_info[type];
       auto &haz_type = cum_hazs[type];
       auto const &fixef_design_varying_mat = fixef_design_varying_mats[type];
-      auto const &rng_design_varying_mat = fixef_design_varying_mats[type];
+      auto const &rng_design_varying_mat = rng_design_varying_mats[type];
 
       size_t const n_basis_cols{(n_nodes + 1) * info_objs.size()};
       std::vector<double> wk_mem(haz_type.n_wmem()[1]);
@@ -561,7 +563,7 @@ public:
               (cached_expansions_pass,
                cached_expansions_pass + haz.rng_n_basis(i),
                param + par_idx.va_mean() + offset);
-            cached_expansions_pass +=  haz.rng_n_basis(i);
+            cached_expansions_pass += haz.rng_n_basis(i);
             out -= param[idx_association++] * M_VA_mean;
           }
 
