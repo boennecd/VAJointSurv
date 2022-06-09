@@ -151,7 +151,9 @@ private:
      *       matrix <-- blocks for each type of association. Dimensions are
      *                  <n quadrature nodes> <dimension of the basis>
      *
-     * We could use an array in the inner most part instead
+     * TODO: a multidimensional arrays will likely be more efficient. All but
+     *       the association dimension are equal and that dimension could be
+     *       dealt with using some zero padding.
      */
     std::vector<std::vector<std::vector<simple_mat<double> > > > rng_basis;
 
