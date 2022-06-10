@@ -114,7 +114,9 @@ weighted_term <- function(x, weight){
   term <- x
   weights_symbol <- substitute(weight)
 
-  out <- list(term=term, weights_symbol = c(weights_symbol,term$weights_symbol))
+  out <- list(
+    term = term, weights_symbol = c(weights_symbol,term$weights_symbol),
+    time = term$time)
   wrap_term(structure(out, class = "weighted_term"))
 
 }
@@ -136,18 +138,18 @@ weighted_term <- function(x, weight){
 #'
 #' @export
 stacked_term <- function(...){
-
-
-
   if(...length() < 2)
     stop("stacked_term created with less than two arguments")
 
   terms <- list(...)
   for (x in terms) is_valid_expansion(x)
+  stopifnot(all(sapply(terms, function(x) identical(x$time, terms[[1]]$time))))
 
-  out <- list(terms = terms, weights_symbol = unlist(lapply(terms,`[[`, 'weights_symbol')))
+  out <- list(
+    terms = terms,
+    weights_symbol = unlist(lapply(terms,`[[`, 'weights_symbol')),
+    time = terms[[1]]$time)
   wrap_term(structure(out, class ="stacked_term"))
-
 }
 
 is_valid_expansion <- function(x)

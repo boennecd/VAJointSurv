@@ -1224,8 +1224,8 @@ class ph_model {
       // the hazard term
       if(event(i) > 0){
         out -= cfaad::dotProd(Z.col(i), Z.col(i) + Z.n_rows(), fixef);
-        // TODO: handle weights
-        (*expansion)(wk_mem, wk_mem + expansion->n_basis(), ub(i), nullptr);
+        (*expansion)(wk_mem, wk_mem + expansion->n_basis(), ub(i),
+                     fixef_design_varying.col(i));
         out -= cfaad::dotProd
           (wk_mem, wk_mem + expansion->n_basis(), fixef_vary);
       }

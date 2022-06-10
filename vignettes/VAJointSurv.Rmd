@@ -160,6 +160,8 @@ The package can handle
    $s_{ij}$ (i.e. some may be missing).
  - Any number of observed markers and survival outcomes for each individual.
  - Left-truncation and right-censoring.
+ - Time-varying effects for covariates (both fixed and random effects) and 
+   non-proportional hazard effects for covariates. 
  
 The following is not supported
  
@@ -167,7 +169,6 @@ The following is not supported
    a complicated extension.
  - There cannot be multiple observed markers of the same type at each point
    $s_{ij}$ for each individual $i$.
- - There cannot be time-varying effects for a covariate. 
    This is not too complicated to implement but not yet implemented.
    
 ## Examples
@@ -200,6 +201,10 @@ section. The examples includes:
  - A similar example is provided in the 
    [Two Markers, the Observation Time Process, and a Terminal Event with Delayed Entry](#two-markers-the-observation-time-process-and-a-terminal-event-with-delayed-entry)
    section but where there is delayed entry.
+ - A similar example is provided in the 
+   [Two Markers, the Observation Time Process, and a Terminal Event with Time-varying Effects](#two-markers-the-observation-time-process-and-a-terminal-event-with-time-varying-effects)
+   section but where there time-varying fixed and random covariate effects 
+   along with non-proportional hazard effects.
  - A similar example is provided in the 
    [Two Markers, the Observation Time Process, a Terminal Event and Mixed Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
    section but where a mixture of the cumulative, the present value, and the 
@@ -544,6 +549,53 @@ c(predict(ns(log(xx), df = 3), log(4.33)))
 t(n$eval(4.33, der = 1))
 f <- function(z) predict(ns(log(xx), df = 3), log(z))
 t(jacobian(f, 4.33))
+```
+
+#### Time-varying Effects
+
+We may also be interested in 
+
+ - Time-varying fixed effects for a covariate.
+ - Time-varying random effects for a covariate. 
+ - Non-proportional hazard effects for a covariate. 
+ 
+The way that we allow for this is with the `weighted_term` and 
+`stacked_term` functions. The `weighted_term` function takes a basis 
+expansion which we can denote as $\vec g(t)$ and a symbol (weight) for a 
+covariate 
+which we denote by $x$ and computes $x\vec g(t)$.
+Two examples of using the function are given below. 
+Note that the symbol is not evaluated till you call the `eval` function on 
+the returned object.
+
+```{r weighted_term_ex}
+# define two bases
+term_bmi <- weighted_term(
+  poly_term(degree = 2, intercept = TRUE, raw = TRUE), 
+  weight = bmi)
+term_sex <- weighted_term(
+  poly_term(degree = 1, intercept = TRUE, raw = TRUE), 
+  weight = is_male)
+
+# use the two bases in an example
+ti <- 2:3
+df <- data.frame(bmi = c(23, 25), is_male = c(0, 1))
+term_bmi$eval(x = ti, newdata = df)
+term_sex$eval(x = ti, newdata = df)
+```
+
+The `stacked_term` function takes a number of expansions and stack them on 
+top of each other. This illustrated below.
+
+```{r stacked_term_ex}
+# add an "intercept" to the two other terms combined
+term_comb <- stacked_term(poly_term(degree = 2, intercept = TRUE, raw = TRUE), 
+                          term_bmi, term_sex)
+term_comb$eval(ti, newdata = df)
+
+# it is a bit obscure but we can also weight the combined term 
+term_comb_sex <- weighted_term(term_comb, is_male)
+term_comb_sex$eval(ti, newdata = df)
 ```
 
 ### Two Markers
@@ -1751,7 +1803,6 @@ sim_dat <- function(n_ids){
       rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[1]],
                       associations = associations[[1]], b_func = b_funcs[[1]])
 
-
     if(root_func(cens, rng) < 0){
       # the observation is censored
       y_terminal <- cens
@@ -2480,6 +2531,429 @@ vcov_surv
 norm(fmt_ests_wrong$vcov$vcov_surv - vcov_surv, "F")
 norm(fmt_ests      $vcov$vcov_surv - vcov_surv, "F")
 norm(fmt_ests_fewer$vcov$vcov_surv - vcov_surv, "F")
+```
+
+### Two Markers, the Observation Time Process, and a Terminal Event with Time-varying Effects
+
+We simulate from a model with both fixed and random time-varying covariate 
+effects and non-proportional hazard effects of some of the covariates.
+This is possible within the package by using the `weighted_term` and 
+`stacked_term` functions. See 
+[Note on Basis Expansions](#note-on-basis-expansions) section for examples of 
+how these functions work. We set up a simulation study below.
+
+```{r pre_varying_effects, echo = FALSE}
+rm(list = ls())
+```
+
+```{r varying_effects_obs_process_markers_and_recurrent}
+# settings for the simulation
+library(splines)
+g_funcs <- list(
+  function(x, data)
+    cbind(ns(x, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
+          # a time-varying fixed effect
+          x * data$W1),
+  function(x, data)
+    cbind(outer(x, 1:2, `^`), 
+          # a time-varying fixed effect
+          outer(x, 1:2, `^`) * data$W2))
+m_funcs <- list(
+  function(x, data)
+    cbind(
+      # a random intercept
+      outer(x, 0, `^`),
+      # random slope
+      data$W1),
+  function(x, data)
+    cbind(outer(x, 0:1, `^`), 
+          # a time-varying random effect
+          outer(x, 0:1, `^`) * data$W2))
+
+fixef_vary_marker <- list(c(1.4, 1.2, -2.1, .1), c(.5, -.02, .25, -.1)) # beta
+fixef_marker <- list(c(-.5, 2, 1), c(1, -1)) # gamma
+
+# Psi
+vcov_vary <- 
+  structure(c(
+    0.622, -0.02, 0.13, -0.081, -0.103, 0.016, -0.02, 0.473, 0.121, 0.022, -0.032, 0.059, 0.13, 0.121, 0.801, -0.009, -0.193, 0, -0.081, 0.022, -0.009, 0.529, 0.04, 0.05, -0.103, -0.032, -0.193, 0.04, 0.636, -0.144, 0.016, 0.059, 0, 0.05, -0.144, 0.354), dim = c(6L, 6L))
+vcov_marker <- matrix(c(.6^2, .1, .1, .4^2), 2)
+
+# plot the markers' mean curve
+library(VAJointSurv)
+par(mar = c(5, 5, 1, 1))
+rng_basis_one <- stacked_term(
+  poly_term(degree = 0, intercept = TRUE, raw = TRUE), 
+  poly_term(degree = 0, intercept = TRUE, raw = TRUE) |> 
+    weighted_term(W1))
+
+show_marker_one <- \(newdata, ylab)
+  plot_marker(
+    time_fixef = stacked_term(
+      ns_term(
+        knots = c(3.33, 6.67), Boundary.knots = c(0, 10), intercept = FALSE),
+      poly_term(degree = 1, raw = TRUE) |> 
+        weighted_term(W1)),
+    time_rng = rng_basis_one,
+    fixef_vary = fixef_vary_marker[[1]], x_range = c(0, 10),
+    vcov_vary = vcov_vary[1:2, 1:2], ylab = ylab, newdata = newdata)
+  
+show_marker_one(data.frame(W1 = 1), ylab = "Marker 1 (W1 = 1)")
+show_marker_one(data.frame(W1 = -1), ylab = "Marker 1 (W1 = -1)")
+rng_basis_two <- stacked_term(
+  poly_term(degree = 1, raw = TRUE, intercept = TRUE), 
+  poly_term(degree = 1, raw = TRUE, intercept = TRUE) |> 
+    weighted_term(W2))
+
+show_marker_two <- \(newdata, ylab)  
+  plot_marker(
+    time_fixef = stacked_term(
+      poly_term(degree = 2, raw = TRUE), 
+      poly_term(degree = 2, raw = TRUE)|> 
+        weighted_term(W2)),
+    time_rng = rng_basis_two,
+    fixef_vary = fixef_vary_marker[[2]], x_range = c(0, 10),
+    vcov_vary = vcov_vary[3:6, 3:6], ylab = ylab, newdata = newdata)
+  
+show_marker_two(data.frame(W2 = 1), ylab = "Marker 2 (W2 = 1)")
+show_marker_two(data.frame(W2 = -1), ylab = "Marker 2 (W2 = -1)")
+# the survival parameters
+vcov_surv <- matrix(c(.2^2, .15^2, .15^2, .25^2), 2) # Xi 
+
+fixef_surv <- list(c(-1.25, .25), .75)
+associations <- list(c(.4, -.3), c(-.5, .2))
+fixef_vary_surv <- list(c(.5, .1, -.2, .11, -.2),
+                          c(-1, -.25))
+
+b_funcs <- list(
+  function(x, data) 
+    cbind(bs(x, knots = 5, Boundary.knots = c(0, 10)),
+          data$Z1 * x),
+  function(x, data) ns(x, knots = 5, Boundary.knots = c(0, 10)))
+
+# plot the log hazard with the 25%, 50% and 75% quantiles
+library(SimSurvNMarker)
+
+plot_terminal <- \(newdata, ylab)
+  plot_surv(
+    time_fixef = stacked_term(
+      bs_term(knots = 5, Boundary.knots = c(0, 10)),
+      poly_term(degree = 1, raw = TRUE) |> 
+        weighted_term(Z1)),
+    time_rng = list(rng_basis_one, rng_basis_two),
+    x_range = c(0, 10), fixef_vary = fixef_vary_surv[[1]],
+    vcov_vary = vcov_vary, frailty_var = vcov_surv[1, 1], ps = c(.25, .5, .75),
+    associations = associations[[1]], log_hazard_shift = fixef_surv[[1]][1],
+    ylab = ylab, newdata = newdata)
+  
+plot_terminal(data.frame(Z1 = 1, W1 = 1, W2 = 1), 
+              "Terminal event (Z1 = 1, W1 = 1, W2 = 1)")
+plot_terminal(data.frame(Z1 = 0, W1 = 1, W2 = 1), 
+              "Terminal event (Z1 = 0, W1 = 1, W2 = 1)")
+plot_terminal(data.frame(Z1 = 0, W1 = 0, W2 = 0), 
+              "Terminal event (Z1 = 0, W1 = 0, W2 = 0)")
+plot_recurrent <- \(newdata, ylab)
+  plot_surv(
+    time_fixef = ns_term(knots = 5, Boundary.knots = c(0, 10)),
+    time_rng = list(rng_basis_one, rng_basis_two),
+    x_range = c(0, 10), fixef_vary = fixef_vary_surv[[2]],
+    vcov_vary = vcov_vary, frailty_var = vcov_surv[2, 2], ps = c(.25, .5, .75),
+    associations = associations[[2]], log_hazard_shift = fixef_surv[[2]][1],
+    ylab = ylab, newdata = newdata)
+  
+plot_recurrent(
+  data.frame(W1 = 1, W2 = 1), "Observation process (W1 = 1, W2 = 1)")
+plot_recurrent(
+  data.frame(W1 = 0, W2 = 0), "Observation process (W1 = 0, W2 = 0)")
+```
+
+```{r sim_fit_varying_effects_obs_process_markers_and_recurrent, cache = 1}
+library(mvtnorm)
+# simulates from the model by sampling a given number of individuals
+sim_dat <- function(n_ids){
+  # simulate the outcomes
+  gl_dat <- get_gl_rule(100L)
+  dat <- lapply(1:n_ids, function(id){
+    # sample the terminal event time and the censoring time
+    cens <- min(rexp(1, rate = 1/10), 10)
+    U <- drop(rmvnorm(1, sigma = vcov_vary))
+
+    frailties <- drop(rmvnorm(1, sigma = vcov_surv))
+    Z1 <- c(1, runif(1, -1, 1))
+    W1 <- runif(1, -1, 1)
+    W2 <- runif(1, -1, 1)
+    data_pass <- data.frame(Z1 = Z1[2], W1 = W1, W2 = W2)
+    log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
+
+    # assign the conditional hazard function
+    expansion <- function(x, b_func)
+      cbind(b_func(x, data_pass), 
+            m_funcs[[1]](x, data_pass) %*% U[1:2],
+            m_funcs[[2]](x, data_pass) %*% U[3:6])
+    surv_func <- function(ti, fixef_vary_surv, associations, b_func){
+      formals(expansion)$b_func <- b_func
+      eval_surv_base_fun(
+        ti = ti, omega = c(fixef_vary_surv, associations), b_func = expansion,
+        gl_dat = gl_dat, delta = log_haz_offset)
+    }
+
+    # sample the survival time
+    rng <- runif(1)
+    root_func <- function(x, rng)
+      rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[1]],
+                      associations = associations[[1]], b_func = b_funcs[[1]])
+
+    if(root_func(cens, rng) < 0){
+      # the observation is censored
+      y_terminal <- cens
+      event <- 0
+    } else {
+      # find the event time
+      root <- uniroot(root_func, c(0, cens), tol = 1e-6, rng = rng)
+      y_terminal <- root$root
+      event <- 1
+
+    }
+
+    terminal_outcome <- cbind(y = y_terminal, event = event, Z1 = Z1[2],
+                              id = id, W1 = W1, W2 = W2)
+
+    # clean up
+    rm(list = setdiff(
+      ls(), 
+      c("y_terminal", "terminal_outcome", "expansion", "surv_func", "frailties", 
+        "U", "id", "data_pass", "W1", "W2")))
+
+    # simulate the observation times
+    Z2 <- 1
+    log_haz_offset <- sum(Z2 * fixef_surv[[2]]) + frailties[2]
+
+    root_func <- function(x, left_trunc_surv, rng)
+      rng - surv_func(x, fixef_vary_surv = fixef_vary_surv[[2]],
+                      associations = associations[[2]], b_func = b_funcs[[2]]) /
+      left_trunc_surv
+
+    max_sample <- 1000L
+    left_trunc_surv <- 1
+    Z2 <- matrix(rep(Z2, each = max_sample), max_sample)
+    event <- y <- lf_trunc <- rep(NA_real_, max_sample)
+    lf_trunc_i <- 0
+    for(i in 1:max_sample){
+      # sample a random uniform variable and invert the survival function
+      rng_i <- runif(1)
+      lf_trunc[i] <- lf_trunc_i
+
+      if(root_func(y_terminal, left_trunc_surv, rng_i) < 0){
+        # the observation is right-censored and we can exit
+        y[i] <- y_terminal
+        event[i] <- 0
+        break
+      }
+
+      # we need to invert the survival function to find the observation time
+      root <- uniroot(root_func, c(lf_trunc_i, y_terminal), tol = 1e-6,
+                      left_trunc_surv = left_trunc_surv, rng = rng_i)
+      lf_trunc_i <- y[i] <- root$root
+      event[i] <- 1
+      left_trunc_surv <- surv_func(
+        y[i], fixef_vary_surv = fixef_vary_surv[[2]], associations = associations[[2]],
+        b_func = b_funcs[[2]])
+    }
+
+    colnames(Z2) <- paste0("Z", 1:NCOL(Z2) - 1L)
+    obs_process <- cbind(lf_trunc = lf_trunc[1:i], y = y[1:i],
+                         event = event[1:i], Z2[1:i, -1, drop = FALSE],
+                         id = id, W1 = W1, W2 = W2)
+
+    # clean up
+    rm(list = setdiff(
+      ls(), 
+      c("terminal_outcome", "U", "id", "obs_process", "data_pass", "W1", "W2")))
+
+    # sample the number of outcomes and the fixed effect covariates
+    obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
+    n_obs <- length(obs_time)
+    X1 <- cbind(1, rnorm(n_obs), W1)
+    X2 <- cbind(matrix(1, n_obs), W2)
+    colnames(X1) <- paste0("X1_", 1:NCOL(X1) - 1L)
+    colnames(X1)[NCOL(X1)] <- "W1"
+    colnames(X2) <- paste0("X2_", 1:NCOL(X2) - 1L)
+    colnames(X2)[NCOL(X2)] <- "W2"
+    X <- list(X1, X2)
+
+    # sample the outcomes
+    eta <- sapply(1:2, function(i)
+      X[[i]] %*% fixef_marker[[i]] +
+        drop(g_funcs[[i]](obs_time, data_pass)) %*% fixef_vary_marker[[i]] +
+        drop(m_funcs[[i]](obs_time, data_pass)) %*% U[if(i == 1) 1:2 else 3:6])
+
+    ys <- eta + rmvnorm(n_obs, sigma = vcov_marker)
+    colnames(ys) <- paste0("Y", 1:2)
+
+    # mask some observations
+    do_mask <- sample.int(3L, n_obs, replace = TRUE)
+    ys[do_mask == 2, 1] <- NA
+    ys[do_mask == 3, 2] <- NA
+
+    X <- do.call(cbind, lapply(X, function(x) x[, -1, drop = FALSE]))
+    marker_data <- cbind(ys, X, time = obs_time, id = id)
+
+    return(list(marker_data = marker_data, obs_process = obs_process,
+                terminal_outcome = terminal_outcome))
+  })
+
+  # combine the data and return
+  marker_data <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "marker_data")))
+  marker_data$id <- as.integer(marker_data$id)
+  # the order does not matter
+  marker_data <- marker_data[sample.int(NROW(marker_data)), ]
+
+  obs_process <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "obs_process")))
+  obs_process$id <- as.integer(obs_process$id)
+  # the order does not matter
+  obs_process <- obs_process[sample.int(NROW(obs_process)), ]
+
+  terminal_outcome <- as.data.frame(do.call(
+    rbind, lapply(dat, `[[`, "terminal_outcome")))
+  terminal_outcome$id <- as.integer(terminal_outcome$id)
+  # the order does not matter
+  terminal_outcome <- terminal_outcome[sample.int(NROW(terminal_outcome)), ]
+
+  list(marker_data = marker_data, obs_process = obs_process,
+       terminal_outcome = terminal_outcome)
+}
+
+# sample a moderately large data set
+set.seed(2)
+dat <- sim_dat(1000L)
+
+# we show a few properties of the data below
+mean(dat$terminal_outcome$event) # mean event rate
+sum(dat$obs_process$event) # number of observed markers less the individuals
+NROW(dat$marker_data) # number of observed markers less the individuals
+
+# distribution of observed marker per individual
+proportions(table(table(dat$obs_process$id)))
+
+# show data for one individual
+subset(dat$marker_data, id == 1)
+subset(dat$obs_process, id == 1)
+subset(dat$terminal_outcome, id == 1)
+
+# estimate the model with this package. Get the object we need for the
+# optimization
+marker_1 <- marker_term(
+  Y1 ~ X1_1 + W1, id = id, subset(dat$marker_data, !is.na(Y1)),
+  time_fixef = 
+    stacked_term(
+      ns_term(time, knots = c(3.33, 6.67), Boundary.knots = c(0, 10)),
+      poly_term(time, degree = 1, raw = TRUE) |> 
+        weighted_term(W1)),
+  time_rng = 
+    stacked_term(
+      poly_term(time, degree = 0, intercept = TRUE, raw = TRUE), 
+      poly_term(time, degree = 0, intercept = TRUE, raw = TRUE) |> 
+        weighted_term(W1)))
+
+marker_2 <- marker_term(
+  Y2 ~ W2, id = id, subset(dat$marker_data, !is.na(Y2)),
+  time_fixef = 
+    stacked_term(
+      poly_term(time, degree = 2, raw = TRUE),
+      poly_term(time, degree = 2, raw = TRUE) |> 
+        weighted_term(W2)),
+  time_rng = 
+    stacked_term(
+      poly_term(time, degree = 1, raw = TRUE, intercept = TRUE), 
+      poly_term(time, degree = 1, raw = TRUE, intercept = TRUE) |> 
+        weighted_term(W2)))
+
+library(survival)
+surv_terminal <- surv_term(
+  Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
+  time_fixef = 
+    stacked_term(
+      bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+      poly_term(y, degree = 1, raw = TRUE) |> 
+        weighted_term(Z1)),
+  with_frailty = TRUE)
+surv_obs <- surv_term(
+  Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
+  time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
+
+comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
+                         survival_terms = list(surv_terminal, surv_obs),
+                         max_threads = 4L)
+rm(marker_1, marker_2, surv_terminal, surv_obs)
+
+# get the starting values
+system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
+
+# lower bound at the starting values
+print(-attr(start_val, "value"), digits = 8)
+
+# check that the gradient is correct
+f <- function(x){
+  start_val[seq_along(x)] <- x
+  joint_ms_lb(comp_obj, start_val)
+}
+
+all.equal(numDeriv::grad(f, head(start_val, 53 + 2 * 44)),
+          head(joint_ms_lb_gr(comp_obj, start_val), 53 + 2 * 44), 
+          tolerance = 1e-6)
+
+# find the maximum lower bound estimate
+system.time(opt_out <- joint_ms_opt(
+  comp_obj, par = start_val, max_it = 10000L, pre_method = 3L, 
+  cg_tol = .1, c2 = .1, gr_tol = .1))
+
+# we set gr_tol in the call so this is the convergence criterion for the 
+# gradient
+sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2))
+opt_out$info # convergence code (0 == 'OK')
+print(-opt_out$value, digits = 8) # maximum lower bound value
+opt_out$counts
+
+# compare the estimates with the actual values. Start with the fixed effects
+fmt_ests <- joint_ms_format(comp_obj, opt_out$par)
+
+# the parameters for the first marker
+fmt_ests$markers[[1]]
+fixef_marker[[1]] # true values
+fixef_vary_marker[[1]] # true values
+
+# the parameters for the second marker
+fmt_ests$markers[[2]]
+fixef_marker[[2]] # true values
+fixef_vary_marker[[2]] # true values
+
+# the fixed effects for the survival outcome and the association parameters
+# for the terminal event
+fmt_ests$survival[[1]]
+fixef_surv[[1]]
+fixef_vary_surv[[1]]
+associations[[1]]
+
+# same for the observation process
+fmt_ests$survival[[2]]
+fixef_surv[[2]]
+fixef_vary_surv[[2]]
+associations[[2]]
+
+# the parameters for covariance matrix of the random effects
+fmt_ests$vcov$vcov_vary
+vcov_vary # the true values
+
+# the parameters for the error term covariance matrix
+fmt_ests$vcov$vcov_marker
+vcov_marker
+
+# the parameters for the frailty covariance matrix
+fmt_ests$vcov$vcov_surv
+vcov_surv
 ```
 
 ### Two Markers, the Observation Time Process, a Terminal Event, and Mixed Dependencies

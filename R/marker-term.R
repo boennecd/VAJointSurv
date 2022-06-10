@@ -54,7 +54,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   is_valid_expansion(time_rng)
 
   # check for a rank deficient design matrix
-  XZ <- cbind(X, t(with(time_fixef, eval(time,newdata=data))))
+  XZ <- cbind(X, t(time_fixef$eval(time_fixef$time, newdata = data)))
   rk <- rankMatrix(XZ)
   if(rk < NCOL(XZ))
     stop("Design matrix does not have full rank. Perhaps remove an intercept or a time-varying term from 'formula'")
@@ -70,6 +70,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   time_var <- time_var[ord]
   X <- t(X)[, ord, drop = FALSE]
   y <- y[ord]
+  data <- data[ord, ]
 
   fixef_design_varying <-
     bases_weights(time_fixef$weights_symbol,data,parent.frame(),length(y))
@@ -79,7 +80,7 @@ marker_term <- function(formula, id, data, time_fixef, time_rng){
   structure(list(
     time = time_var, X = X, y = y, id = id, mt = mt, time_fixef = time_fixef,
     time_rng = time_rng, fixef_design_varying = fixef_design_varying,
-    rng_design_varying = rng_design_varying),
+    rng_design_varying = rng_design_varying, data = data),
     class = "marker_term")
 }
 
@@ -88,6 +89,6 @@ marker_term_start_value <- function(object){
   stopifnot(inherits(object, "marker_term"))
 
   n_X <- NROW(object$X)
-  n_Z <- NROW(object$time_fixef$eval(1))
+  n_Z <- NROW(object$time_fixef$eval(1, newdata = object$data[1, ]))
   list(fixef = numeric(n_X), fixef_vary = numeric(n_Z), var = 1)
 }

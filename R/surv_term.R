@@ -113,9 +113,10 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   Z <- Z[ord, , drop = FALSE]
   id <- id[ord]
   delayed <- delayed[ord]
+  data <- data[ord, ]
 
   fixef_design_varying <-
-    bases_weights(time_fixef$weights_symbol,data,parent.frame(),length(y))
+    bases_weights(time_fixef$weights_symbol,data,parent.frame(),nrow(y))
 
   structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
                  ders = ders, with_frailty = with_frailty, delayed = delayed,
