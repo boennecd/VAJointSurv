@@ -1501,7 +1501,6 @@ context("survival_dat is correct") {
 
     double Z1[] {1, -.5, .33, .4},
            Z2[] {1, -1, .33},
-           fixef_design_varying_mats1[]{},
            fixef_design_varying_mats2[]{-0.019, -0.069, -0.032},
            rng_design_varying_mats1[]{-0.031, 0.008, 0.007, 0.043},
            rng_design_varying_mats2[]{-0.019, 0.025, -0.069, -0.089, -0.032, 0.07};
@@ -1556,7 +1555,7 @@ context("survival_dat is correct") {
     design_mats.emplace_back(Z2, n_fixef[1], n_obs[1]);
 
     design_mats_varying_fix.emplace_back
-      (fixef_design_varying_mats1, 0, n_obs[0]);
+      (nullptr, 0, n_obs[0]);
     design_mats_varying_fix.emplace_back
       (fixef_design_varying_mats2, 1, n_obs[1]);
 

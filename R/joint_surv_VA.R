@@ -248,9 +248,8 @@ joint_ms_set_vcov <- function(
 #' Quick Heuristic for the Starting Values
 #'
 #' @inheritParams joint_ms_opt
-#' @param rel_eps,c1,c2,max_it,gr_tol arguments to pass to the C++ version of
-#' \code{\link{psqn}}.
 #'
+#' @importFrom stats coef
 #' @importFrom psqn psqn
 #' @importFrom lme4 lmer VarCorr lmerControl
 #'
