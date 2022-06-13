@@ -21,7 +21,6 @@ constexpr bool default_intercept{false},
 
 using namespace arma;
 
-
 //-----------------------------basisMixin-------------------------------------------
 /// base class for basis expansions
 class basisMixin {
@@ -36,8 +35,6 @@ public:
   /**
    * fills a vector with the (possibly derivatives) of the basis expansions
    * evaluated at x */
-
-
   void operator()
     (vec &out, double *wk_mem, double const x, double const *weights,
      const int ders = default_ders) const {
@@ -190,28 +187,23 @@ public:
 
 template<class basis_type>
 struct weighted_basis : public basis_type {
-  using basis_type::basis_type; // using the same constructors as basis_type
+  using basis_type::basis_type;
   using basis_type::n_wmem;
   using basis_type::n_basis;
   using basis_type::operator();
 
-  // CHANGES: override
   vajoint_uint n_weights() const override{
     return basis_type::n_weights()+1;
   }
 
-  // CHANGES: override
    void operator()
     (double *out, double *wk_mem, double const x, double const *weights,
-     int const ders = default_ders) const override{
-
-  // CHANGES: implementation for operator of weighted basis
-
-      basis_type::operator()(out, wk_mem, x, weights+1, ders);
+     int const ders = default_ders) const override {
+       basis_type::operator()(out, wk_mem, x, weights+1, ders);
        for(vajoint_uint i =0; i< n_basis();++i) {
          out[i] *=  *weights;
        }
-   }
+     }
 
   std::unique_ptr<basisMixin> clone() const override {
     return std::make_unique<weighted_basis>(*this);
@@ -336,12 +328,12 @@ public:
                                            except for the boundary case */
                       ncoef =               /* number of coefficients */
                          nknots > order ? nknots - order : 0L;
-  // ASK HELP
+
   SplineBasis(const vec &knots, const vajoint_uint order = default_order,
               bool const use_log = default_use_log,
               bool const with_integral = true);
 
-  // ASK HELP
+
   SplineBasis(SplineBasis const &other):
     SplineBasis(other.knots, other.order, other.use_log,
                 static_cast<bool>(other.integral_basis)) { }
@@ -719,7 +711,7 @@ public:
   ns(const vec &boundary_knots, const vec &interior_knots,
      const bool intercept = default_intercept,
      const vajoint_uint order = default_order,
-     const bool use_log = default_use_log); // HELP: empty constructors are okay?
+     const bool use_log = default_use_log);
 
   size_t n_wmem() const {
     return s_basis.n_wmem() + q_matrix.n_rows +
@@ -739,7 +731,7 @@ public:
     s_basis.set_lower_limit(x);
   }
 
-  using basisMixin::operator(); //HELP: which one
+  using basisMixin::operator();
 
   void operator()
     (double *out, double *wk_mem, double const x,
@@ -747,9 +739,6 @@ public:
      int const ders = default_ders) const {
     if(!use_log){
       do_eval(out, wk_mem, x, ders);
-     /* for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
-        out[i] = *weights * out[i];
-     } */ //HELP: does not work
       return;
     }
 
@@ -766,12 +755,6 @@ public:
       throw std::runtime_error
       ("not implemented with use_log and ders " + std::to_string(ders));
     }
-    /* for(vajoint_uint i = 0; i < ns::n_basis(); ++i){
-     out[i] = *weights * out[i];
-    } */ //HELP: does not work
-
-
-
   }
 }; // class ns
 

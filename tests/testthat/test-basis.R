@@ -132,9 +132,8 @@ test_that("The plot_surv works with one-dimensional basis", {
 })
 
 test_that("A weighted poly_term gives the right resutls", {
-
   w_term <- weighted_term(poly_term(degree=3,raw = TRUE),x)
-
+  expect_s3_class(w_term,"weighted_term")
 
   s <- c(3,4)
   x <- 2:3
@@ -143,34 +142,35 @@ test_that("A weighted poly_term gives the right resutls", {
   expect_equal(w_term$eval(s,newdata = dat),
                matrix(c(s*x,s^2*x,s^3*x),ncol = length(s),byrow = TRUE))
 
-  expect_error(weighted_term(w_term,2),"weighted_term of weighted_term is not supported")
-
-  expect_s3_class(w_term,"weighted_term")
+  expect_error(weighted_term(w_term,2),
+               "weighted_term of weighted_term is not supported")
   expect_error(weighted_term(1,x))
-
 })
 
 test_that("A stacked_term gives the right resutls", {
-
-  main_term <- stacked_term(poly_term(degree=1,raw=TRUE),
-                            weighted_term(poly_term(degree=2,raw=TRUE),x),
-                            weighted_term(poly_term(degree=3,raw = TRUE),y),
-                            stacked_term(poly_term(degree=3,raw=TRUE),
-                                         weighted_term(poly_term(degree=2,raw=TRUE),x)),
-                            stacked_term(poly_term(degree=3,raw=TRUE),
-                                         weighted_term(stacked_term(poly_term(degree=3,raw=TRUE),
-                                                                    weighted_term(poly_term(degree=2,raw=TRUE),x)),z)))
+  main_term <- stacked_term(
+    poly_term(degree=1,raw=TRUE),
+    weighted_term(poly_term(degree=2,raw=TRUE),x),
+    weighted_term(poly_term(degree=3,raw = TRUE),y),
+    stacked_term(
+      poly_term(degree=3,raw=TRUE),
+      weighted_term(poly_term(degree=2,raw=TRUE),x)),
+    stacked_term(
+      poly_term(degree=3,raw=TRUE),
+      weighted_term(
+        stacked_term(
+          poly_term(degree=3,raw=TRUE),
+          weighted_term(poly_term(degree=2,raw=TRUE),x)),
+        z)))
 
   s <- c(3,4)
   x <- 2:3
   y <- 1:2
   z <- c(10,10)
 
-
-
-  correct_main_term <- matrix(c(s,s*x,s^2*x,s*y,s^2*y,s^3*y,s,s^2,s^3,s*x,s^2*x,s,s^2,s^3,s*z,s^2*z,s^3*z,s*x*z,s^2*x*z),
-                              ncol=length(s),
-                              byrow = TRUE)
+  correct_main_term <- matrix(
+    c(s,s*x,s^2*x,s*y,s^2*y,s^3*y,s,s^2,s^3,s*x,s^2*x,s,s^2,s^3,s*z,s^2*z,s^3*z,s*x*z,s^2*x*z),
+    ncol=length(s), byrow = TRUE)
 
   dat <- data.frame(x = x, y = y, z = z)
 
@@ -178,9 +178,12 @@ test_that("A stacked_term gives the right resutls", {
 
   expect_s3_class(main_term, "stacked_term")
 
-  expect_error(stacked_term(), "stacked_term created with less than two arguments")
-  expect_error(stacked_term(1), "stacked_term created with less than two arguments")
+  expect_error(stacked_term(),
+               "stacked_term created with less than two arguments")
+  expect_error(stacked_term(1),
+               "stacked_term created with less than two arguments")
   expect_error(main_term$eval(s,newdata = dat[1, ]))
-  expect_error(main_term$eval(s,newdata = transform(dat, x = as.character(x))))
+  expect_error(main_term$eval(s,
+                              newdata = transform(dat, x = as.character(x))))
   expect_error(stacked_term(1,2,3))
 })
