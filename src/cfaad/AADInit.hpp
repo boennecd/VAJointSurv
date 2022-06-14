@@ -28,6 +28,10 @@ bool Tape::multi = false;
 #endif
 
 Tape globalTape;
+#ifdef _OPENMP
 thread_local Tape* Number::tape = &globalTape;
+#else
+Tape* Number::tape = &globalTape;
+#endif
 
 } // namespace cfaad

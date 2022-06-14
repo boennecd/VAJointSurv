@@ -126,7 +126,11 @@ class Number : public vectorOps<Number>
 public:
 
     //  Static access to tape
+#ifdef _OPENMP
     static thread_local Tape* tape;
+#else
+    static Tape* tape;
+#endif
 
     //  Public constructors for leaves
 

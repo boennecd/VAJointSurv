@@ -28,7 +28,7 @@ joint_ms_lb_gr(
 
 \item{par}{parameter vector for where the lower bound is evaluated at.}
 
-\item{n_threads}{number of threads to use.}
+\item{n_threads}{number of threads to use. This is not supported on Windows.}
 
 \item{quad_rule}{list with nodes and weights for a quadrature rule for the
 integral from zero to one.}

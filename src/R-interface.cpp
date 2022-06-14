@@ -878,7 +878,6 @@ public:
     return s_dat.n_outcomes();
   }
 
-
   void set_n_threads(unsigned const n_threads){
     optim().set_n_threads(n_threads);
     wmem::setup_working_memory(n_threads);
