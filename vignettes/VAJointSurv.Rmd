@@ -3,7 +3,7 @@ title: "Joint Survival and Marker Models"
 bibliography: ref.bib
 ---
 
-[![R-CMD-check](https://github.com/boennecd/VAJointSurv/workflows/R-CMD-check/badge.svg)](https://github.com/boennecd/VAJointSurv/actions)
+[![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
 
 
 ```{r, include = FALSE}

@@ -1,7 +1,7 @@
 Joint Survival and Marker Models
 ================
 
-[![R-CMD-check](https://github.com/boennecd/VAJointSurv/workflows/R-CMD-check/badge.svg)](https://github.com/boennecd/VAJointSurv/actions)
+[![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
 
 This package provides means of estimating joint models for a mixture of
 different types of markers and different types of survival outcomes. The
