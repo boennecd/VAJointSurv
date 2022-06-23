@@ -1,6 +1,6 @@
 
-R version 4.1.2 (2021-11-01) -- "Bird Hippie"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.2.0 (2022-04-22) -- "Vigorous Calisthenics"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -203,17 +203,17 @@ Loading required package: survival
 +                           pre_method = 3L, cg_tol = .2, c2 = .1)
 + })
 > sqrt(sum(joint_ms_lb_gr(comp_obj, opt_out$par)^2)) # gradient norm
-[1] 0.4788
+[1] 0.3301
 > VA_time # estimation time
    user  system elapsed 
-  2.180   0.028   0.690 
+  2.244   0.004   0.688 
 > 
 > # check the results
 > opt_out$convergence # did it converge?
 [1] TRUE
 > opt_out$counts
 function gradient     n_cg 
-     507      355      727 
+     507      355      735 
 > fmt_par <- joint_ms_format(comp_obj, opt_out$par)
 > 
 > fmt_par$markers
@@ -233,10 +233,10 @@ function gradient     n_cg
 > fmt_par$survival
 [[1]]
 [[1]]$fixef
-[1] -2.14324  0.40255  0.03139
+[1] -2.14324  0.40254  0.03139
 
 [[1]]$fixef_vary
-[1] 0.6142 0.8911 1.7866 0.5359
+[1] 0.6143 0.8912 1.7867 0.5360
 
 [[1]]$associations
 [1] -0.1898
@@ -308,22 +308,22 @@ $vcov$vcov_vary
 +   cg_tol = .2, c2 = .1))
 
 Finding the upper limit of the approximate profile likelihood curve
-LogLike: -2522.1396 at        -0.139755
+LogLike: -2522.1397 at        -0.139755
 LogLike: -2519.9564 at        -0.189755
-LogLike: -2521.2880 at        -0.150655. Lb, target, ub: -2522.1396, -2521.8771, -2521.2880
-LogLike: -2521.8207 at        -0.143540. Lb, target, ub: -2522.1396, -2521.8771, -2521.8207
+LogLike: -2521.2973 at        -0.150655. Lb, target, ub: -2522.1397, -2521.8771, -2521.2973
+LogLike: -2521.8174 at        -0.143580. Lb, target, ub: -2522.1397, -2521.8771, -2521.8174
 
 Finding the lower limit of the approximate profile likelihood curve
-LogLike: -2522.0453 at        -0.239755
+LogLike: -2522.0449 at        -0.239755
 LogLike: -2519.9564 at        -0.189755
-LogLike: -2521.3646 at        -0.230620. Lb, target, ub: -2522.0453, -2521.8771, -2521.3646
-LogLike: -2521.8207 at        -0.236951. Lb, target, ub: -2522.0453, -2521.8771, -2521.8207
+LogLike: -2521.3650 at        -0.230628. Lb, target, ub: -2522.0449, -2521.8771, -2521.3650
+LogLike: -2521.8212 at        -0.236955. Lb, target, ub: -2522.0449, -2521.8771, -2521.8212
 LogLike: -2519.9564 at        -0.189755
    user  system elapsed 
-  6.969   0.072   1.766 
+  6.490   0.016   1.631 
 > joint_pl$confs # the confidence interval
  2.50 pct. 97.50 pct. 
-   -0.2377    -0.1428 
+   -0.2377    -0.1429 
 > 
 > # plot the log profile likelihood
 > with(joint_pl, {
@@ -338,7 +338,7 @@ LogLike: -2519.9564 at        -0.189755
 > # get the observed information matrix instead
 > system.time(joint_obs_mat <- joint_ms_hess(comp_obj, opt_out$par))
    user  system elapsed 
-  0.514   0.000   0.515 
+  0.515   0.000   0.515 
 > joint_obs_mat <- -joint_obs_mat$hessian
 > joint_vcov <- solve(-joint_obs_mat)
 > 
@@ -352,7 +352,7 @@ Loading required package: parallel
 Loading required package: rstan
 Loading required package: StanHeaders
 Loading required package: ggplot2
-rstan (Version 2.21.2, GitRev: 2e1f913d3ca3)
+rstan (Version 2.21.5, GitRev: 2e1f913d3ca3)
 For execution on a local, multicore CPU with excess RAM we recommend calling
 options(mc.cores = parallel::detectCores()).
 To avoid recompilation of unchanged Stan programs, we recommend calling
@@ -385,13 +385,16 @@ rstan_options(auto_write = TRUE)
 +                                  baseHaz = "regression-splines",
 +                                  verbose = FALSE)
 + })
+Warning message:
+In !inherits(test, "try-error") && !opt2$convergence && eigen(opt2$hessian,  :
+  'length(x) = 12 > 1' in coercion to 'logical(1)'
 > 
 > JMbayes_time # estimation time
    user  system elapsed 
-119.360   0.132 119.510 
+111.077   0.104 111.186 
 > JMbayes_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  173.2 
+  161.6 
 > 
 > # compare estimates
 > summary(JMbayes_fit)
@@ -440,7 +443,7 @@ iterations: 20000
 adapt: 3000 
 burn-in: 3000 
 thinning: 10 
-time: 1.9 min
+time: 1.8 min
 > 
 > association
 [1] -0.2
@@ -553,10 +556,10 @@ The following objects are masked from ‘package:JMbayes’:
 > 
 > JM_time # the estimation time
    user  system elapsed 
- 103.44    1.78  105.23 
+104.815   2.732 107.557 
 > JM_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  152.5 
+  156.3 
 > 
 > # the estimates
 > summary(JM_fit)
@@ -583,7 +586,7 @@ Parameterization: Time-dependent
 Variance Components:
              StdDev    Corr
 (Intercept)  1.0720  (Intr)
-time         0.7551  0.5379
+time         0.7551  0.5380
 Residual     0.4902        
 
 Coefficients:
@@ -591,23 +594,23 @@ Longitudinal Process
               Value Std.Err z-value p-value
 (Intercept) -0.5095  0.0520  -9.792 <0.0001
 X1           0.9821  0.0528  18.606 <0.0001
-time         1.4814  0.0538  27.550 <0.0001
-I(time^2)   -0.2991  0.0054 -55.698 <0.0001
+time         1.4813  0.0538  27.548 <0.0001
+I(time^2)   -0.2991  0.0054 -55.700 <0.0001
 
 Event Process
          Value Std.Err z-value p-value
-Z1      0.4043  0.1042  3.8796  0.0001
-X1      0.2161  0.0645  3.3510  0.0008
-Assoct -0.1895  0.0241 -7.8512 <0.0001
-bs1    -2.0179  0.4567 -4.4182 <0.0001
-bs2    -2.3123  0.4949 -4.6718 <0.0001
-bs3    -1.2595  0.3836 -3.2829  0.0010
-bs4    -1.4175  0.2936 -4.8279 <0.0001
-bs5    -0.8567  0.2713 -3.1578  0.0016
-bs6    -1.5427  0.3197 -4.8256 <0.0001
-bs7    -0.4403  0.6422 -0.6855  0.4930
-bs8    -3.3213  0.9670 -3.4346  0.0006
-bs9    -3.9930  0.9468 -4.2174 <0.0001
+Z1      0.4042  0.1042   3.879  0.0001
+X1      0.2161  0.0645   3.351  0.0008
+Assoct -0.1895  0.0241  -7.849 <0.0001
+bs1    -2.0179  0.4567  -4.418 <0.0001
+bs2    -2.3122  0.4949  -4.672 <0.0001
+bs3    -1.2596  0.3836  -3.283  0.0010
+bs4    -1.4174  0.2936  -4.828 <0.0001
+bs5    -0.8567  0.2713  -3.158  0.0016
+bs6    -1.5427  0.3197  -4.826 <0.0001
+bs7    -0.4399  0.6422  -0.685  0.4933
+bs8    -3.3223  0.9673  -3.435  0.0006
+bs9    -3.9937  0.9472  -4.216 <0.0001
 
 Integration:
 method: (pseudo) adaptive Gauss-Hermite
@@ -640,10 +643,10 @@ EM algorithm has converged!
 > 
 > joineRML_time # the estimation time
    user  system elapsed 
- 28.119   0.212  28.337 
+121.654   4.556 126.222 
 > joineRML_time["elapsed"] / VA_time["elapsed"] # relative estimation time
 elapsed 
-  41.07 
+  183.5 
 > 
 > # look at the estimates
 > summary(joineRML_fit)
@@ -673,41 +676,41 @@ Event Process: Cox proportional hazards model
      Surv(y, event) ~ Z1 + X1
 Model fit statistics:
  log.Lik  AIC  BIC
-   -3724 7470 7517
+   -3724 7470 7516
 
 Variance Components:
 
 Random effects variance covariance matrix
               (Intercept)_1 time_1
-(Intercept)_1         1.151 0.4310
-time_1                0.431 0.5599
-  Standard Deviations: 1.073 0.7483 
+(Intercept)_1        1.1511 0.4335
+time_1               0.4335 0.5594
+  Standard Deviations: 1.073 0.7479 
 
 Residual standard errors(s):
 sigma2_1 
-  0.4887 
+  0.4894 
 
 Coefficient Estimates:
 
 Longitudinal sub-model:
                 Value Std.Err z-value p-value
-(Intercept)_1 -0.4938      NA      NA      NA
-X1_1           0.9806      NA      NA      NA
-time_1         1.5304      NA      NA      NA
-I(time^2)_1   -0.2979      NA      NA      NA
+(Intercept)_1 -0.4852      NA      NA      NA
+X1_1           0.9807      NA      NA      NA
+time_1         1.5224      NA      NA      NA
+I(time^2)_1   -0.2981      NA      NA      NA
 
 Time-to-event sub-model:
           Value Std.Err z-value p-value
-Z1       0.4015      NA      NA      NA
-X1       0.0332      NA      NA      NA
-gamma_1 -0.1860      NA      NA      NA
+Z1       0.4021      NA      NA      NA
+X1       0.0331      NA      NA      NA
+gamma_1 -0.1871      NA      NA      NA
 
 Algorithm Summary:
-    Total computational time: 28.3 secs 
-    EM algorithm computational time: 27.2 secs 
+    Total computational time: 2.1 mins 
+    EM algorithm computational time: 2.1 mins 
     Convergence status: converged
     Convergence criterion: sas 
-    Final Monte Carlo sample size: 426 
+    Final Monte Carlo sample size: 3784 
     Standard errors calculated using method: none
 > 
 > # gather all the estimators and show them together. We use the posterior mean
@@ -767,19 +770,19 @@ Algorithm Summary:
 JMbayes                      -0.5153          0.9805                  1.512
 JM                           -0.5095          0.9821                  1.481
 VAJointSurv                  -0.5092          0.9821                  1.481
-joineRML                     -0.4938          0.9806                  1.530
+joineRML                     -0.4852          0.9807                  1.522
 Truth                        -0.5000          1.0000                  1.400
             fixef_vary_marker.I(time^2) fixef_surv.Z1 fixef_surv.X1   assoc
 JMbayes                         -0.3000        0.4086        0.2107 -0.1836
-JM                              -0.2991        0.4043        0.2161 -0.1895
-VAJointSurv                     -0.2990        0.4025        0.2178 -0.1898
-joineRML                        -0.2979        0.4015        0.2156 -0.1860
+JM                              -0.2991        0.4042        0.2161 -0.1895
+VAJointSurv                     -0.2990        0.4025        0.2177 -0.1898
+joineRML                        -0.2981        0.4021        0.2166 -0.1871
 Truth                           -0.3000        0.4000        0.2000 -0.2000
             err_std.sigma vcov_vary_diag.(Intercept) vcov_vary_diag.time
 JMbayes            0.4882                      1.163              0.5981
-JM                 0.4902                      1.149              0.5702
+JM                 0.4902                      1.149              0.5701
 VAJointSurv        0.4902                      1.149              0.5704
-joineRML           0.4887                      1.151              0.5599
+joineRML           0.4894                      1.151              0.5594
 Truth              0.5000                      1.000              0.5000
 > 
 > # the estimated association parameter with bounds
@@ -797,8 +800,8 @@ Truth              0.5000                      1.000              0.5000
               Value    2.5%   97.5%
 JMbayes     -0.1836 -0.2293 -0.1377
 JM          -0.1895 -0.2368 -0.1422
-VAJointSurv -0.1898 -0.2377 -0.1428
-joineRML    -0.1860      NA      NA
+VAJointSurv -0.1898 -0.2377 -0.1429
+joineRML    -0.1871      NA      NA
 truth       -0.2000      NA      NA
 > 
 > # compare the covariance matrix estimates
@@ -821,19 +824,19 @@ truth       -0.2000      NA      NA
 > # different parameterizations)
 > JM_vcov
               Y.(Intercept)       Y.X1     Y.time Y.I(time^2)       T.Z1
-Y.(Intercept)     2.707e-03 -5.787e-05  5.634e-04   2.406e-05  5.478e-06
-Y.X1             -5.787e-05  2.786e-03 -1.644e-05  -4.348e-06 -2.545e-06
-Y.time            5.634e-04 -1.644e-05  2.891e-03  -1.022e-04 -1.102e-04
-Y.I(time^2)       2.406e-05 -4.348e-06 -1.022e-04   2.883e-05 -3.941e-07
-T.Z1              5.478e-06 -2.545e-06 -1.102e-04  -3.941e-07  1.086e-02
-T.X1              1.272e-05 -5.126e-05 -1.430e-04  -4.816e-06 -5.138e-04
-T.alpha          -9.602e-06  2.185e-06  1.576e-04   5.720e-06 -3.654e-04
+Y.(Intercept)     2.707e-03 -5.787e-05  5.635e-04   2.406e-05  5.484e-06
+Y.X1             -5.787e-05  2.786e-03 -1.645e-05  -4.349e-06 -2.544e-06
+Y.time            5.635e-04 -1.645e-05  2.891e-03  -1.022e-04 -1.101e-04
+Y.I(time^2)       2.406e-05 -4.349e-06 -1.022e-04   2.883e-05 -3.971e-07
+T.Z1              5.484e-06 -2.544e-06 -1.101e-04  -3.971e-07  1.086e-02
+T.X1              1.272e-05 -5.126e-05 -1.430e-04  -4.821e-06 -5.138e-04
+T.alpha          -9.603e-06  2.186e-06  1.575e-04   5.724e-06 -3.653e-04
                     T.X1    T.alpha
-Y.(Intercept)  1.272e-05 -9.602e-06
-Y.X1          -5.126e-05  2.185e-06
-Y.time        -1.430e-04  1.576e-04
-Y.I(time^2)   -4.816e-06  5.720e-06
-T.Z1          -5.138e-04 -3.654e-04
+Y.(Intercept)  1.272e-05 -9.603e-06
+Y.X1          -5.126e-05  2.186e-06
+Y.time        -1.430e-04  1.575e-04
+Y.I(time^2)   -4.821e-06  5.724e-06
+T.Z1          -5.138e-04 -3.653e-04
 T.X1           4.158e-03 -5.716e-04
 T.alpha       -5.716e-04  5.827e-04
 > VA_vcov
@@ -841,18 +844,18 @@ T.alpha       -5.716e-04  5.827e-04
 mark1_fixef1         2.706e-03   -5.786e-05         5.634e-04         2.406e-05
 mark1_fixef2        -5.786e-05    2.785e-03        -1.659e-05        -4.349e-06
 mark1_fixef_vary1    5.634e-04   -1.659e-05         2.893e-03        -1.022e-04
-mark1_fixef_vary2    2.406e-05   -4.349e-06        -1.022e-04         2.882e-05
+mark1_fixef_vary2    2.406e-05   -4.349e-06        -1.022e-04         2.883e-05
 surv1_fixef2         5.356e-06   -2.706e-06        -1.109e-04        -2.187e-07
 surv1_fixef3         1.429e-05   -5.777e-04         1.426e-05         1.576e-06
-surv1_assoc1_1      -9.547e-06    2.044e-06         1.591e-04         5.644e-06
+surv1_assoc1_1      -9.545e-06    2.043e-06         1.591e-04         5.644e-06
                   surv1_fixef2 surv1_fixef3 surv1_assoc1_1
-mark1_fixef1         5.356e-06    1.429e-05     -9.547e-06
-mark1_fixef2        -2.706e-06   -5.777e-04      2.044e-06
+mark1_fixef1         5.356e-06    1.429e-05     -9.545e-06
+mark1_fixef2        -2.706e-06   -5.777e-04      2.043e-06
 mark1_fixef_vary1   -1.109e-04    1.426e-05      1.591e-04
 mark1_fixef_vary2   -2.187e-07    1.576e-06      5.644e-06
 surv1_fixef2         1.086e-02   -8.779e-04     -3.617e-04
-surv1_fixef3        -8.779e-04    3.725e-03     -3.058e-06
-surv1_assoc1_1      -3.617e-04   -3.058e-06      5.851e-04
+surv1_fixef3        -8.779e-04    3.725e-03     -3.061e-06
+surv1_assoc1_1      -3.617e-04   -3.061e-06      5.851e-04
 > 
 > # account for the different parameterizations (i.e. transform one)
 > # TODO: very hard coded
@@ -864,33 +867,33 @@ surv1_assoc1_1      -3.617e-04   -3.058e-06      5.851e-04
 > # comparison is now valid
 > JM_vcov
               Y.(Intercept)       Y.X1     Y.time Y.I(time^2)       T.Z1
-Y.(Intercept)     2.707e-03 -5.787e-05  5.634e-04   2.406e-05  5.478e-06
-Y.X1             -5.787e-05  2.786e-03 -1.644e-05  -4.348e-06 -2.545e-06
-Y.time            5.634e-04 -1.644e-05  2.891e-03  -1.022e-04 -1.102e-04
-Y.I(time^2)       2.406e-05 -4.348e-06 -1.022e-04   2.883e-05 -3.941e-07
-T.Z1              5.478e-06 -2.545e-06 -1.102e-04  -3.941e-07  1.086e-02
-T.X1              1.272e-05 -5.126e-05 -1.430e-04  -4.816e-06 -5.138e-04
-T.alpha          -9.602e-06  2.185e-06  1.576e-04   5.720e-06 -3.654e-04
+Y.(Intercept)     2.707e-03 -5.787e-05  5.635e-04   2.406e-05  5.484e-06
+Y.X1             -5.787e-05  2.786e-03 -1.645e-05  -4.349e-06 -2.544e-06
+Y.time            5.635e-04 -1.645e-05  2.891e-03  -1.022e-04 -1.101e-04
+Y.I(time^2)       2.406e-05 -4.349e-06 -1.022e-04   2.883e-05 -3.971e-07
+T.Z1              5.484e-06 -2.544e-06 -1.101e-04  -3.971e-07  1.086e-02
+T.X1              1.272e-05 -5.126e-05 -1.430e-04  -4.821e-06 -5.138e-04
+T.alpha          -9.603e-06  2.186e-06  1.575e-04   5.724e-06 -3.653e-04
                     T.X1    T.alpha
-Y.(Intercept)  1.272e-05 -9.602e-06
-Y.X1          -5.126e-05  2.185e-06
-Y.time        -1.430e-04  1.576e-04
-Y.I(time^2)   -4.816e-06  5.720e-06
-T.Z1          -5.138e-04 -3.654e-04
+Y.(Intercept)  1.272e-05 -9.603e-06
+Y.X1          -5.126e-05  2.186e-06
+Y.time        -1.430e-04  1.575e-04
+Y.I(time^2)   -4.821e-06  5.724e-06
+T.Z1          -5.138e-04 -3.653e-04
 T.X1           4.158e-03 -5.716e-04
 T.alpha       -5.716e-04  5.827e-04
 > VA_vcov
            [,1]       [,2]       [,3]       [,4]       [,5]       [,6]
-[1,]  2.706e-03 -5.786e-05  5.634e-04  2.406e-05  5.356e-06  1.269e-05
+[1,]  2.706e-03 -5.786e-05  5.634e-04  2.406e-05  5.356e-06  1.268e-05
 [2,] -5.786e-05  2.785e-03 -1.659e-05 -4.349e-06 -2.706e-06 -5.116e-05
 [3,]  5.634e-04 -1.659e-05  2.893e-03 -1.022e-04 -1.109e-04 -1.452e-04
-[4,]  2.406e-05 -4.349e-06 -1.022e-04  2.882e-05 -2.187e-07 -4.793e-06
+[4,]  2.406e-05 -4.349e-06 -1.022e-04  2.883e-05 -2.187e-07 -4.793e-06
 [5,]  5.356e-06 -2.706e-06 -1.109e-04 -2.187e-07  1.086e-02 -5.232e-04
-[6,]  1.269e-05 -5.116e-05 -1.452e-04 -4.793e-06 -5.232e-04  4.175e-03
-[7,] -9.547e-06  2.044e-06  1.591e-04  5.644e-06 -3.617e-04 -5.773e-04
+[6,]  1.268e-05 -5.116e-05 -1.452e-04 -4.793e-06 -5.232e-04  4.175e-03
+[7,] -9.545e-06  2.043e-06  1.591e-04  5.644e-06 -3.617e-04 -5.773e-04
            [,7]
-[1,] -9.547e-06
-[2,]  2.044e-06
+[1,] -9.545e-06
+[2,]  2.043e-06
 [3,]  1.591e-04
 [4,]  5.644e-06
 [5,] -3.617e-04
@@ -898,7 +901,7 @@ T.alpha       -5.716e-04  5.827e-04
 [7,]  5.851e-04
 > 
 > norm(JM_vcov - VA_vcov, "F") / norm(JM_vcov, "F") # relative diff
-[1] 0.001942
+[1] 0.001934
 > 
 > # compare the standard errors (the X1 should not match because of different
 > # parameterizations)
@@ -914,15 +917,15 @@ VAJointSurv       0.05202 0.05278 0.05379    0.005369 0.1042 0.06462 0.02419
 +       VAJointSurv = VA_time,
 +       joineRML = joineRML_time)[, 1:3]
             user.self sys.self elapsed
-JMbayes        119.36    0.132  119.51
-JM             103.44    1.780  105.23
-VAJointSurv      2.18    0.028    0.69
-joineRML        28.12    0.212   28.34
+JMbayes       111.077    0.104 111.186
+JM            104.815    2.732 107.557
+VAJointSurv     2.244    0.004   0.688
+joineRML      121.654    4.556 126.222
 > 
 > sessionInfo()
-R version 4.1.2 (2021-11-01)
+R version 4.2.0 (2022-04-22)
 Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: Ubuntu 20.04.3 LTS
+Running under: Ubuntu 20.04.4 LTS
 
 Matrix products: default
 BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
@@ -941,42 +944,40 @@ attached base packages:
 [8] methods   base     
 
 other attached packages:
- [1] joineRML_0.4.5       JM_1.4-8             MASS_7.3-55         
- [4] JMbayes_0.8-85       rstan_2.21.2         ggplot2_3.3.5       
- [7] StanHeaders_2.21.0-7 doParallel_1.0.16    iterators_1.0.13    
-[10] foreach_1.5.1        nlme_3.1-155         SimSurvNMarker_0.1.1
+ [1] joineRML_0.4.5       JM_1.5-1             MASS_7.3-57         
+ [4] JMbayes_0.8-85       rstan_2.21.5         ggplot2_3.3.6       
+ [7] StanHeaders_2.21.0-7 doParallel_1.0.17    iterators_1.0.14    
+[10] foreach_1.5.2        nlme_3.1-157         SimSurvNMarker_0.1.2
 [13] mvtnorm_1.1-3        VAJointSurv_0.1.0    survival_3.2-13     
 
 loaded via a namespace (and not attached):
- [1] matrixStats_0.60.1  RColorBrewer_1.1-2  tools_4.1.2        
- [4] backports_1.3.0     utf8_1.2.2          R6_2.5.1           
- [7] rpart_4.1-15        Hmisc_4.6-0         colorspace_2.0-2   
-[10] nnet_7.3-17         withr_2.4.2         tidyselect_1.1.1   
-[13] gridExtra_2.3       prettyunits_1.1.1   processx_3.5.2     
-[16] curl_4.3.2          compiler_4.1.2      quantreg_5.86      
-[19] cli_3.1.0           htmlTable_2.3.0     jagsUI_1.5.2       
-[22] SparseM_1.81        scales_1.1.1        checkmate_2.0.0    
-[25] callr_3.7.0         stringr_1.4.0       digest_0.6.28      
-[28] foreign_0.8-82      minqa_1.2.4         base64enc_0.1-3    
-[31] jpeg_0.1-9          pkgconfig_2.0.3     htmltools_0.5.2    
-[34] lme4_1.1-27.1       fastmap_1.1.0       htmlwidgets_1.5.3  
-[37] rlang_0.4.12        rstudioapi_0.13     generics_0.1.0     
-[40] jsonlite_1.7.2      dplyr_1.0.7         inline_0.3.19      
-[43] magrittr_2.0.1      Formula_1.2-4       loo_2.4.1          
-[46] Matrix_1.4-0        Rcpp_1.0.7          munsell_0.5.0      
-[49] fansi_0.5.0         lifecycle_1.0.1     stringi_1.7.5      
-[52] pkgbuild_1.2.0      grid_4.1.2          crayon_1.4.2       
-[55] lattice_0.20-45     knitr_1.36          ps_1.6.0           
-[58] pillar_1.6.4        randtoolbox_1.30.1  boot_1.3-28        
-[61] psqn_0.3.0          codetools_0.2-18    stats4_4.1.2       
-[64] glue_1.5.0          cobs_1.3-4          V8_3.6.0           
-[67] latticeExtra_0.6-29 data.table_1.14.0   RcppParallel_5.1.4 
-[70] png_0.1-7           vctrs_0.3.8         nloptr_1.2.2.3     
-[73] MatrixModels_0.5-0  gtable_0.3.0        purrr_0.3.4        
-[76] xfun_0.28           rngWELL_0.10-6      xtable_1.8-4       
-[79] coda_0.19-4         rjags_4-12          conquer_1.0.2      
-[82] tibble_3.1.6        cluster_2.1.2       ellipsis_0.3.2     
+ [1] matrixStats_0.62.0  RColorBrewer_1.1-3  tools_4.2.0        
+ [4] backports_1.4.1     utf8_1.2.2          R6_2.5.1           
+ [7] rpart_4.1.16        Hmisc_4.7-0         colorspace_2.0-3   
+[10] nnet_7.3-17         withr_2.5.0         gridExtra_2.3      
+[13] prettyunits_1.1.1   processx_3.5.3      compiler_4.2.0     
+[16] cli_3.3.0           quantreg_5.93       htmlTable_2.4.0    
+[19] jagsUI_1.5.2        SparseM_1.81        scales_1.2.0       
+[22] checkmate_2.1.0     callr_3.7.0         stringr_1.4.0      
+[25] digest_0.6.29       foreign_0.8-82      minqa_1.2.4        
+[28] base64enc_0.1-3     jpeg_0.1-9          pkgconfig_2.0.3    
+[31] htmltools_0.5.2     lme4_1.1-29         fastmap_1.1.0      
+[34] htmlwidgets_1.5.4   rlang_1.0.2         rstudioapi_0.13    
+[37] generics_0.1.2      inline_0.3.19       magrittr_2.0.3     
+[40] Formula_1.2-4       loo_2.5.1           Matrix_1.4-1       
+[43] Rcpp_1.0.8.3        munsell_0.5.0       fansi_1.0.3        
+[46] lifecycle_1.0.1     stringi_1.7.6       pkgbuild_1.3.1     
+[49] grid_4.2.0          crayon_1.5.1        lattice_0.20-45    
+[52] knitr_1.39          ps_1.7.0            pillar_1.7.0       
+[55] randtoolbox_2.0.1   boot_1.3-28         psqn_0.3.1         
+[58] codetools_0.2-18    stats4_4.2.0        glue_1.6.2         
+[61] cobs_1.3-5          latticeExtra_0.6-29 data.table_1.14.2  
+[64] RcppParallel_5.1.5  png_0.1-7           vctrs_0.4.1        
+[67] nloptr_2.0.3        MatrixModels_0.5-0  gtable_0.3.0       
+[70] xfun_0.31           rngWELL_0.10-7      xtable_1.8-4       
+[73] coda_0.19-4         rjags_4-13          tibble_3.1.7       
+[76] cluster_2.1.3       ellipsis_0.3.2     
 > 
 > proc.time()
    user  system elapsed 
-263.669   2.395 259.368 
+349.937   7.539 351.000 
