@@ -81,12 +81,14 @@ double expected_survival_term<comp_grad>::log_integrand
   double * const __restrict__ lp{mem.get(n_lps)};
   std::copy(eta.begin(), eta.end(), lp);
 
-  {
-    double const * m{M.begin()};
-    for(size_t k = 0; k < n_vars(); ++k)
-      for(size_t i = 0; i < n_lps; ++i)
-        lp[i] += m[i + k * n_lps] * point[k];
-  }
+  int const i_n_vars = n_vars(), i_n_lps = n_lps;
+  constexpr double d_ONE{1};
+  constexpr int i_ONE{1};
+  constexpr char trans{'N'};
+
+  F77_CALL(dgemv)
+    (&trans, &i_n_lps, &i_n_vars, &d_ONE, M.begin(), &i_n_lps,
+     point, &i_ONE, &d_ONE, lp, &i_ONE, size_t(1));
 
   double out{};
   for(size_t i = 0; i < n_lps; ++i)
@@ -103,11 +105,14 @@ double expected_survival_term<comp_grad>::log_integrand_grad
   double * const __restrict__ lp{mem.get(n_lps)};
   std::copy(eta.begin(), eta.end(), lp);
 
+  int const i_n_vars = n_vars(), i_n_lps = n_lps;
+  constexpr double d_ONE{1};
+  constexpr int i_ONE{1};
   {
-    double const * m{M.begin()};
-    for(size_t k = 0; k < n_vars(); ++k)
-      for(size_t i = 0; i < n_lps; ++i)
-        lp[i] += m[i + k * n_lps] * point[k];
+    constexpr char trans{'N'};
+    F77_CALL(dgemv)
+      (&trans, &i_n_lps, &i_n_vars, &d_ONE, M.begin(), &i_n_lps,
+       point, &i_ONE, &d_ONE, lp, &i_ONE, size_t(1));
   }
 
   double out{};
@@ -117,10 +122,12 @@ double expected_survival_term<comp_grad>::log_integrand_grad
   }
 
   std::fill(grad, grad + n_vars(), 0);
-  double const * m{M.begin()};
-  for(size_t k = 0; k < n_vars(); ++k)
-    for(size_t i = 0; i < n_lps; ++i)
-      grad[k] += m[i + k * n_lps] * lp[i];
+  {
+    constexpr char trans{'T'};
+    F77_CALL(dgemv)
+      (&trans, &i_n_lps, &i_n_vars, &d_ONE, M.begin(), &i_n_lps,
+       lp, &i_ONE, &d_ONE, grad, &i_ONE, size_t(1));
+  }
 
   return out;
 }
@@ -132,12 +139,13 @@ void expected_survival_term<comp_grad>::log_integrand_hess
   double * const __restrict__ lp{mem.get(n_lps)};
   std::copy(eta.begin(), eta.end(), lp);
 
-  {
-    double const * m{M.begin()};
-    for(size_t k = 0; k < n_vars(); ++k)
-      for(size_t i = 0; i < n_lps; ++i)
-        lp[i] += m[i + k * n_lps] * point[k];
-  }
+  int const i_n_vars = n_vars(), i_n_lps = n_lps;
+  constexpr double d_ONE{1};
+  constexpr int i_ONE{1};
+  constexpr char trans{'N'};
+    F77_CALL(dgemv)
+      (&trans, &i_n_lps, &i_n_vars, &d_ONE, M.begin(), &i_n_lps,
+       point, &i_ONE, &d_ONE, lp, &i_ONE, size_t(1));
 
   for(size_t i = 0; i < n_lps; ++i)
     lp[i] = -weights[i] * std::exp(lp[i]);
