@@ -1,4 +1,4 @@
-test_that("manual pages gives the same results as previously", {
+test_that("manual pages gives the same results as previously for joint_ms type functions", {
   # load in the data
   library(survival)
   data(pbc, package = "survival")
@@ -36,14 +36,62 @@ test_that("manual pages gives the same results as previously", {
 
   # find the starting values
   start_vals <- joint_ms_start_val(model_ptr)
-
   start_vals_to_test <- head(start_vals, 500)
+
   attributes(start_vals_to_test) <- attributes(start_vals)
+
   expect_snapshot_value(
     start_vals_to_test, style = "serialize",
     tolerance = 1e-3)
 
-  # TODO: do a fit
-  # TODO: add the Hessian matrix
-  # TODO: ...
+  expect_equal(attr(start_vals,"value"),
+               joint_ms_lb(model_ptr,par = start_vals))
+
+  expect_snapshot_value(joint_ms_format(model_ptr,start_vals),
+                        style = "serialize",
+                        tolerance = 1e-3)
+
+  fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+  hess <- joint_ms_hess(object = model_ptr,par = fit$par)
+
+  expect_snapshot_value(fit[c("value", "info", "convergence")],
+                        tolerance = 1e-5)
+
+
+  expect_snapshot_value(joint_ms_format(model_ptr, fit$par),
+                        style = "serialize", tolerance = 1e-3)
+
+  expect_snapshot_value(hess$hessian,
+                        style = "serialize", tolerance = 1e-3)
+  skip_on_cran()
+  se <- 0.131148235758747
+  which_prof <- model_ptr$indices$survival[[1]]$associations[1]
+  delta <- 2*se
+
+  profile_CI <- joint_ms_profile(
+    object = model_ptr, opt_out = fit, which_prof = which_prof,
+    delta= delta, gr_tol = .1, verbose = FALSE)
+
+  expect_snapshot_value(profile_CI[c("confs","xs","p_log_Lik")],
+                        style = "json2",
+                        tolerance = 1e-3)
+})
+
+test_that("test manual page example for bs_term", {
+  vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
+  spline_basis <- bs_term(vals,df = 3)
+
+  library(splines)
+
+    correct_basis <- bs(vals, df = 3)
+
+
+  expect_equal(c(spline_basis$eval(0.5)),
+                bs(0.5,Boundary.knots = attr(correct_basis, "Boundary.knots"),
+                                           knots = attr(correct_basis,
+                                                        "knots")),
+               ignore_attr = TRUE)
+
+  expect_equal(c(spline_basis$eval(0.5,der = 1)),
+               c(-1.12, 0.853333333333333, 1.13777777777778))
 })
