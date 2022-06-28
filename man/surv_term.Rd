@@ -56,6 +56,27 @@ over all delayed entries when a cluster has more than one delayed entry. See
 van den Berg and Drepper (2016) and Crowther et al. (2016) for further
 details.
 }
+\examples{
+# load in the data
+library(survival)
+data(pbc, package = "survival")
+
+# re-scale by year
+pbcseq <- transform(pbcseq, day_use = day / 365.25)
+pbc <- transform(pbc, time_use = time / 365.25)
+
+# base knots on observed event times
+bs_term_knots <-
+  with(pbc, quantile(time_use[status == 2], probs = seq(0, 1, by = .2)))
+
+boundary <- c(bs_term_knots[ c(1, length(bs_term_knots))])
+interior <- c(bs_term_knots[-c(1, length(bs_term_knots))])
+
+# create the survival term
+s_term <- surv_term(
+  Surv(time_use, status == 2) ~ 1, id = id, data = pbc,
+  time_fixef = bs_term(time_use, Boundary.knots = boundary, knots = interior))
+}
 \references{
 Crowther MJ, Andersson TM, Lambert PC, Abrams KR & Humphreys K (2016).
 \emph{Joint

@@ -24,3 +24,11 @@ argument.}
 \description{
 Term for Orthogonal Polynomials
 }
+\examples{
+vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
+spline_basis <- poly_term(vals,degree = 3, raw = TRUE)
+# evaluate spline basis at 0.5
+spline_basis$eval(0.5)
+# evaluate first derivative of spline basis at 0.5
+spline_basis$eval(0.5, der = 1)
+}

@@ -39,3 +39,28 @@ plot_marker(
 \description{
 Plots a Markers Mean Curve with Pointwise Quantiles
 }
+\examples{
+# load in the data
+library(survival)
+data(pbc, package = "survival")
+
+# re-scale by year
+pbcseq <- transform(pbcseq, day_use = day / 365.25)
+pbc <- transform(pbc, time_use = time / 365.25)
+
+# create the marker terms
+m1 <- marker_term(
+  log(bili) ~ 1, id = id, data = pbcseq,
+  time_fixef = bs_term(day_use, df = 5L),
+  time_rng = poly_term(day_use, degree = 1L, raw = TRUE, intercept = TRUE))
+
+fixef_vary <- c(-0.1048, 0.2583, 1.0578, 2.4006, 2.9734)
+vcov_vary <- rbind(c(0.96580, 0.09543), c(0.09543,  0.03998))
+
+# plot marker's trajectory
+plot_marker(
+  time_fixef = m1$time_fixef,
+  time_rng = m1$time_rng,
+  fixef_vary = fixef_vary,
+  vcov_vary = vcov_vary, x_range = c(0,5))
+}
