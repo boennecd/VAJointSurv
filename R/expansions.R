@@ -8,7 +8,7 @@ wrap_term <- function(term){
   term
 }
 
-bases_weights <- function(weights_symbol, newdata,enclos, expected_length) {
+bases_weights <- function(weights_symbol, newdata, enclos, expected_length) {
   if(is.null(weights_symbol)) {
     weights <- matrix(0., nrow = 0L, ncol = expected_length)
   } else {
@@ -127,8 +127,18 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 #' \code{\link{stacked_term}}
 #'
 #' @examples
-#' # TODO: add an example
+#' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
 #'
+#' spline_basis <- ns_term(vals, df = 3)
+#' weights <- c(4,5)
+#' # create a weighted term
+#' w_term <- weighted_term(spline_basis,weights)
+#'
+#' # evaluate weighted basis at 0.5 and 0.7 with weights 4 and 5
+#' w_term$eval(c(0.5,0.7))
+#' # evaluate the first derivative of stacked basis at 0.5 and 0.7
+#' with weights 4 and 5
+#' w_term$eval(c(0.5,0.7), der = 1)
 #' @export
 weighted_term <- function(x, weight){
   is_valid_expansion(x)
@@ -155,8 +165,18 @@ weighted_term <- function(x, weight){
 #' \code{\link{weighted_term}}
 #'
 #' @examples
-#' # TODO: add an example
+#' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
 #'
+#' spline_basis1 <- ns_term(vals, df = 3)
+#' spline_basis2 <- bs_term(vals, df = 3)
+#'
+#' # create stacked term from two spline bases
+#' stacked_basis <- stacked_term(spline_basis1, spline_basis2)
+#'
+#' # evaluate stacked basis at 0.5
+#' stacked_basis$eval(0.5)
+#' # evaluate first derivative of stacked basis at 0.5
+#' stacked_basis$eval(0.5, der = 1)
 #' @export
 stacked_term <- function(...){
   if(...length() < 2)

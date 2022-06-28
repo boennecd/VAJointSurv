@@ -139,6 +139,59 @@ test_that("test manual page example for ns_term", {
                tolerance = 1e-6)
 })
 
+test_that("test manual page example for stacked_term", {
+  vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
+  spline_basis1 <- ns_term(vals, df = 3)
+  spline_basis2 <- bs_term(vals, df = 3)
+
+  stacked_basis <- stacked_term(spline_basis1, spline_basis2)
+
+  library(splines)
+
+  correct_basis1 <- ns(vals, df = 3)
+  correct_basis2 <- bs(vals, df = 3)
+
+  expect_equal(
+    c(stacked_basis$eval(0.5)),
+    cbind(
+      ns(
+        0.5,Boundary.knots = attr(correct_basis1, "Boundary.knots"),
+        knots = attr(correct_basis1, "knots")),
+      bs(
+        0.5,Boundary.knots = attr(correct_basis2, "Boundary.knots"),
+        knots = attr(correct_basis2, "knots"))),
+    ignore_attr = TRUE)
+
+  expect_equal(c(stacked_basis$eval(0.5,der = 1)),
+               c(1.06750746212726, -0.889635441332606, 1.95627432066876,
+                 -1.12, 0.853333333333333, 1.13777777777778),
+               tolerance = 1e-6)
+})
+
+test_that("test manual page example for weighted_term", {
+  vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
+  weights <- c(4,5)
+  basis <- ns_term(vals, df = 3)
+  weighted_basis <- weighted_term(basis, weights)
+
+  library(splines)
+
+  correct_basis <- ns(vals, df = 3)
+
+
+  expect_equal(
+    c(t(weighted_basis$eval(c(0.5, 0.7)))),
+    ns(
+      c(0.5, 0.7), Boundary.knots = attr(correct_basis, "Boundary.knots"),
+      knots = attr(correct_basis, "knots"))*weights,
+    ignore_attr = TRUE)
+
+  expect_equal(c(weighted_basis$eval(c(0.5,0.7),der = 1)),
+               c(4.27002984850904, -3.55854176533042, 7.82509728267505,
+                 -12.1889695326034, 0.47409899023935, 13.6748008559529),
+               tolerance = 1e-6)
+})
+
 test_that("plots marker returns same type of output", {
   # load in the data
   library(survival)
