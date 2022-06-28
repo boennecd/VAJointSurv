@@ -93,5 +93,6 @@ fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
 hess <- joint_ms_hess(object = model_ptr,par = fit$par)
 
 # standard errors of the parameters
+library(Matrix)
 sqrt(diag(solve(hess$hessian))) }
 }

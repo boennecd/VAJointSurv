@@ -118,6 +118,7 @@ fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
 hess <- joint_ms_hess(object = model_ptr,par = fit$par)
 
 # compute the standard errors
+library(Matrix)
 se <- sqrt(diag(solve(hess$hessian)))
 
 # find index for the first association parameter

@@ -31,3 +31,22 @@ often included in \code{formula}. Use
 \code{poly_term(degree = 0, raw = TRUE, intercept = TRUE)} if you want only
 a random intercept.
 }
+\examples{
+# load in the data
+library(survival)
+data(pbc, package = "survival")
+
+# re-scale by year
+pbcseq <- transform(pbcseq, day_use = day / 365.25)
+pbc <- transform(pbc, time_use = time / 365.25)
+
+# create the marker terms
+m1 <- marker_term(
+  log(bili) ~ 1, id = id, data = pbcseq,
+  time_fixef = bs_term(day_use, df = 5L),
+  time_rng = poly_term(day_use, degree = 1L, raw = TRUE, intercept = TRUE))
+m2 <- marker_term(
+  albumin ~ 1, id = id, data = pbcseq,
+  time_fixef = bs_term(day_use, df = 5L),
+  time_rng = poly_term(day_use, degree = 1L, raw = TRUE, intercept = TRUE))
+}
