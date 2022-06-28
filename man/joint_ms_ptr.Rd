@@ -10,7 +10,8 @@ joint_ms_ptr(
   max_threads = 1L,
   quad_rule = NULL,
   cache_expansions = TRUE,
-  gh_quad_rule = NULL
+  gh_quad_rule = NULL,
+  ders = NULL
 )
 }
 \arguments{
@@ -40,6 +41,13 @@ passed.
 This seems to work well when delayed entry happens at time with large
 marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
+
+\item{ders}{a \code{\link{list}} of \code{\link{list}}s with
+\code{\link{integer}} vectors for how
+the survival outcomes are linked to the markers. 0 implies present values,
+-1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+value of the random effect for all markers. Note that the number of integer
+vectors should be equal to the number of markers.}
 }
 \description{
 Creates a joint_ms Object to Estimate a Joint Survival and Marker Model

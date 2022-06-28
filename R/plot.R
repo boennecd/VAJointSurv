@@ -58,6 +58,10 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' supplied.
 #' @param xlab,ylab,... arguments passed to \code{\link{matplot}}.
 #' @param newdata \code{data.frame} with data for the weights if any.
+#' @param ders a \code{\link{list}} with \code{\link{integer}} vectors for how
+#' the survival outcome is linked to the markers. 0 implies present values,
+#' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+#' value of the random effect for all markers.
 #'
 #' @importFrom graphics matplot
 #' @export

@@ -3219,16 +3219,16 @@ marker_2 <- marker_term(
 library(survival)
 surv_terminal <- surv_term(
   Surv(y, event) ~ Z1, id = id, dat$terminal_outcome,
-  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[1]], with_frailty = TRUE)
+  time_fixef = bs_term(y, knots = 5, Boundary.knots = c(0, 10)),
+  with_frailty = TRUE)
 surv_obs <- surv_term(
   Surv(lf_trunc, y, event) ~ 1, id = id, dat$obs_process,
   time_fixef = ns_term(y, knots = 5, Boundary.knots = c(0, 10)), 
-  ders = ders[[2]], with_frailty = TRUE)
+  with_frailty = TRUE)
 
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
-                         max_threads = 4L)
+                         max_threads = 4L, ders = ders)
 rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values

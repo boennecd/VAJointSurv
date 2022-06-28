@@ -11,10 +11,6 @@
 #' to cover the full range of survival times including time zero for some
 #' expansions.
 #' @param data \code{\link{data.frame}} with at least the time variable.
-#' @param ders a \code{\link{list}} with \code{\link{integer}} vectors for how
-#' the survival outcome is linked to the markers. 0 implies present values,
-#' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
-#' value of the random effect for all markers.
 #' @param with_frailty \code{TRUE} if there should be a frailty term.
 #' @param delayed a vector with an entry which is \code{TRUE} if the
 #' left-truncation time from the survival outcome is from a delayed entry.
@@ -59,7 +55,7 @@
 #' @importFrom stats model.frame model.matrix model.response
 #'
 #' @export
-surv_term <- function(formula, id, data, time_fixef, ders = NULL,
+surv_term <- function(formula, id, data, time_fixef,
                       with_frailty = FALSE, delayed = NULL){
   # get the input data
   mf <- match.call(expand.dots = FALSE)
@@ -118,8 +114,7 @@ surv_term <- function(formula, id, data, time_fixef, ders = NULL,
   fixef_design_varying <-
     bases_weights(time_fixef$weights_symbol,data,parent.frame(),nrow(y))
 
-  structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt,
-                 ders = ders, with_frailty = with_frailty, delayed = delayed,
+  structure(list(y = y, Z = t(Z), time_fixef = time_fixef, id = id, mt = mt, with_frailty = with_frailty, delayed = delayed,
                  fixef_design_varying = fixef_design_varying, data = data),
             class = "surv_term")
 }

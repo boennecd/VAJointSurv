@@ -66,10 +66,17 @@ check_n_threads <- function(object, n_threads){
 #' marginal survival probabilities. The nodes and weights can be obtained e.g.
 #' from \code{fastGHQuad::gaussHermiteData}.
 #'
+#' @param ders a \code{\link{list}} of \code{\link{list}}s with
+#' \code{\link{integer}} vectors for how
+#' the survival outcomes are linked to the markers. 0 implies present values,
+#' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
+#' value of the random effect for all markers. Note that the number of integer
+#' vectors should be equal to the number of markers.
 #' @export
 joint_ms_ptr <- function(markers = list(), survival_terms = list(),
                          max_threads = 1L, quad_rule = NULL,
-                         cache_expansions = TRUE, gh_quad_rule = NULL){
+                         cache_expansions = TRUE, gh_quad_rule = NULL,
+                         ders = NULL){
   stopifnot(
     length(max_threads) == 1, max_threads > 0,
     is.logical(cache_expansions), length(cache_expansions) == 1)
@@ -87,12 +94,23 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
   quad_rule <- set_n_check_quad_rule(quad_rule)
   gh_quad_rule <- set_n_check_gh_quad_rule(gh_quad_rule)
 
-  # handle the default for ders
-  survival_terms <- lapply(survival_terms, function(x){
-    if(is.null(x$ders))
-      x$ders <- replicate(length(markers), 0L, simplify = FALSE)
+  if(is.null(ders)) ders <- replicate(length(survival_terms),
+                                      replicate(length(markers), 0L,
+                                                simplify = FALSE),
+                                      simplify = FALSE)
+
+  if(length(survival_terms) == 1 && !is.list(ders[[1]])) ders <- list(ders)
+
+  stopifnot(is.list(ders), length(ders)==length(survival_terms))
+
+  for(der in ders) stopifnot(is.list(der), length(der) == length(markers),
+                             all(sapply(der,is.integer)))
+
+  # adding ders
+  survival_terms <- Map(function(x, ders){
+    x$ders <- ders
     x
-  })
+  }, survival_terms, ders)
 
   # we need to to alter the start times and add new observations for the delayed
   # entries
