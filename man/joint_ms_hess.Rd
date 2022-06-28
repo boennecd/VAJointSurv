@@ -12,7 +12,7 @@ joint_ms_hess(
   eps = 1e-04,
   scale = 2,
   tol = .Machine$double.eps^(3/5),
-  order = 6L,
+  order = 4L,
   gh_quad_rule = object$gh_quad_rule
 )
 }

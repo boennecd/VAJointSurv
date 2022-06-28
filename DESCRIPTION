@@ -14,8 +14,8 @@ Authors@R: c(
   person("Antoine", "Savine", 
          role = "cph"))
 Maintainer: Benjamin Christoffersen <boennecd@gmail.com>
-Description: Provides function to estiamte joint marker (longitudinal) and 
-    and survival (time-to-event) outcomes using variational approxiamtions.
+Description: Provides function to estimate joint marker (longitudinal) and 
+    and survival (time-to-event) outcomes using variational approximations.
     The functions support multivariate markers allowing for possibly 
     correlated error terms and multiple types of survival outcomes which may be
     left-truncated, right-censored, and recurrent.

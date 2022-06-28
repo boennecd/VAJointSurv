@@ -271,6 +271,45 @@ joint_ms_set_vcov <- function(
 #' @importFrom psqn psqn
 #' @importFrom lme4 lmer VarCorr lmerControl
 #'
+#' @examples
+#' # load in the data
+#' library(survival)
+#' data(pbc, package = "survival")
+#'
+#' # re-scale by year
+#' pbcseq <- transform(pbcseq, day_use = day / 365.25)
+#' pbc <- transform(pbc, time_use = time / 365.25)
+#'
+#' # create the marker terms
+#' m1 <- marker_term(
+#'   log(bili) ~ 1, id = id, data = pbcseq,
+#'   time_fixef = bs_term(day_use, df = 5L),
+#'   time_rng = poly_term(day_use, degree = 1L, raw = TRUE, intercept = TRUE))
+#' m2 <- marker_term(
+#'   albumin ~ 1, id = id, data = pbcseq,
+#'   time_fixef = bs_term(day_use, df = 5L),
+#'   time_rng = poly_term(day_use, degree = 1L, raw = TRUE, intercept = TRUE))
+#'
+#' # base knots on observed event times
+#' bs_term_knots <-
+#'   with(pbc, quantile(time_use[status == 2], probs = seq(0, 1, by = .2)))
+#'
+#' boundary <- c(bs_term_knots[ c(1, length(bs_term_knots))])
+#' interior <- c(bs_term_knots[-c(1, length(bs_term_knots))])
+#'
+#' # create the survival term
+#' s_term <- surv_term(
+#'   Surv(time_use, status == 2) ~ 1, id = id, data = pbc,
+#'   time_fixef = bs_term(time_use, Boundary.knots = boundary, knots = interior))
+#'
+#' # create the C++ object to do the fitting
+#' model_ptr <- joint_ms_ptr(
+#'   markers = list(m1, m2), survival_terms = s_term,
+#'   max_threads = 2L, ders = list(0L, c(0L, -1L)))
+#'
+#' # find the starting values
+#' start_vals <- joint_ms_start_val(model_ptr)
+#'
 #' @export
 joint_ms_start_val <- function(
   object, par = object$start_val,
@@ -462,7 +501,7 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 joint_ms_hess <- function(
   object, par, quad_rule = object$quad_rule,
   cache_expansions = object$cache_expansions, eps = 1e-4, scale = 2,
-  tol = .Machine$double.eps^(3/5), order = 6L,
+  tol = .Machine$double.eps^(3/5), order = 4L,
   gh_quad_rule = object$gh_quad_rule){
   stopifnot(inherits(object, "joint_ms"))
 
