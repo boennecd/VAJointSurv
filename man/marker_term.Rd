@@ -22,6 +22,9 @@ variables in.}
 \item{time_rng}{the time-varying random effects. See .e.g.
 \code{\link{poly_term}}.}
 }
+\value{
+An object of class \code{marker_term} containing longitudinal data.
+}
 \description{
 Creates Data for One Type of Marker
 }

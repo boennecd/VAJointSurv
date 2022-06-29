@@ -68,6 +68,14 @@ you use more threads as the CPU cache is not well utilized.}
 better starting values along the profile likelihood curve. Use \code{NULL}
 if it is not passed.}
 }
+\value{
+A list with the following elements:
+\item{confs}{profile likelihood based confidence interval.}
+\item{xs}{the value of parameter at which profile likelihood is evaluated at.}
+\item{p_log_Lik}{numeric value of profile log-likelihood.}
+\item{data}{list of lists for profiled parameter values with
+values of log-likelihood, estimated other parameter values.}
+}
 \description{
 Approximate Likelihood Ratio based Confidence Intervals
 }

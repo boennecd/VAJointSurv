@@ -53,6 +53,10 @@
 #' 1075-1098, doi: 10.1080/07474938.2014.975640
 #'
 #' @importFrom stats model.frame model.matrix model.response
+#'
+#' @return
+#' An object of class \code{surv_term} with data required for survival outcome.
+#'
 #' @examples
 #' # load in the data
 #' library(survival)

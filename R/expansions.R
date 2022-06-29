@@ -50,6 +50,14 @@ bases_weights <- function(weights_symbol, newdata, enclos, expected_length) {
 #' @param use_log \code{TRUE} if the polynomials should be in the log of the
 #' argument.
 #'
+#' @return
+#' A list like \code{\link{poly}} with an additional element called \code{eval}
+#' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+#'
+#' @seealso
+#' \code{\link{bs_term}}, \code{\link{ns_term}}, \code{\link{weighted_term}}, and
+#' \code{\link{stacked_term}}.
+#'
 #' @importFrom stats poly
 #' @examples
 #' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
@@ -84,6 +92,10 @@ poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
 #' A list like \code{\link{ns}} with an additional element called \code{eval}
 #' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
 #'
+#' @seealso
+#' \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{weighted_term}}, and
+#' \code{\link{stacked_term}}.
+#'
 #' @importFrom splines ns
 #' @examples
 #' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
@@ -117,6 +129,10 @@ ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
 #' @return
 #' A list like \code{\link{bs}} with an additional element called \code{eval}
 #' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+#'
+#' @seealso
+#' \code{\link{poly_term}}, \code{\link{ns_term}}, \code{\link{weighted_term}},
+#' and \code{\link{stacked_term}}.
 #'
 #' @importFrom splines bs
 #' @examples
@@ -154,9 +170,13 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 #' @param x a term type from the package.
 #' @param weight a numeric vector with weights for x.
 #'
+#' @return
+#' A list with an element called \code{eval}
+#' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+#'
 #' @seealso
 #' \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
-#' \code{\link{stacked_term}}
+#' \code{\link{stacked_term}}.
 #'
 #' @examples
 #' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
@@ -192,9 +212,13 @@ weighted_term <- function(x, weight){
 #'
 #' @param ... term objects from the package.
 #'
+#' @return
+#' A list with an element called \code{eval}
+#' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+#'
 #' @seealso
 #' \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
-#' \code{\link{weighted_term}}
+#' \code{\link{weighted_term}}.
 #'
 #' @examples
 #' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)

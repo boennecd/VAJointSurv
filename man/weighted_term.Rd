@@ -11,6 +11,10 @@ weighted_term(x, weight)
 
 \item{weight}{a numeric vector with weights for x.}
 }
+\value{
+A list like \code{\link{ns}} with an additional element called \code{eval}
+to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+}
 \description{
 Creates a weighted basis matrix where the entries are weighted with a
 numeric vector to e.g. create a varying-coefficient.
@@ -31,5 +35,5 @@ w_term$eval(c(0.5,0.7), newdata = data.frame(weights), der = 1)
 }
 \seealso{
 \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
-\code{\link{stacked_term}}
+\code{\link{stacked_term}}.
 }

@@ -9,6 +9,10 @@ stacked_term(...)
 \arguments{
 \item{...}{term objects from the package.}
 }
+\value{
+A list like \code{\link{ns}} with an additional element called \code{eval}
+to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+}
 \description{
 Creates a basis matrix consisting of different types of terms.
 E.g. to create a varying-coefficient.
@@ -29,5 +33,5 @@ stacked_basis$eval(0.5, der = 1)
 }
 \seealso{
 \code{\link{poly_term}}, \code{\link{bs_term}}, \code{\link{ns_term}}, and
-\code{\link{weighted_term}}
+\code{\link{weighted_term}}.
 }

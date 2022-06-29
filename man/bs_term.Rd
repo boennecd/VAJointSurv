@@ -35,3 +35,7 @@ spline_basis$eval(0.5)
 # evaluate first derivative of spline basis at 0.5
 spline_basis$eval(0.5, der = 1)
 }
+\seealso{
+\code{\link{poly_term}}, \code{\link{ns_term}}, \code{\link{weighted_term}},
+and \code{\link{stacked_term}}.
+}

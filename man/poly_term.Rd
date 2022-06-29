@@ -21,6 +21,10 @@ poly_term(
 \item{use_log}{\code{TRUE} if the polynomials should be in the log of the
 argument.}
 }
+\value{
+A list like \code{\link{ns}} with an additional element called \code{eval}
+to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+}
 \description{
 Term for Orthogonal Polynomials
 }
@@ -31,4 +35,8 @@ spline_basis <- poly_term(vals,degree = 3, raw = TRUE)
 spline_basis$eval(0.5)
 # evaluate first derivative of spline basis at 0.5
 spline_basis$eval(0.5, der = 1)
+}
+\seealso{
+\code{\link{bs_term}}, \code{\link{ns_term}}, \code{\link{weighted_term}}, and
+\code{\link{stacked_term}}.
 }

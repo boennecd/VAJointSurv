@@ -19,6 +19,10 @@
 #'
 #' @importFrom stats model.frame model.matrix model.response
 #' @importFrom Matrix rankMatrix
+#'
+#' @return
+#' An object of class \code{marker_term} containing longitudinal data.
+#'
 #' @examples
 #' # load in the data
 #' library(survival)
