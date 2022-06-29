@@ -12,7 +12,7 @@ weighted_term(x, weight)
 \item{weight}{a numeric vector with weights for x.}
 }
 \value{
-A list like \code{\link{ns}} with an additional element called \code{eval}
+A list with an element called \code{eval}
 to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
 }
 \description{

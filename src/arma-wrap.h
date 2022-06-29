@@ -13,11 +13,6 @@
 #endif
 
 #define ARMA_DONT_PRINT_ERRORS
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
 #include <RcppArmadillo.h>
-#pragma GCC diagnostic pop
 
 #endif

@@ -22,7 +22,7 @@ poly_term(
 argument.}
 }
 \value{
-A list like \code{\link{ns}} with an additional element called \code{eval}
+A list like \code{\link{poly}} with an additional element called \code{eval}
 to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
 }
 \description{

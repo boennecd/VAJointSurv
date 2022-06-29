@@ -742,8 +742,7 @@ joint_ms_hess <- function(
 #' \item{\code{convergence}}{logical for whether the optimization converged.}
 #'
 #' @examples
-
-#' # load in the data
+#' \donttest{# load in the data
 #' library(survival)
 #' data(pbc, package = "survival")
 #'
@@ -785,7 +784,7 @@ joint_ms_hess <- function(
 #' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 #'
 #' # formatted maximum likelihood estimators
-#' joint_ms_format(model_ptr, fit$par)
+#' joint_ms_format(model_ptr, fit$par)}
 #' @export
 joint_ms_opt <- function(
   object, par = object$start_val, rel_eps = 1e-8, max_it = 1000L,

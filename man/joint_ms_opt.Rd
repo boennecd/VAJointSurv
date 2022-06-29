@@ -65,7 +65,7 @@ see \code{\link{psqn}}.}
 Optimizes the Lower Bound
 }
 \examples{
-# load in the data
+\donttest{# load in the data
 library(survival)
 data(pbc, package = "survival")
 
@@ -107,5 +107,5 @@ start_vals <- joint_ms_start_val(model_ptr)
 fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 
 # formatted maximum likelihood estimators
-joint_ms_format(model_ptr, fit$par)
+joint_ms_format(model_ptr, fit$par)}
 }
