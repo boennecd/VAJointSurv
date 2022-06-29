@@ -87,7 +87,7 @@ model_ptr <- joint_ms_ptr(
 start_vals <- joint_ms_start_val(model_ptr)
 
 # optimize lower bound
-fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 
 # compute the Hessian
 hess <- joint_ms_hess(object = model_ptr,par = fit$par)

@@ -662,7 +662,7 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 #'
 #' # compute the Hessian
 #' hess <- joint_ms_hess(object = model_ptr,par = fit$par)
@@ -749,7 +749,7 @@ joint_ms_hess <- function(
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 #'
 #' # formatted maximum likelihood estimators
 #' joint_ms_format(model_ptr, fit$par)
@@ -933,7 +933,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
 #'
 #' # compute the Hessian
 #' hess <- joint_ms_hess(object = model_ptr,par = fit$par)
@@ -952,7 +952,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' # for the first association parameter
 #' profile_CI <- joint_ms_profile(
 #'   object = model_ptr, opt_out = fit, which_prof = which_prof,
-#'   delta= delta, gr_tol = .1)
+#'   delta= delta, gr_tol = .01)
 #'
 #' # comparison of CIs
 #' profile_CI$confs

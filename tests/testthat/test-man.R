@@ -73,7 +73,7 @@ test_that("manual pages gives the same results as previously for joint_ms type f
                         style = "serialize",
                         tolerance = 1e-3)
 
-  fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .1)
+  fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
   hess <- joint_ms_hess(object = model_ptr,par = fit$par)
 
   expect_snapshot_value(fit[c("value", "info", "convergence")],
@@ -91,7 +91,7 @@ test_that("manual pages gives the same results as previously for joint_ms type f
 
   profile_CI <- joint_ms_profile(
     object = model_ptr, opt_out = fit, which_prof = which_prof,
-    delta= delta, gr_tol = .1, verbose = FALSE)
+    delta= delta, gr_tol = .01, verbose = FALSE)
 
   expect_snapshot_value(profile_CI[c("confs","xs","p_log_Lik")],
                         style = "json2",
