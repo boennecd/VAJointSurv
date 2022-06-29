@@ -27,6 +27,9 @@ expansions.}
 \item{delayed}{a vector with an entry which is \code{TRUE} if the
 left-truncation time from the survival outcome is from a delayed entry.}
 }
+\value{
+An object of class \code{surv_term} with data required for survival outcome.
+}
 \description{
 Creates Data for One Type of Survival Outcome
 }

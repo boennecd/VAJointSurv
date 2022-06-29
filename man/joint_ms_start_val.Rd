@@ -53,6 +53,9 @@ This seems to work well when delayed entry happens at time with large
 marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
 }
+\value{
+Numeric vector of starting values for model parameters.
+}
 \description{
 Quick Heuristic for the Starting Values
 }

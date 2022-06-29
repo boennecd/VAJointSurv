@@ -53,6 +53,14 @@ This seems to work well when delayed entry happens at time with large
 marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
 }
+\value{
+A list with the following elements:
+\item{\code{par}}{vector of estimated model parameters.}
+\item{\code{value}}{numeric value of optimized lower bound.}
+\item{\code{counts}}{function count for the number of conjugate gradient iterations,
+see \code{\link{psqn}}.}
+\item{\code{convergence}}{logical for whether the optimization converged.}
+}
 \description{
 Optimizes the Lower Bound
 }

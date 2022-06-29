@@ -26,6 +26,9 @@ random effects per observation and the number of columns is the number
 of observations. The order for the observations needs to be the same as the
 \code{id} element of \code{object}.}
 }
+\value{
+Numeric vector with model parameters.
+}
 \description{
 Sets the covariance matrices to the passed values. The function also sets
 covariance matrices for the variational distributions to the same values.

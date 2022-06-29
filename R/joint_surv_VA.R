@@ -72,6 +72,12 @@ check_n_threads <- function(object, n_threads){
 #' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
 #' value of the random effect for all markers. Note that the number of integer
 #' vectors should be equal to the number of markers.
+#'
+#' @return
+#' An object of \code{joint_ms} class with the needed C++ and R objects
+#' to estimate the model.
+#' @seealso \code{\link{joint_ms_opt}}, \code{\link{joint_ms_lb}},
+#' \code{\link{joint_ms_hess}}, and \code{\link{joint_ms_start_val}}.
 #' @examples
 #' # load in the data
 #' library(survival)
@@ -261,6 +267,10 @@ joint_ms_ptr <- function(markers = list(), survival_terms = list(),
 #' random effects per observation and the number of columns is the number
 #' of observations. The order for the observations needs to be the same as the
 #' \code{id} element of \code{object}.
+#'
+#' @return
+#' Numeric vector with model parameters.
+#'
 #' @examples
 #' # load in the data
 #' library(survival)
@@ -349,6 +359,9 @@ joint_ms_set_vcov <- function(
 #' Quick Heuristic for the Starting Values
 #'
 #' @inheritParams joint_ms_opt
+#'
+#' @return
+#' Numeric vector of starting values for the model parameters.
 #'
 #' @importFrom stats coef
 #' @importFrom psqn psqn
@@ -533,6 +546,10 @@ joint_ms_start_val <- function(
 
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound
 #'
+#' @return
+#' \code{joint_ms_lb} returns numeric value of the lower bound,
+#' \code{joint_ms_lb_gr} returns numeric value of its gradient.
+#'
 #' @inheritParams joint_ms_ptr
 #' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
 #' @param par parameter vector for where the lower bound is evaluated at.
@@ -618,9 +635,16 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #' @param eps,scale,tol,order parameter to pass to psqn. See
 #' \code{\link{psqn_hess}}.
 #'
+#' @return
+#' A list with the following two Hessian matrices:
+#' \item{\code{hessian}}{Hessian matrix of the model parameters with the
+#' variational parameters profiled out.}
+#' \item{\code{hessian_all}}{Hessian matrix of the model and variational parameters.}
+#'
 #' @import methods
 #' @importFrom Matrix solve
 #' @importMethodsFrom Matrix solve
+
 #' @examples
 #' \donttest{# load in the data
 #' library(survival)
@@ -708,6 +732,15 @@ joint_ms_hess <- function(
 #' @param par starting value.
 #' @param rel_eps,max_it,c1,c2,use_bfgs,trace,cg_tol,strong_wolfe,max_cg,pre_method,mask,gr_tol
 #' arguments to pass to the C++ version of \code{\link{psqn}}.
+#'
+#' @return
+#' A list with the following elements:
+#' \item{\code{par}}{vector of estimated model parameters.}
+#' \item{\code{value}}{numeric value of optimized lower bound.}
+#' \item{\code{counts}}{function count for the number of conjugate gradient iterations,
+#' see \code{\link{psqn}}.}
+#' \item{\code{convergence}}{logical for whether the optimization converged.}
+#'
 #' @examples
 
 #' # load in the data
@@ -904,6 +937,14 @@ joint_ms_format <- function(object, par = object$start_val){
 #' better starting values along the profile likelihood curve. Use \code{NULL}
 #' if it is not passed.
 #'
+#' @return
+#' A list with the following elements:
+#' \item{confs}{profile likelihood based confidence interval.}
+#' \item{xs}{the value of parameter at which profile likelihood is evaluated at.}
+#' \item{p_log_Lik}{numeric value of profile log-likelihood.}
+#' \item{data}{list of lists for profiled parameter values with
+#' values of log-likelihood, estimated other parameter values.}
+#'
 #' @importFrom stats approx qchisq splinefun qnorm spline
 #' @importFrom utils head
 #' @examples
@@ -972,6 +1013,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' profile_CI$confs
 #' fit$par[which_prof]+c(-1,1)*qnorm(0.975)*se[which_prof] }
 #' @export
+
 joint_ms_profile <- function(
   object, opt_out, which_prof, delta, level = .95, max_step = 15L,
   rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,

@@ -49,6 +49,10 @@ the survival outcomes are linked to the markers. 0 implies present values,
 value of the random effect for all markers. Note that the number of integer
 vectors should be equal to the number of markers.}
 }
+\value{
+An object of \code{joint_ms} class with the needed C++ and R objects
+to estimate the model.
+}
 \description{
 Creates a joint_ms Object to Estimate a Joint Survival and Marker Model
 }
@@ -87,4 +91,8 @@ s_term <- surv_term(
 model_ptr <- joint_ms_ptr(
   markers = list(m1, m2), survival_terms = s_term,
   max_threads = 2L)
+}
+\seealso{
+\code{\link{joint_ms_opt}}, \code{\link{joint_ms_lb}},
+\code{\link{joint_ms_hess}}, and \code{\link{joint_ms_start_val}}.
 }

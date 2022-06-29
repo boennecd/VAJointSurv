@@ -43,6 +43,12 @@ This seems to work well when delayed entry happens at time with large
 marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
 }
+\value{
+A list with the following two Hessian matrices:
+\item{\code{hessian}}{Hessian matrix of the model parameters with the
+variational parameters profiled out.}
+\item{\code{hessian_all}}{Hessian matrix of the model and variational parameters.}
+}
 \description{
 Computes the Hessian
 }

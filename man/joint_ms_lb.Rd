@@ -49,6 +49,10 @@ This seems to work well when delayed entry happens at time with large
 marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
 }
+\value{
+\code{joint_ms_lb} returns numeric value of the lower bound,
+\code{joint_ms_lb_gr} returns numeric value of its gradient.
+}
 \description{
 Evaluates the Lower Bound or the Gradient of the Lower Bound
 }
