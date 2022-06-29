@@ -20,6 +20,10 @@ bs_term(
 \item{use_log}{\code{TRUE} if the polynomials should be in the log of the
 argument.}
 }
+\value{
+A list like \code{\link{bs}} with an additional element called \code{eval}
+to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+}
 \description{
 Term for a B-Spline Basis for Polynomial Splines
 }

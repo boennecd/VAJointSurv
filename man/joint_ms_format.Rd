@@ -11,6 +11,20 @@ joint_ms_format(object, par = object$start_val)
 
 \item{par}{parameter vector to be formatted.}
 }
+\value{
+A list with the following elements:
+\item{markers}{list with an element for each marker. The lists contains an
+element called \code{fixef} for non-time-varying fixed effects and an
+element called \code{fixef_vary} time-varying fixed effects.}
+\item{survival}{list with an element for each survival outcome. The lists
+contains an element called \code{fixef} for non-time-varying fixed effects,
+an element called \code{fixef_vary} time-varying fixed effects, and an
+element called \code{associations} for the association parameters.}
+\item{vcov}{contains three covariance matrices called \code{vcov_marker},
+\code{vcov_vary} and \code{vcov_surv} for the covariance matrix of the
+markers error term, the time-varying random effects, and the frailties,
+respectively.}
+}
 \description{
 Formats a parameter vector by putting the model parameters into a \code{list}
 with elements for each type of parameter.

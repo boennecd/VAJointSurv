@@ -19,6 +19,10 @@ ns_term(
 \item{use_log}{\code{TRUE} if the polynomials should be in the log of the
 argument.}
 }
+\value{
+A list like \code{\link{ns}} with an additional element called \code{eval}
+to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+}
 \description{
 Term for a Basis Matrix for Natural Cubic Splines
 }

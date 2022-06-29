@@ -791,6 +791,20 @@ joint_ms_opt <- function(
 #' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
 #' @param par parameter vector to be formatted.
 #'
+#' @return
+#' A list with the following elements:
+#' \item{markers}{list with an element for each marker. The lists contains an
+#' element called \code{fixef} for non-time-varying fixed effects and an
+#' element called \code{fixef_vary} time-varying fixed effects.}
+#' \item{survival}{list with an element for each survival outcome. The lists
+#' contains an element called \code{fixef} for non-time-varying fixed effects,
+#' an element called \code{fixef_vary} time-varying fixed effects, and an
+#' element called \code{associations} for the association parameters.}
+#' \item{vcov}{contains three covariance matrices called \code{vcov_marker},
+#' \code{vcov_vary} and \code{vcov_surv} for the covariance matrix of the
+#' markers error term, the time-varying random effects, and the frailties,
+#' respectively.}
+#'
 #' @importFrom stats setNames
 #' @examples
 #' # load in the data

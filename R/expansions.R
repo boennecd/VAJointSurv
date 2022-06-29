@@ -1,3 +1,27 @@
+#' @title Expansions in the VAJointSurv package
+#' @name VAJointSurv-terms
+#'
+#' @description
+#' The VAJointSurv package uses different functions to allow for expansions in
+#' time possibly with covariate interactions. The main usage of the functions
+#' are internally but they do provide an element called `eval()` which is a
+#' function to evaluate the expansion. These functions take the following
+#' arguments:
+#'
+#' \itemize{
+#' \item \code{x} numeric vector with points at which to evaluate the expansion.
+#' \item \code{der} integer indicating whether to evaluate the expansion, its integral,
+#' or the derivative.
+#' \item \code{lower_limit} possible lower limit if integration is performed.
+#' \item \code{newdata} a \code{\link{data.frame}} with new data if this is required.
+#' E.g. for \code{\link{weighted_term}}.
+#' }
+#'
+#' The supported terms are \code{\link{ns_term}}, \code{\link{bs_term}},
+#' \code{\link{poly_term}}, \code{\link{weighted_term}}, and a
+#' \code{\link{stacked_term}}.
+NULL
+
 wrap_term <- function(term){
   ptr <- expansion_object(term)
   term$ptr <- ptr
@@ -56,6 +80,10 @@ poly_term <- function(x = numeric(), degree = 1, coefs = NULL, raw = FALSE,
 #' @param use_log \code{TRUE} if the polynomials should be in the log of the
 #' argument.
 #'
+#' @return
+#' A list like \code{\link{ns}} with an additional element called \code{eval}
+#' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
+#'
 #' @importFrom splines ns
 #' @examples
 #' vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
@@ -85,6 +113,10 @@ ns_term <- function(x = numeric(), df = NULL, knots = NULL, intercept = FALSE,
 #' @param x,df,knots,degree,intercept,Boundary.knots same as \code{\link{bs}}.
 #' @param use_log \code{TRUE} if the polynomials should be in the log of the
 #' argument.
+#'
+#' @return
+#' A list like \code{\link{bs}} with an additional element called \code{eval}
+#' to evaluate the basis. See \code{\link{VAJointSurv-terms}}.
 #'
 #' @importFrom splines bs
 #' @examples
