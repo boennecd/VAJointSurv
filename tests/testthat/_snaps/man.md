@@ -513,7 +513,7 @@
       ]
     }
 
-# plots marker returns same type of output
+# plot_marker returns same type of output
 
     WAoAAAACAAQCAQACAwAAAAITAAAAAwAAAA4AAADIv/7RigpngSm//wRS9051G7//NEPF6beY
     v/9hcQlLeim//4vvVLHSAL//s9M7ifXMv//ZMVFzZEK///weKkLzkcAADlctAuT2wAAdezqC
@@ -607,7 +607,7 @@
     P+wUYvbe27s/7EFm/YmkAj/sboDJ4qfNP+ybsDN5/8Y/7Mj1Ed/EkAAABAIAAAABAAQACQAA
     AAVuYW1lcwAAABAAAAADAAQACQAAAANsYnMABAAJAAAAA3VicwAEAAkAAAADbWVhAAAA/g==
 
----
+# plot_surv returns same type of output
 
     WAoAAAACAAQCAQACAwAAAAITAAAAAgAAAA4AAABkAAAAAAAAAAA/qdvMSGdvMT+528xIZ28x
     P8Nk2TZNk2U/ydvMSGdvMT/QKV+tQKV/P9Nk2TZNk2U/1qBSv1qBSz/Z28xIZ28xP90XRdF0

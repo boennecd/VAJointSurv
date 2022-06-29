@@ -79,7 +79,6 @@ test_that("manual pages gives the same results as previously for joint_ms type f
   expect_snapshot_value(fit[c("value", "info", "convergence")],
                         tolerance = 1e-5)
 
-
   expect_snapshot_value(joint_ms_format(model_ptr, fit$par),
                         style = "serialize", tolerance = 1e-3)
 
