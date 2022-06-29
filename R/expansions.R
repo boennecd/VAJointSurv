@@ -135,10 +135,10 @@ bs_term <- function(x = numeric(), df = NULL, knots = NULL, degree = 3,
 #' w_term <- weighted_term(spline_basis,weights)
 #'
 #' # evaluate weighted basis at 0.5 and 0.7 with weights 4 and 5
-#' w_term$eval(c(0.5,0.7))
-#' # evaluate the first derivative of stacked basis at 0.5 and 0.7
-#' with weights 4 and 5
-#' w_term$eval(c(0.5,0.7), der = 1)
+#' w_term$eval(c(0.5,0.7), newdata = data.frame(weights))
+#' # evaluate the first derivative of weighted basis at 0.5 and 0.7
+#' # with weights 4 and 5
+#' w_term$eval(c(0.5,0.7), newdata = data.frame(weights), der = 1)
 #' @export
 weighted_term <- function(x, weight){
   is_valid_expansion(x)

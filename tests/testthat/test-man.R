@@ -170,7 +170,7 @@ test_that("test manual page example for stacked_term", {
 
 test_that("test manual page example for weighted_term", {
   vals <- c(0.41, 0.29, 0.44, 0.1, 0.18, 0.65, 0.29, 0.85, 0.36, 0.47)
-  weights <- c(4,5)
+  ws <- c(4,5)
   basis <- ns_term(vals, df = 3)
   weighted_basis <- weighted_term(basis, weights)
 
@@ -180,13 +180,13 @@ test_that("test manual page example for weighted_term", {
 
 
   expect_equal(
-    c(t(weighted_basis$eval(c(0.5, 0.7)))),
+    c(t(weighted_basis$eval(c(0.5, 0.7), newdata = data.frame(weights = ws)))),
     ns(
       c(0.5, 0.7), Boundary.knots = attr(correct_basis, "Boundary.knots"),
-      knots = attr(correct_basis, "knots"))*weights,
+      knots = attr(correct_basis, "knots"))*rep(ws, 3),
     ignore_attr = TRUE)
 
-  expect_equal(c(weighted_basis$eval(c(0.5,0.7),der = 1)),
+  expect_equal(c(weighted_basis$eval(c(0.5,0.7), newdata = data.frame(weights = ws),der = 1)),
                c(4.27002984850904, -3.55854176533042, 7.82509728267505,
                  -12.1889695326034, 0.47409899023935, 13.6748008559529),
                tolerance = 1e-6)
