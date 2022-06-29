@@ -90,20 +90,54 @@ ns::ns(const vec &bk, const vec &interior_knots,
   basisMixin(use_log),
   s_basis{SplineBasis_knots(bk, interior_knots, order), order},
   boundary_knots{bk[0], bk[1]},
-  intercept(intercept),
-  tl0(trans(s_basis
-              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()),
-               nullptr, 0))),
-  tl1(trans(s_basis
-              (boundary_knots[0], wmem::get_double_mem(s_basis.n_wmem()),
-               nullptr, 1))),
-  tr0(trans(s_basis
-              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()),
-               nullptr, 0))),
-  tr1(trans(s_basis
-              (boundary_knots[1], wmem::get_double_mem(s_basis.n_wmem()),
-               nullptr, 1)))
-  { }
+  intercept(intercept)
+  {
+    {
+      arma::vec tmp{boundary_knots[0], boundary_knots[1]};
+      mat const_basis = s_basis.basis
+        (tmp, wmem::mem_stack().get(s_basis.n_wmem()), 2);
+      if (!intercept)
+        const_basis = const_basis.cols(1, const_basis.n_cols - 1);
+      inplace_trans(const_basis);
+
+      int const m = const_basis.n_rows;
+      constexpr int n{2};
+      qr_A.resize(const_basis.n_elem);
+      std::copy(const_basis.begin(), const_basis.end(), qr_A.begin());
+      qr_tau.resize(std::min(m, n));
+
+      int lwork{-1}, info{};
+      qr_jpvt[0] = 0;
+      qr_jpvt[1] = 0;
+      {
+        double opt_work{};
+        F77_CALL(dgeqp3)
+          (&m, &n, qr_A.data(), &m, qr_jpvt.data(), qr_tau.data(), &opt_work,
+           &lwork, &info);
+        lwork = opt_work;
+      }
+
+      F77_CALL(dgeqp3)
+        (&m, &n, qr_A.data(), &m, qr_jpvt.data(), qr_tau.data(),
+         wmem::mem_stack().get(lwork), &lwork, &info);
+
+      if(info < 0)
+        throw std::invalid_argument("ns: QR decomposition failed");
+    }
+
+    tl0 = trans
+      (s_basis(boundary_knots[0], wmem::mem_stack().get(s_basis.n_wmem()),
+               nullptr, 0.));
+    tl1 = trans
+      (s_basis(boundary_knots[0], wmem::mem_stack().get(s_basis.n_wmem()),
+               nullptr, 1.));
+    tr0 = trans
+      (s_basis(boundary_knots[1], wmem::mem_stack().get(s_basis.n_wmem()),
+               nullptr, 0.));
+    tr1 = trans
+      (s_basis(boundary_knots[1], wmem::mem_stack().get(s_basis.n_wmem()),
+               nullptr, 1.));
+  }
 
 iSpline::iSpline(const vec &boundary_knots, const vec &interior_knots,
                  const bool intercept, const vajoint_uint order):

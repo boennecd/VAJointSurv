@@ -580,8 +580,25 @@ public:
 
 //-----------------------------Natural Splines--------------------------------------
 
-class ns  : public basisMixin {
+class ns : public basisMixin {
   SplineBasis s_basis;
+  std::vector<double> qr_A, qr_tau;
+  std::array<int, 2> qr_jpvt;
+
+  void qr_prod(double *lhs, double const *b, double *work) const {
+    int const m = qr_dim();
+    constexpr int n{1}, k{2};
+    constexpr char trans{'T'}, side{'L'};
+    int lwork = m, info{};
+
+    std::copy(b + (!intercept), b + (!intercept) + qr_dim(), lhs);
+    F77_CALL(dormqr)
+      (&side, &trans, &m, &n, &k, qr_A.data(), &m, qr_tau.data(),
+       lhs, &m, work, &lwork, &info, 1, 1);
+
+    if(info < 0)
+      throw std::runtime_error("ns: dormqr failed");
+  }
 
   void do_eval
     (double *out, double *wk_mem, double const x,
@@ -597,17 +614,14 @@ class ns  : public basisMixin {
       // handle the integration between K0 and KMax
       {
         double * const lhs = wk_mem;
-        wk_mem += q_matrix.n_rows;
+        wk_mem += qr_dim();
         double * const b = wk_mem;
         wk_mem += s_basis.n_basis();
         s_basis(b, wk_mem, x, nullptr, ders);
 
-        std::fill(lhs, lhs + q_matrix.n_rows, 0);
-        lp_joint::mat_vec
-          (lhs, q_matrix.begin(), b + (!intercept), q_matrix.n_rows,
-           q_matrix.n_cols);
-
-        std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
+        std::fill(lhs, lhs + qr_dim(), 0);
+        qr_prod(lhs, b, wk_mem);
+        std::copy(lhs + 2, lhs + qr_dim(), out);
       }
 
       // handle the areas outside of the knots
@@ -671,42 +685,31 @@ class ns  : public basisMixin {
     }
 
     double * const lhs = wk_mem;
-    wk_mem += q_matrix.n_rows;
+    wk_mem += qr_dim();
     double * const b = wk_mem;
     wk_mem += s_basis.n_basis();
     s_basis(b, wk_mem, x, nullptr, ders);
 
-    std::fill(lhs, lhs + q_matrix.n_rows, 0);
-    lp_joint::mat_vec
-      (lhs, q_matrix.begin(), b + (!intercept), q_matrix.n_rows,
-       q_matrix.n_cols);
+    std::fill(lhs, lhs + qr_dim(), 0);
 
-    std::copy(lhs + 2, lhs + q_matrix.n_rows, out);
+    qr_prod(lhs, b, wk_mem);
+    std::copy(lhs + 2, lhs + qr_dim(), out);
   }
 
   vec trans(const vec &x) const {
     // TODO: very inefficient
-    vec out = q_matrix * (intercept ? x : x(span(1, x.n_elem - 1)));
+    vec out(qr_dim());
+    qr_prod(out.begin(), x.begin(), wmem::mem_stack().get(qr_dim()));
     return out(span(2, out.size() - 1));
   }
+
+  size_t qr_dim() const { return s_basis.n_basis() - (!intercept); }
+
+  vec tl0, tl1, tr0, tr1;
 
 public:
   double const boundary_knots[2];
   bool const intercept;
-  mat const q_matrix = ([&](){
-    // calculate the Q matrix
-    arma::vec tmp{boundary_knots[0], boundary_knots[1]};
-    mat const_basis = s_basis.basis
-      (tmp, wmem::get_double_mem(s_basis.n_wmem()), 2);
-    if (!intercept)
-      const_basis = const_basis.cols(1, const_basis.n_cols - 1);
-    mat qd, rd;
-    if(!qr(qd, rd, const_basis.t()))
-      throw std::invalid_argument("ns: QR decomposition failed");
-    inplace_trans(qd);
-    return qd;
-  })();
-  vec const tl0, tl1, tr0, tr1;
 
   ns(const vec &boundary_knots, const vec &interior_knots,
      const bool intercept = default_intercept,
@@ -714,12 +717,12 @@ public:
      const bool use_log = default_use_log);
 
   size_t n_wmem() const {
-    return s_basis.n_wmem() + q_matrix.n_rows +
+    return s_basis.n_wmem() + 2 * qr_dim() +
       s_basis.n_basis() + n_basis();
   }
 
   vajoint_uint n_basis() const {
-    return q_matrix.n_rows - 2;
+    return qr_dim() - 2;
   }
 
   std::unique_ptr<basisMixin> clone() const {

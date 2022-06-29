@@ -4,6 +4,19 @@
 #include "VA-joint-config.h"
 #include <algorithm>
 #include <numeric>
+#include <R_ext/RS.h> // for F77_NAME and F77_CALL
+
+extern "C" {
+  void F77_NAME(dgeqp3)
+    (int const *m, int const *n, double *A, int const *lda,
+     int *jpvt, double *tau, double *work, int const *lwork, int *info);
+
+  void F77_NAME(dormqr)
+    (char const *side, char const *trans, int const *m, int const *n,
+     int const *k, double const *A, int const *lda, double const *tau,
+     double *C, int const *ldc, double *work, int *lwork, int *info,
+     size_t, size_t);
+}
 
 namespace lp_joint {
 /**
