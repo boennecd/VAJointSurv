@@ -1,6 +1,7 @@
 # MIT License
 
-Copyright (c) 2021 Benjamin Christoffersen and Mark Clements
+Copyright (c) 2022 Benjamin Christoffersen, Birzhan Akynkozhayev and Mark 
+                   Clements
 Copyright (c) 2018 Antoine Savine
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

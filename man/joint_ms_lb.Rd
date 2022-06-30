@@ -50,8 +50,9 @@ marginal survival probabilities. The nodes and weights can be obtained e.g.
 from \code{fastGHQuad::gaussHermiteData}.}
 }
 \value{
-\code{joint_ms_lb} returns numeric value of the lower bound,
-\code{joint_ms_lb_gr} returns numeric value of its gradient.
+\code{joint_ms_lb} returns a number scalar with the lower bound.
+
+\code{joint_ms_lb_gr} returns a numeric vector with the gradient.
 }
 \description{
 Evaluates the Lower Bound or the Gradient of the Lower Bound
@@ -91,7 +92,6 @@ s_term <- surv_term(
 model_ptr <- joint_ms_ptr(
   markers = list(m1, m2), survival_terms = s_term,
   max_threads = 2L, ders = list(0L, c(0L, -1L)))
-
 
 # find the starting values
 start_vals <- joint_ms_start_val(model_ptr)

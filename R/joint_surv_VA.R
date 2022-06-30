@@ -547,8 +547,7 @@ joint_ms_start_val <- function(
 #' Evaluates the Lower Bound or the Gradient of the Lower Bound
 #'
 #' @return
-#' \code{joint_ms_lb} returns numeric value of the lower bound,
-#' \code{joint_ms_lb_gr} returns numeric value of its gradient.
+#' \code{joint_ms_lb} returns a number scalar with the lower bound.
 #'
 #' @inheritParams joint_ms_ptr
 #' @param object a joint_ms object from \code{\link{joint_ms_ptr}}.
@@ -590,7 +589,6 @@ joint_ms_start_val <- function(
 #'   markers = list(m1, m2), survival_terms = s_term,
 #'   max_threads = 2L, ders = list(0L, c(0L, -1L)))
 #'
-#'
 #' # find the starting values
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
@@ -613,6 +611,10 @@ joint_ms_lb <- function(object, par, n_threads = object$max_threads,
 }
 
 #' @rdname joint_ms_lb
+#'
+#' @return
+#' \code{joint_ms_lb_gr} returns a numeric vector with the gradient.
+#'
 #' @export
 joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
                            quad_rule = object$quad_rule,
@@ -681,7 +683,6 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #'   markers = list(m1, m2), survival_terms = s_term,
 #'   max_threads = 2L, ders = list(0L, c(0L, -1L)))
 #'
-#'
 #' # find the starting values
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
@@ -735,10 +736,10 @@ joint_ms_hess <- function(
 #'
 #' @return
 #' A list with the following elements:
-#' \item{\code{par}}{vector of estimated model parameters.}
-#' \item{\code{value}}{numeric value of optimized lower bound.}
-#' \item{\code{counts}}{function count for the number of conjugate gradient iterations,
-#' see \code{\link{psqn}}.}
+#' \item{\code{par}}{numeric vector of estimated model parameters.}
+#' \item{\code{value}}{numeric scalar with the value of optimized lower bound.}
+#' \item{\code{counts}}{integer vector with the function counts and the number
+#' of conjugate gradient iterations. See \code{\link{psqn}}.}
 #' \item{\code{convergence}}{logical for whether the optimization converged.}
 #'
 #' @examples
@@ -939,10 +940,13 @@ joint_ms_format <- function(object, par = object$start_val){
 #' @return
 #' A list with the following elements:
 #' \item{confs}{profile likelihood based confidence interval.}
-#' \item{xs}{the value of parameter at which profile likelihood is evaluated at.}
-#' \item{p_log_Lik}{numeric value of profile log-likelihood.}
-#' \item{data}{list of lists for profiled parameter values with
-#' values of log-likelihood, estimated other parameter values.}
+#' \item{xs}{the value of the parameter at which the profile likelihood is evaluated at.}
+#' \item{p_log_Lik}{numeric scalar with the profile log-likelihood.}
+#' \item{data}{list of lists of the output of each point where the profile
+#' likelihood is evaluated with the optimal parameter values of the
+#' other parameters given the
+#' constrained value of the parameter that is being profiled and
+#' the optimal value of the lower bound.}
 #'
 #' @importFrom stats approx qchisq splinefun qnorm spline
 #' @importFrom utils head
@@ -1012,7 +1016,6 @@ joint_ms_format <- function(object, par = object$start_val){
 #' profile_CI$confs
 #' fit$par[which_prof]+c(-1,1)*qnorm(0.975)*se[which_prof] }
 #' @export
-
 joint_ms_profile <- function(
   object, opt_out, which_prof, delta, level = .95, max_step = 15L,
   rel_eps = 1e-8, max_it = 1000L, n_threads = object$max_threads, c1 = 1e-04,

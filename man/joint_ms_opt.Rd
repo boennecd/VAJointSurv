@@ -55,10 +55,10 @@ from \code{fastGHQuad::gaussHermiteData}.}
 }
 \value{
 A list with the following elements:
-\item{\code{par}}{vector of estimated model parameters.}
-\item{\code{value}}{numeric value of optimized lower bound.}
-\item{\code{counts}}{function count for the number of conjugate gradient iterations,
-see \code{\link{psqn}}.}
+\item{\code{par}}{numeric vector of estimated model parameters.}
+\item{\code{value}}{numeric scalar with the value of optimized lower bound.}
+\item{\code{counts}}{integer vector with the function counts and the number
+of conjugate gradient iterations. See \code{\link{psqn}}.}
 \item{\code{convergence}}{logical for whether the optimization converged.}
 }
 \description{

@@ -1,18 +1,31 @@
 
 /*
-Written by Antoine Savine in 2018
+ Copyright (c) 2018 Antoine Savine
 
-This code is the strict IP of Antoine Savine
+ This code is from the implementation of the book
 
-License to use and alter this code for personal and commercial applications
-is freely granted to any person or company who purchased a copy of the book
+ Modern Computational Finance: AAD and Parallel Simulations
+ Antoine Savine
+ Wiley, 2018
 
-Modern Computational Finance: AAD and Parallel Simulations
-Antoine Savine
-Wiley, 2018
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
 
-As long as this comment is preserved at the top of the file
-*/
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */
 
 #pragma once
 
@@ -27,8 +40,8 @@ As long as this comment is preserved at the top of the file
 #include <algorithm>
 
 namespace cfaad {
-    
-class Node 
+
+class Node
 {
 	friend class Tape;
 	friend class Number;
@@ -37,18 +50,18 @@ class Node
 	friend struct numResultsResetterForAAD;
 #endif
 
-    //  The adjoint(s) 
+    //  The adjoint(s)
 	//	in single case, self held (chapter 10)
 	double			mAdjoint = 0;
 #if AADMULTIOUT
 	//	in multi case, held separately and accessed by pointer (chapter 14)
-    double*         pAdjoints;  
+    double*         pAdjoints;
 #endif
 
 	//  Data lives in separate memory
 
     //  the n derivatives to arguments,
-    double*         pDerivatives;    
+    double*         pDerivatives;
 
     //  the n pointers to the adjoints of arguments
     double**        pAdjPtrs;
@@ -68,7 +81,7 @@ public:
 
     //  Access to adjoint(s)
 	//	single
-    double& adjoint() 
+    double& adjoint()
     {
 		return mAdjoint;
 	}
@@ -76,11 +89,11 @@ public:
 	//	multi
 	double& adjoint(const size_t n) { return pAdjoints[n]; }
 #endif
-    
+
     //  Back-propagate adjoints to arguments adjoints
 
     //  Single case, chapter 10
-    void propagateOne() 
+    void propagateOne()
     {
 		//  Nothing to propagate
 		if (!n || !mAdjoint) return;

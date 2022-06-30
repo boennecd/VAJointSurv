@@ -12,3 +12,5 @@
 ^tests/testthat/Rplots\.pdf
 ^comparisons/*
 ^cran-comments\.md
+^README\.md
+^man/figures/*

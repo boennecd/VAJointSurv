@@ -71,10 +71,13 @@ if it is not passed.}
 \value{
 A list with the following elements:
 \item{confs}{profile likelihood based confidence interval.}
-\item{xs}{the value of parameter at which profile likelihood is evaluated at.}
-\item{p_log_Lik}{numeric value of profile log-likelihood.}
-\item{data}{list of lists for profiled parameter values with
-values of log-likelihood, estimated other parameter values.}
+\item{xs}{the value of the parameter at which the profile likelihood is evaluated at.}
+\item{p_log_Lik}{numeric scalar with the profile log-likelihood.}
+\item{data}{list of lists of the output of each point where the profile
+likelihood is evaluated with the optimal parameter values of the
+other parameters given the
+constrained value of the parameter that is being profiled and
+the optimal value of the lower bound.}
 }
 \description{
 Approximate Likelihood Ratio based Confidence Intervals
