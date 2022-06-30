@@ -2566,7 +2566,7 @@ sim_dat <- function(n_ids){
     Z1 <- c(1, runif(1, -1, 1))
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
             m_funcs[[2]](x) %*% U[3:4])
@@ -2647,7 +2647,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs))
@@ -2767,7 +2767,7 @@ rm(marker_1, marker_2, surv_terminal, surv_obs)
 # get the starting values
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  29.152   0.012   7.592
+#>  31.820   0.027   8.329
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -2789,7 +2789,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 2000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#>  237.09    0.06   59.29
+#> 241.003   0.112  60.287
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -3123,7 +3123,7 @@ sim_dat <- function(n_ids){
       frailties <- drop(rmvnorm(1, sigma = vcov_surv))
       log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
   
-      # assign the conditional hazard function
+      # assign the conditional survival function
       expansion <- function(x, b_func)
         cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
               m_funcs[[2]](x) %*% U[3:4])
@@ -3211,7 +3211,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process", "delayed_entry")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(delayed_entry, obs_process[obs_process[, "event"] == 1, "y"])
     
     n_obs <- length(obs_time)
@@ -3361,14 +3361,14 @@ ghq_fewer <- with(fastGHQuad::gaussHermiteData(3),
 # get the starting values
 system.time(start_val_wrong <- joint_ms_start_val(comp_obj_wrong, gr_tol = .1))
 #>    user  system elapsed 
-#>  15.328   0.020   4.139
+#>  17.717   0.000   4.767
 system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #>    user  system elapsed 
-#>  21.779   0.012   5.762
+#>  25.646   0.004   6.745
 system.time(start_val_few <- joint_ms_start_val(comp_obj, gr_tol = .1, 
                                                 gh_quad_rule = ghq_fewer))
 #>    user  system elapsed 
-#>  17.066   0.004   4.536
+#>  18.274   0.008   4.857
 
 # lower bound at the starting values
 print(-attr(start_val_wrong, "value"), digits = 8)
@@ -3400,7 +3400,7 @@ system.time(opt_out_wrong <- joint_ms_opt(
   comp_obj_wrong, par = start_val_wrong, max_it = 2000L, pre_method = 3L, 
   cg_tol = .2, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#>  92.414   0.028  23.114
+#>   95.22    0.02   23.81
 
 # optimize in the right way with different number of Gauss-Hermite quadrature 
 # nodes
@@ -3416,10 +3416,10 @@ est_w_ghq <- function(par, gh_quad_rule = comp_obj$gh_quad_rule)
 
 system.time(opt_out <- est_w_ghq(start_val))
 #>     user   system  elapsed 
-#> 1449.497    0.204  362.987
+#> 1514.165    0.387  379.564
 system.time(opt_out_fewer <- est_w_ghq(start_val_few, ghq_fewer))
 #>    user  system elapsed 
-#>  303.58    0.10   76.01
+#>  345.31    0.14   86.44
 
 # check the gradients again (expect to be somewhat off now)
 test_grad(comp_obj, opt_out$par, comp_obj$gh_quad_rule)
@@ -3850,7 +3850,7 @@ sim_dat <- function(n_ids){
     data_pass <- data.frame(Z1 = Z1[2], W1 = W1, W2 = W2)
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x, data_pass), 
             m_funcs[[1]](x, data_pass) %*% U[1:2],
@@ -3935,7 +3935,7 @@ sim_dat <- function(n_ids){
       ls(), 
       c("terminal_outcome", "U", "id", "obs_process", "data_pass", "W1", "W2")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs), W1)
@@ -4091,7 +4091,7 @@ system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
 #> Model failed to converge: degenerate Hessian with 1 negative eigenvalues
 #>    user  system elapsed 
-#> 136.190   0.084  35.522
+#> 180.653   0.144  46.950
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -4113,7 +4113,7 @@ system.time(opt_out <- joint_ms_opt(
   comp_obj, par = start_val, max_it = 10000L, pre_method = 3L, 
   cg_tol = .1, c2 = .1, gr_tol = .1))
 #>    user  system elapsed 
-#> 604.464   0.144 151.612
+#> 771.851   0.408 195.882
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient
@@ -4347,7 +4347,7 @@ sim_dat <- function(n_ids){
     Z1 <- c(1, runif(1, -1, 1))
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x), 
             t(U[1:2] %*% m_funcs[[1]](x, ders[[1]][[1]][1])),
@@ -4435,7 +4435,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs))
@@ -4569,7 +4569,7 @@ system.time(start_val <- joint_ms_start_val(comp_obj, gr_tol = .1))
 #> Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
 #> Model failed to converge with max|grad| = 0.00249371 (tol = 0.002, component 1)
 #>    user  system elapsed 
-#>  17.039   0.012   4.574
+#>  25.047   0.012   6.636
 
 # lower bound at the starting values
 print(-attr(start_val, "value"), digits = 8)
@@ -4591,7 +4591,7 @@ system.time(opt_out <- joint_ms_opt(comp_obj, par = start_val, max_it = 1000L,
                                     pre_method = 3L, cg_tol = .2, c2 = .1,
                                     gr_tol = .1))
 #>    user  system elapsed 
-#> 200.789   0.072  50.224
+#> 242.687   0.152  60.773
 
 # we set gr_tol in the call so this is the convergence criterion for the 
 # gradient

@@ -1779,7 +1779,7 @@ sim_dat <- function(n_ids){
     Z1 <- c(1, runif(1, -1, 1))
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
             m_funcs[[2]](x) %*% U[3:4])
@@ -1860,7 +1860,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs))
@@ -2165,7 +2165,7 @@ sim_dat <- function(n_ids){
       frailties <- drop(rmvnorm(1, sigma = vcov_surv))
       log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
   
-      # assign the conditional hazard function
+      # assign the conditional survival function
       expansion <- function(x, b_func)
         cbind(b_func(x), m_funcs[[1]](x) %*% U[1:2],
               m_funcs[[2]](x) %*% U[3:4])
@@ -2253,7 +2253,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process", "delayed_entry")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(delayed_entry, obs_process[obs_process[, "event"] == 1, "y"])
     
     n_obs <- length(obs_time)
@@ -2678,7 +2678,7 @@ sim_dat <- function(n_ids){
     data_pass <- data.frame(Z1 = Z1[2], W1 = W1, W2 = W2)
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x, data_pass), 
             m_funcs[[1]](x, data_pass) %*% U[1:2],
@@ -2763,7 +2763,7 @@ sim_dat <- function(n_ids){
       ls(), 
       c("terminal_outcome", "U", "id", "obs_process", "data_pass", "W1", "W2")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs), W1)
@@ -3046,7 +3046,7 @@ sim_dat <- function(n_ids){
     Z1 <- c(1, runif(1, -1, 1))
     log_haz_offset <- sum(Z1 * fixef_surv[[1]]) + frailties[1]
 
-    # assign the conditional hazard function
+    # assign the conditional survival function
     expansion <- function(x, b_func)
       cbind(b_func(x), 
             t(U[1:2] %*% m_funcs[[1]](x, ders[[1]][[1]][1])),
@@ -3134,7 +3134,7 @@ sim_dat <- function(n_ids){
     rm(list = setdiff(ls(), c("terminal_outcome", "U", "id",
                               "obs_process")))
 
-    # sample the number of outcomes and the fixed effect covariates
+    # sample the fixed effect covariates
     obs_time <- c(0, obs_process[obs_process[, "event"] == 1, "y"])
     n_obs <- length(obs_time)
     X1 <- cbind(1, rnorm(n_obs))
