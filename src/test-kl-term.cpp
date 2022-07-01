@@ -1,6 +1,6 @@
 #include "testthat-wrapper.h"
 #include "kl-term.h"
-#include <memory.h>
+#include <memory>
 #include "log-cholesky.h"
 
 namespace {

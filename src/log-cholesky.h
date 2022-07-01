@@ -2,7 +2,7 @@
 #define LOG_CHOLESKY_H
 #include "VA-joint-config.h"
 #include "arma-wrap.h"
-#include <memory.h>
+#include <memory>
 #include <algorithm>
 #include "wmem.h"
 

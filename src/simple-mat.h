@@ -1,7 +1,7 @@
 #ifndef SIMPLE_MAT_H
 #define SIMPLE_MAT_H
 
-#include <memory.h>
+#include <memory>
 #include "VA-joint-config.h"
 #include <algorithm>
 

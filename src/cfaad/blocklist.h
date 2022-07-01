@@ -38,7 +38,7 @@
 #include <cstring>
 #include <utility>
 #include <stdexcept>
-#include <memory.h>
+#include <memory>
 
 namespace cfaad {
 

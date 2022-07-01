@@ -5,7 +5,7 @@
 #include <limits> // quiet_NaN
 #include <stdexcept> // invalid_argument
 #include "VA-joint-config.h"
-#include <memory.h>
+#include <memory>
 #include "wmem.h"
 #include "lp-joint.h"
 #include <algorithm>
