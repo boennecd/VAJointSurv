@@ -7,7 +7,7 @@
 #' be either right-censored and left-truncated.
 #' @param time_fixef the time-varying fixed effects. See .e.g.
 #' \code{\link{poly_term}}. This is for the baseline hazard. Note that many
-#' basis expansions has boundary knots. It is important that these are set
+#' basis expansions have boundary knots. It is important that these are set
 #' to cover the full range of survival times including time zero for some
 #' expansions.
 #' @param data \code{\link{data.frame}} with at least the time variable.

@@ -8,6 +8,9 @@
 #' @param xlab,ylab,... arguments passed to \code{\link{plot}}.
 #' @param newdata \code{data.frame} with data for the weights if any.
 #'
+#' @return
+#' A list containing data for plotting.
+#'
 #' @importFrom stats qnorm
 #' @importFrom graphics polygon grid
 #' @importFrom grDevices gray
@@ -86,6 +89,9 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' the survival outcome is linked to the markers. 0 implies present values,
 #' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
 #' value of the random effect for all markers.
+#'
+#' @return
+#' A list containing data for plotting.
 #'
 #' @importFrom graphics matplot
 #' @examples
