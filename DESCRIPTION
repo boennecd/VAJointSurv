@@ -14,11 +14,12 @@ Authors@R: c(
   person("Antoine", "Savine", 
          role = "cph"))
 Maintainer: Benjamin Christoffersen <boennecd@gmail.com>
-Description: Provides function to estimate joint marker (longitudinal) and 
+Description: Estimates joint marker (longitudinal) and
     and survival (time-to-event) outcomes using variational approximations.
-    The functions support multivariate markers allowing for possibly 
+    The package supports multivariate markers allowing for
     correlated error terms and multiple types of survival outcomes which may be
-    left-truncated, right-censored, and recurrent.
+    left-truncated, right-censored, and recurrent. Time-varying fixed and
+    random covariate effects are supported along with non-proportional hazards.
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.2.0

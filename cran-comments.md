@@ -13,3 +13,12 @@
 There were no WARNINGs or ERRORs.
 
 There is a NOTE about the package size in some cases.
+
+This is a resubmission. The following has been changed:
+
+ - The Description field has been updated. The redundant "Provides functions 
+   to" has been removed and the adverb "possibly" has been removed.
+ - The LICENSE.md file has been removed.
+ - There is currently no reference describing the method but a paper that is
+   not on arXiv is submitted. A reference to this paper will be added later.
+ - \value sections have been added to plot_marker() and plot_surv().
