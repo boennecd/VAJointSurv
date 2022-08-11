@@ -6,7 +6,7 @@
 \description{
 The VAJointSurv package uses different functions to allow for expansions in
 time possibly with covariate interactions. The main usage of the functions
-are internally but they do provide an element called `eval()` which is a
+is internally but they do provide an element called `eval()` which is a
 function to evaluate the expansion. These functions take the following
 arguments:
 

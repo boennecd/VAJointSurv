@@ -36,6 +36,9 @@ plot_marker(
 
 \item{newdata}{\code{data.frame} with data for the weights if any.}
 }
+\value{
+A list containing data for plotting.
+}
 \description{
 Plots a Markers Mean Curve with Pointwise Quantiles
 }

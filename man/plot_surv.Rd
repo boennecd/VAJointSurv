@@ -24,7 +24,7 @@ plot_surv(
 \arguments{
 \item{time_fixef}{the time-varying fixed effects. See .e.g.
 \code{\link{poly_term}}. This is for the baseline hazard. Note that many
-basis expansions has boundary knots. It is important that these are set
+basis expansions have boundary knots. It is important that these are set
 to cover the full range of survival times including time zero for some
 expansions.}
 
@@ -57,6 +57,9 @@ the survival outcome is linked to the markers. 0 implies present values,
 value of the random effect for all markers.}
 
 \item{newdata}{\code{data.frame} with data for the weights if any.}
+}
+\value{
+A list containing data for plotting.
 }
 \description{
 Plots Quantiles of the Conditional Hazards
