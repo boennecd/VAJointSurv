@@ -2,6 +2,9 @@ Joint Survival and Marker Models
 ================
 
 [![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
+[![](https://www.r-pkg.org/badges/version/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
+[![CRAN RStudio mirror
+downloads](http://cranlogs.r-pkg.org/badges/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
 
 This package provides means of estimating joint models for a mixture of
 different types of markers and different types of survival outcomes. The
@@ -21,6 +24,12 @@ The package can be installed from Github by calling:
 
 ``` r
 remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
+```
+
+It can also be installed from CRAN by calling:
+
+``` r
+install.packages("VAJointSurv")
 ```
 
 ## The Model

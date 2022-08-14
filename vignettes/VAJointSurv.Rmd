@@ -4,6 +4,9 @@ bibliography: ref.bib
 ---
 
 [![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
+[![](https://www.r-pkg.org/badges/version/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
+[![CRAN RStudio mirror
+downloads](http://cranlogs.r-pkg.org/badges/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
 
 
 ```{r, include = FALSE}
@@ -34,6 +37,12 @@ The package can be installed from Github by calling:
 
 ```{r how_to_install, eval = FALSE}
 remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
+```
+
+It can also be installed from CRAN by calling:
+
+```{r install_cran, eval=FALSE}
+install.packages("VAJointSurv")
 ```
 
 ## The Model
