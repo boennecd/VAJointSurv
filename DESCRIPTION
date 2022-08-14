@@ -15,7 +15,7 @@ Authors@R: c(
          role = "cph"))
 Maintainer: Benjamin Christoffersen <boennecd@gmail.com>
 Description: Estimates joint marker (longitudinal) and
-    and survival (time-to-event) outcomes using variational approximations.
+    survival (time-to-event) outcomes using variational approximations.
     The package supports multivariate markers allowing for
     correlated error terms and multiple types of survival outcomes which may be
     left-truncated, right-censored, and recurrent. Time-varying fixed and
