@@ -223,7 +223,9 @@ NumericMatrix eval_expansion
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
-    (*basis)(&out.column(i)[0], wmem.get(), x[i], &weights(0,i), ders);
+    (*basis)(&out.column(i)[0], wmem.get(), x[i],
+	     basis->n_weights()!=0 ? &weights(0,i) : wmem.get(), // is the second case memory safe?
+	     ders);
 
   return out;
 }
@@ -566,6 +568,7 @@ public:
     std::vector<marker::setup_marker_dat_helper> input_dat;
     joint_bases::bases_vector bases_fix;
     joint_bases::bases_vector bases_rng;
+    std::unique_ptr<double[]> wmem(new double[1]); // is this memory safe? This is 'only' used for nrow=0.
 
     input_dat.reserve(markers.size());
     bases_fix.reserve(markers.size());
@@ -590,8 +593,10 @@ public:
 
       input_dat.emplace_back(
         &X[0], n_fixef, n_obs, &id[0], &time[0], &y[0],
-        &fixef_design_varying[0], fixef_design_varying.nrow(),
-        &rng_design_varying[0], rng_design_varying.nrow());
+        fixef_design_varying.nrow()>0 ? &fixef_design_varying[0] : wmem.get(),
+	fixef_design_varying.nrow(),
+        rng_design_varying.nrow()>0 ? &rng_design_varying[0] : wmem.get(),
+	rng_design_varying.nrow());
       par_idx.add_marker
         ({n_fixef, bases_fix.back()->n_basis(), bases_rng.back()->n_basis()});
     }
@@ -650,11 +655,11 @@ public:
         (survival::obs_input{n_obs, &y[0], &y[y.nrow()], &y[2 * y.nrow()]});
       s_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
       s_fixef_design_varying.emplace_back
-        (&fixef_design_varying[0], fixef_design_varying.nrow(),
-         fixef_design_varying.ncol());
+        (fixef_design_varying.nrow()>0 ? &fixef_design_varying[0] : wmem.get(),
+	 fixef_design_varying.nrow(), fixef_design_varying.ncol());
       s_rng_design_varying.emplace_back
-        (&rng_design_varying[0], rng_design_varying.nrow(),
-         rng_design_varying.ncol());
+        (rng_design_varying.nrow()>0 ? &rng_design_varying[0] : wmem.get(),
+	 rng_design_varying.nrow(), rng_design_varying.ncol());
       par_idx.add_surv
         ({n_fixef, bases_fix_surv.back()->n_basis(), n_associations,
          with_frailty});
@@ -690,13 +695,13 @@ public:
 
       vajoint_uint const n_fixef = Z.nrow(),
                          n_obs   = Z.ncol();
-      d_fixef_design.emplace_back(&Z[0], n_fixef, n_obs);
+      d_fixef_design.emplace_back(n_obs>0 ? &Z[0] : wmem.get(), n_fixef, n_obs);
       d_fixef_design_varying_mats.emplace_back
-        (&fixef_design_varying[0], fixef_design_varying.nrow(),
-         fixef_design_varying.ncol());
+        (fixef_design_varying.nrow()>0 ? &fixef_design_varying[0] : wmem.get(),
+	 fixef_design_varying.nrow(), fixef_design_varying.ncol());
       d_rng_design_varying_mats.emplace_back
-        (&rng_design_varying[0], rng_design_varying.nrow(),
-         rng_design_varying.ncol());
+        (rng_design_varying.nrow()>0 ? &rng_design_varying[0] : wmem.get(),
+	 rng_design_varying.nrow(), rng_design_varying.ncol());
     }
 
     // construct the objects to compute the different terms of the lower bound
@@ -1310,13 +1315,14 @@ List ph_ll
    bool const with_frailty, NumericMatrix fixef_design_varying,
    NumericMatrix rng_design_varying){
   profiler pp("ph_ll");
+  std::unique_ptr<double[]> wmem(new double[1]); // is this memory safe?
 
   auto expansion = basis_from_list(time_fixef);
   simple_mat Z_sm(&Z[0], Z.nrow(), Z.ncol()),
-             fixef_design_varying_sm(&fixef_design_varying[0],
+    fixef_design_varying_sm(fixef_design_varying.nrow()>0 ? &fixef_design_varying[0] : wmem.get(),
                                      fixef_design_varying.nrow(),
                                      fixef_design_varying.ncol()),
-             rng_design_varying_sm(&rng_design_varying[0],
+    rng_design_varying_sm(rng_design_varying.nrow()>0 ? &rng_design_varying[0] : wmem.get(),
                                    rng_design_varying.nrow(),
                                    rng_design_varying.ncol()),
              surv_sm(&surv[0], surv.nrow(), surv.ncol());
