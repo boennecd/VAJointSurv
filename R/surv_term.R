@@ -3,7 +3,7 @@
 #' @inheritParams marker_term
 #' @param formula a two-sided \code{\link{formula}} with the survival outcome
 #' on the left-hand side and fixed effect covariates on the right-hand
-#' side. The left-hand side needs to be a \code{\link{Surv}} object and can
+#' side. The left-hand side needs to be a \code{\link[=Surv]{Surv()}} object and can
 #' be either right-censored and left-truncated.
 #' @param time_fixef the time-varying fixed effects. See .e.g.
 #' \code{\link{poly_term}}. This is for the baseline hazard. Note that many

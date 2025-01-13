@@ -46,7 +46,7 @@ standard deviation is a good value.}
 \item{max_step}{maximum number of steps to take in each direction when
 constructing the approximate profile likelihood curve.}
 
-\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link{psqn}}.}
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link[=psqn]{psqn()}}.}
 
 \item{n_threads}{number of threads to use. This is not supported on Windows.}
 
@@ -64,7 +64,7 @@ expansions that take longer to compute (like \code{\link{ns_term}} and
 \code{\link{bs_term}}). The computation time may be worse particularly if
 you use more threads as the CPU cache is not well utilized.}
 
-\item{hess}{the Hessian from \code{\link{joint_ms_hess}}. It is used to get
+\item{hess}{the Hessian from \code{\link[=joint_ms_hess]{joint_ms_hess()}}. It is used to get
 better starting values along the profile likelihood curve. Use \code{NULL}
 if it is not passed.}
 }
