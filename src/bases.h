@@ -356,6 +356,9 @@ public:
     (double *out, double *wk_mem, double const x, double const *,
      const int ders = default_ders)
     const override {
+    if(n_basis() == 0)
+        return;
+
     if(ders >= 0){
       comp_basis(x, out, wk_mem, ders);
       return;
@@ -557,6 +560,9 @@ public:
   void operator()
       (double *out, double *wk_mem, double const x, double const *,
        const int ders = default_ders) const {
+      if(n_basis() == 0)
+        return;
+
       if(!use_log){
         do_eval(out, wk_mem, x, ders);
         return;
@@ -740,6 +746,9 @@ public:
     (double *out, double *wk_mem, double const x,
      double const *,
      int const ders = default_ders) const {
+    if(n_basis() == 0)
+      return;
+
     if(!use_log){
       do_eval(out, wk_mem, x, ders);
       return;
@@ -795,6 +804,9 @@ public:
   void operator()
     (double *out, double *wk_mem, double const x, double const *,
      int const ders = default_ders) const  {
+    if(n_basis() == 0)
+      return;
+
     double * const b{wk_mem};
     vajoint_uint const n_b{bspline.n_basis()};
     wk_mem += n_b;
@@ -870,6 +882,9 @@ public:
   void operator()
     (double *out, double *wk_mem, double const x, double const *,
      int const ders = default_ders) const {
+    if(n_basis() == 0)
+      return;
+
     double * const wrk{wk_mem};
     wk_mem += bspline.n_basis();
 

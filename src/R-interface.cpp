@@ -215,10 +215,12 @@ NumericMatrix eval_expansion
   (SEXP ptr, NumericVector const x, NumericMatrix const weights, int const ders,
    double lower_limit){
   Rcpp::XPtr<joint_bases::basisMixin> basis(ptr);
+  NumericMatrix out(basis->n_basis(), x.size());
+  if(out.nrow() == 0 or out.ncol() == 0)
+    return out;
+
   if(basis->n_weights()!=static_cast<unsigned>(weights.nrow()))
     throw std::invalid_argument("Number of weights does not match");
-
-  NumericMatrix out(basis->n_basis(), x.size());
 
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->set_lower_limit(lower_limit);
