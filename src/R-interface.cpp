@@ -223,7 +223,7 @@ NumericMatrix eval_expansion
   std::unique_ptr<double[]> wmem(new double[basis->n_wmem()]);
   basis->set_lower_limit(lower_limit);
   for(R_len_t i = 0; i < x.size(); ++i)
-    (*basis)(&out.column(i)[0], wmem.get(), x[i],
+    (*basis)(&out(0, i), wmem.get(), x[i],
 	     basis->n_weights()!=0 ? &weights(0,i) : nullptr,
 	     ders);
 

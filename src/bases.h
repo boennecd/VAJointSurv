@@ -970,6 +970,9 @@ class orth_poly  : public basisMixin {
   void do_eval(double *out, double *wk_mem, double const x,
                int const ders)
     const {
+    if (n_basis_v == 0)
+      return;
+
     if(raw){
       eval_raw(out, x, intercept, ders, n_basis_v - intercept, lower_limit);
       return;
