@@ -9,7 +9,7 @@ surv_term(formula, id, data, time_fixef, with_frailty = FALSE, delayed = NULL)
 \arguments{
 \item{formula}{a two-sided \code{\link{formula}} with the survival outcome
 on the left-hand side and fixed effect covariates on the right-hand
-side. The left-hand side needs to be a \code{\link[=Surv]{Surv()}} object and can
+side. The left-hand side needs to be a \code{\link[survival]{Surv}} object and can
 be either right-censored and left-truncated.}
 
 \item{id}{the variable for the id of each individual.}

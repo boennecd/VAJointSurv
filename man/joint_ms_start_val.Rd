@@ -30,7 +30,7 @@ joint_ms_start_val(
 
 \item{par}{starting value.}
 
-\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link[=psqn]{psqn()}}.}
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link[psqn]{psqn}}.}
 
 \item{n_threads}{number of threads to use. This is not supported on Windows.}
 

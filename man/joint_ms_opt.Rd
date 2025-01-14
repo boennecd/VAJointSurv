@@ -30,7 +30,7 @@ joint_ms_opt(
 
 \item{par}{starting value.}
 
-\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link[=psqn]{psqn()}}.}
+\item{rel_eps, max_it, c1, c2, use_bfgs, trace, cg_tol, strong_wolfe, max_cg, pre_method, mask, gr_tol}{arguments to pass to the C++ version of \code{\link[psqn]{psqn}}.}
 
 \item{n_threads}{number of threads to use. This is not supported on Windows.}
 
@@ -58,7 +58,7 @@ A list with the following elements:
 \item{\code{par}}{numeric vector of estimated model parameters.}
 \item{\code{value}}{numeric scalar with the value of optimized lower bound.}
 \item{\code{counts}}{integer vector with the function counts and the number
-of conjugate gradient iterations. See \code{\link[=psqn]{psqn()}}.}
+of conjugate gradient iterations. See \code{\link[psqn]{psqn}}.}
 \item{\code{convergence}}{logical for whether the optimization converged.}
 }
 \description{

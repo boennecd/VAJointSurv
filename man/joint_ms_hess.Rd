@@ -33,7 +33,7 @@ expansions that take longer to compute (like \code{\link{ns_term}} and
 you use more threads as the CPU cache is not well utilized.}
 
 \item{eps, scale, tol, order}{parameter to pass to psqn. See
-\code{\link[=psqn_hess]{psqn_hess()}}.}
+\code{\link[psqn]{psqn_hess}}.}
 
 \item{gh_quad_rule}{list with two numeric vectors called node and weight
 with Gauss–Hermite quadrature nodes and weights to handle delayed entry.

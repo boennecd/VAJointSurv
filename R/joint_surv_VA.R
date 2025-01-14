@@ -635,7 +635,7 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #'
 #' @inheritParams joint_ms_lb
 #' @param eps,scale,tol,order parameter to pass to psqn. See
-#' \code{\link[=psqn_hess]{psqn_hess()}}.
+#' \code{\link[psqn]{psqn_hess}}.
 #'
 #' @return
 #' A list with the following two Hessian matrices:
@@ -732,14 +732,14 @@ joint_ms_hess <- function(
 #' @inheritParams joint_ms_lb
 #' @param par starting value.
 #' @param rel_eps,max_it,c1,c2,use_bfgs,trace,cg_tol,strong_wolfe,max_cg,pre_method,mask,gr_tol
-#' arguments to pass to the C++ version of \code{\link[=psqn]{psqn()}}.
+#' arguments to pass to the C++ version of \code{\link[psqn]{psqn}}.
 #'
 #' @return
 #' A list with the following elements:
 #' \item{\code{par}}{numeric vector of estimated model parameters.}
 #' \item{\code{value}}{numeric scalar with the value of optimized lower bound.}
 #' \item{\code{counts}}{integer vector with the function counts and the number
-#' of conjugate gradient iterations. See \code{\link[=psqn]{psqn()}}.}
+#' of conjugate gradient iterations. See \code{\link[psqn]{psqn}}.}
 #' \item{\code{convergence}}{logical for whether the optimization converged.}
 #'
 #' @examples
@@ -933,7 +933,7 @@ joint_ms_format <- function(object, par = object$start_val){
 #' @param max_step maximum number of steps to take in each direction when
 #' constructing the approximate profile likelihood curve.
 #' @param level confidence level.
-#' @param hess the Hessian from \code{\link[=joint_ms_hess]{joint_ms_hess()}}. It is used to get
+#' @param hess the Hessian from \code{\link{joint_ms_hess}}. It is used to get
 #' better starting values along the profile likelihood curve. Use \code{NULL}
 #' if it is not passed.
 #'
