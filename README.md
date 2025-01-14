@@ -1,10 +1,7 @@
 Joint Survival and Marker Models
 ================
 
-[![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
 [![](https://www.r-pkg.org/badges/version/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
-[![CRAN RStudio mirror
-downloads](http://cranlogs.r-pkg.org/badges/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
 
 This package provides means of estimating joint models for a mixture of
 different types of markers and different types of survival outcomes. The
@@ -4929,7 +4926,7 @@ Crowther, Michael J., Therese M.-L Andersson, Paul C. Lambert, Keith R.
 Abrams, and Keith Humphreys. 2016. “Joint Modelling of Longitudinal and
 Survival Data: Incorporating Delayed Entry and an Assessment of Model
 Misspecification.” *Statistics in Medicine* 35 (7): 1193–1209.
-<https://doi.org/https://doi.org/10.1002/sim.6779>.
+<https://doi.org/10.1002/sim.6779>.
 
 </div>
 
