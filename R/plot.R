@@ -12,7 +12,7 @@
 #' A list containing data for plotting.
 #'
 #' @importFrom stats qnorm
-#' @importFrom graphics polygon grid
+#' @importFrom graphics polygon grid points
 #' @importFrom grDevices gray
 #' @examples
 #' # load in the data
@@ -58,11 +58,13 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
   sds <- sds * qnorm((1 + p) / 2)
   lbs <- mea - sds
   ubs <- mea + sds
-  plot(xs, mea, ylim = range(lbs, ubs), type = "l", bty = "l", xlab = xlab,
-       ylab = ylab, xaxs = "i", ...)
+
+  plot(xs, mea, ylim = range(lbs, ubs), type = "n", bty = "l", xlab = xlab,
+       ylab = ylab, ...)
+  grid()
   polygon(x = c(xs, rev(xs)), y = c(lbs, rev(ubs)), border = NA,
           col = gray(0, .1))
-  grid()
+  points(xs, mea, type = "l")
 
   invisible(list(lbs = lbs, ubs = ubs, mea = mea))
 }
@@ -201,10 +203,10 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
 
     exp(qnorm(p = ps, mean = log_haz, sd = sqrt(log_haz_var)))
   }))
-  matplot(tis, hazs, lty = 1, type = "l", col = "black", bty = "l",
-          xlab = xlab, xaxs = "i", yaxs = "i", ylab = ylab,
+  matplot(tis, hazs, type = "n", xlab = xlab, bty = "l", ylab = ylab,
           ylim = range(hazs, 0), ...)
   grid()
+  matplot(tis, hazs, lty = 1, type = "l", col = "black", add = TRUE, ...)
 
   invisible(list(time = tis, hazard = hazs))
 }
