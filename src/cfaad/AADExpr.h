@@ -925,7 +925,7 @@ class Number : public Expression<Number>, public vectorOps<Number>
     {
 #if AADMULTIOUT
         myNode->pAdjPtrs[i] = Tape::multi
-            ? other.Adjoints
+            ? other.pAdjoints
             : &other.mAdjoint;
 #else
         myNode->pAdjPtrs[i] = &other.mAdjoint;
