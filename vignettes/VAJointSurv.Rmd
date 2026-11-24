@@ -46,9 +46,9 @@ install.packages(pkgs = "VAJointSurv")
 ## The Model
 
 ### The Markers
-We assume that there are $L$ observed markers at each time point. We let 
-$\vec Y_{ij}$ denote the $j$th observed markers for individual $i$ and let 
-$s_{ij}$ be the observation time. The model for the markers is
+Each observation contains $L$ markers. For individual $i$, the vector
+$\vec Y_{ij}$ contains the marker values at observation time $s_{ij}$.
+The marker model is
 
 $$
 \begin{aligned}
@@ -56,7 +56,7 @@ $$
 \epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
 \mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 +
   \vec m_1(s)^\top\vec U_{i1} \\
-\vdots &\hphantom{=}\vdots\\
+\vdots &\quad \vdots\\
 \mu_{iL}(s, \vec U_i) &= \vec x_{iL}^\top\vec\gamma_L + \vec g_L(s)^\top\vec\beta_L +
   \vec m_L(s)^\top\vec U_{iL} \\
 \vec U_i  &= \begin{pmatrix}
@@ -65,10 +65,9 @@ $$
 \end{aligned}
 $$
 
-where $\vec\epsilon_{ij}$ is an error term of the observation, $\vec U_i$ is 
-the $R$ dimensional
-unobserved random effect for individual $i$, and the $\vec g_k$s and $\vec m_k$s
-are basis expansions.
+where $\vec\epsilon_{ij}$ is the measurement error and $\vec U_i$ is the
+unobserved random effect of dimension $R$ for individual $i$.
+The functions $\vec g_k$ and $\vec m_k$ give the basis expansions for marker $k$.
 We can write the model more compactly by letting 
 
 $$
@@ -98,7 +97,7 @@ h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left(
   \omega_1^\top \vec b_1(t) +
   \vec\alpha_1^\top M(t)\vec U_i + \xi_{i1}
   \right) \\
-\vdots &\hphantom{=}\vdots \\
+\vdots &\quad \vdots \\
 h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
   \vec z_{iH}^\top\vec \delta_H +
   \omega_H^\top\vec b_H(t) +
@@ -109,16 +108,13 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
 \end{aligned}
 $$
 
-The $\vec\alpha$s are association parameters which makes the markers and the 
-survival outcomes marginally dependent. The $\exp\xi_{ih}$s are frailty effects 
-which makes the survival outcomes marginally dependent even if 
-$\vec\alpha = \vec 0$. By default, these are not included as it is assumed 
-that events are often terminal in which case identifying the frailty may be 
-hard and evidence of a frailty is both evidence of non-proportional hazards and
-heterogeneity.
+The association parameters $\vec\alpha_h$ link the markers to survival outcome $h$.
+The frailty effects $\exp(\xi_{ih})$ can induce marginal dependence between
+survival outcomes even when $\vec\alpha_h = \vec 0$ for all $h$.
+The default model omits frailty. For terminal events, both heterogeneity and
+non-proportional hazards can explain evidence of frailty.
 
-The observation process, the $s_{ij}$s, can be modeled as one of $H$ 
-different types of survival process. This can be done by adding each $s_{ij}$ 
+The observation times $s_{ij}$ can form one of the $H$ survival processes. This can be done by adding each $s_{ij}$ 
 as a left-truncated outcome of the given type of process except for 
 $s_{i1}$ which is not left-truncated.
 
@@ -2125,7 +2121,7 @@ $$
 where the expectation on the right-hand side is using the density 
 $q_{\vec\theta_{i1}}$ and $v$ is the unconditional density of the random 
 effects. Since this is a lower bound, we can jointly optimize the 
-lower bound over the $\vec\theta_{i1}$s and the model parameters. 
+lower bound over the variational parameters $\vec\theta_{i1}$ and the model parameters. 
 
 The correct likelihood with delayed entry is
 
@@ -2141,8 +2137,8 @@ $$
 
 This has some implications:
 
- 1. We still need to maximize over the $\vec\theta_{i1}$s and the model 
-    parameters. However, we have to minimize over the $\vec\theta_{i2}$s as 
+ 1. We still need to maximize over the variational parameters $\vec\theta_{i1}$ and the model 
+    parameters. However, we have to minimize over the variational parameters $\vec\theta_{i2}$ as 
     they provide an upper bound on the log marginal likelihood. 
     Thus, we have a maxmin problem rather than a pure maximization problem.
  2. The approximation is no longer guaranteed to be a lower bound on the 
@@ -3410,9 +3406,9 @@ $$
 $$
 
 ## Survival Outcomes
-Let $T_{i1}, \dots, T_{iL}$ be the minimum of the censoring time or 
-the observed event time and $D_{i1}, \dots, D_{iL}$ be event indicators. The 
-the lower bound terms for the $k$th time to event is
+For individual $i$ and outcome $k$, let $T_{ik}$ be the minimum of the
+event time and the censoring time. Let $D_{ik}$ be the event indicator.
+The contribution of outcome $k$ to the lower bound is
 
 $$
 \int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.
@@ -3430,7 +3426,7 @@ As for the expected cumulative hazard term, assume that we can interchange the o
 of integration. Then the lower bound term is
 
 $$
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
+-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ik}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
 $$
 
 where 

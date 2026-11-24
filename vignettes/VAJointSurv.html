@@ -440,9 +440,10 @@ with JM, JMbayes, and joineRML</a>.</p>
 <h2>The Model</h2>
 <div id="the-markers" class="section level3">
 <h3>The Markers</h3>
-<p>We assume that there are <span class="math inline">\(L\)</span>
-observed markers at each time point. We let <span class="math inline">\(\vec Y_{ij}\)</span> denote the <span class="math inline">\(j\)</span>th observed markers for individual <span class="math inline">\(i\)</span> and let <span class="math inline">\(s_{ij}\)</span> be the observation time. The model
-for the markers is</p>
+<p>Each observation contains <span class="math inline">\(L\)</span>
+markers. For individual <span class="math inline">\(i\)</span>, the
+vector <span class="math inline">\(\vec Y_{ij}\)</span> contains the
+marker values at observation time <span class="math inline">\(s_{ij}\)</span>. The marker model is</p>
 <p><span class="math display">\[
 \begin{aligned}
 \vec Y_{ij}&amp;= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
@@ -450,7 +451,7 @@ for the markers is</p>
 \mu_{i1}(s, \vec U_i) &amp;= \vec x_{i1}^\top\vec\gamma_1 + \vec
 g_1(s)^\top\vec\beta_1 +
   \vec m_1(s)^\top\vec U_{i1} \\
-\vdots &amp;\hphantom{=}\vdots\\
+\vdots &amp;\quad \vdots\\
 \mu_{iL}(s, \vec U_i) &amp;= \vec x_{iL}^\top\vec\gamma_L + \vec
 g_L(s)^\top\vec\beta_L +
   \vec m_L(s)^\top\vec U_{iL} \\
@@ -459,11 +460,11 @@ g_L(s)^\top\vec\beta_L +
   \end{pmatrix}\sim N^{(R)}(\vec0, \Psi)
 \end{aligned}
 \]</span></p>
-<p>where <span class="math inline">\(\vec\epsilon_{ij}\)</span> is an
-error term of the observation, <span class="math inline">\(\vec
-U_i\)</span> is the <span class="math inline">\(R\)</span> dimensional
-unobserved random effect for individual <span class="math inline">\(i\)</span>, and the <span class="math inline">\(\vec g_k\)</span>s and <span class="math inline">\(\vec m_k\)</span>s are basis expansions. We can
-write the model more compactly by letting</p>
+<p>where <span class="math inline">\(\vec\epsilon_{ij}\)</span> is the
+measurement error and <span class="math inline">\(\vec U_i\)</span> is
+the unobserved random effect of dimension <span class="math inline">\(R\)</span> for individual <span class="math inline">\(i\)</span>. The functions <span class="math inline">\(\vec g_k\)</span> and <span class="math inline">\(\vec m_k\)</span> give the basis expansions for
+marker <span class="math inline">\(k\)</span>. We can write the model
+more compactly by letting</p>
 <p><span class="math display">\[
 G(s) = \begin{pmatrix}
   \vec g_1(s)^\top &amp; 0^\top &amp; \cdots &amp; \vec 0^\top \\
@@ -492,7 +493,7 @@ h_{i1}(t\mid \vec U_i, \vec\xi_i) &amp;= \exp\left(
   \omega_1^\top \vec b_1(t) +
   \vec\alpha_1^\top M(t)\vec U_i + \xi_{i1}
   \right) \\
-\vdots &amp;\hphantom{=}\vdots \\
+\vdots &amp;\quad \vdots \\
 h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
   \vec z_{iH}^\top\vec \delta_H +
   \omega_H^\top\vec b_H(t) +
@@ -502,17 +503,15 @@ h_{iH}(t\mid \vec U_i,\vec \xi_i) &amp;= \exp\left(
   &amp;\sim N^{(H)}(\vec 0, \Xi).
 \end{aligned}
 \]</span></p>
-<p>The <span class="math inline">\(\vec\alpha\)</span>s are association
-parameters which makes the markers and the survival outcomes marginally
-dependent. The <span class="math inline">\(\exp\xi_{ih}\)</span>s are
-frailty effects which makes the survival outcomes marginally dependent
-even if <span class="math inline">\(\vec\alpha = \vec 0\)</span>. By
-default, these are not included as it is assumed that events are often
-terminal in which case identifying the frailty may be hard and evidence
-of a frailty is both evidence of non-proportional hazards and
-heterogeneity.</p>
-<p>The observation process, the <span class="math inline">\(s_{ij}\)</span>s, can be modeled as one of <span class="math inline">\(H\)</span> different types of survival process.
-This can be done by adding each <span class="math inline">\(s_{ij}\)</span> as a left-truncated outcome of the
+<p>The association parameters <span class="math inline">\(\vec\alpha_h\)</span> link the markers to survival
+outcome <span class="math inline">\(h\)</span>. The frailty effects
+<span class="math inline">\(\exp(\xi_{ih})\)</span> can induce marginal
+dependence between survival outcomes even when <span class="math inline">\(\vec\alpha_h = \vec 0\)</span> for all <span class="math inline">\(h\)</span>. The default model omits frailty. For
+terminal events, both heterogeneity and non-proportional hazards can
+explain evidence of frailty.</p>
+<p>The observation times <span class="math inline">\(s_{ij}\)</span> can
+form one of the <span class="math inline">\(H\)</span> survival
+processes. This can be done by adding each <span class="math inline">\(s_{ij}\)</span> as a left-truncated outcome of the
 given type of process except for <span class="math inline">\(s_{i1}\)</span> which is not left-truncated.</p>
 <div id="more-general-survival-sub-model" class="section level4">
 <h4>More General Survival Sub-model</h4>
@@ -3137,7 +3136,7 @@ U_i)}  \right)\right)
 <p>where the expectation on the right-hand side is using the density
 <span class="math inline">\(q_{\vec\theta_{i1}}\)</span> and <span class="math inline">\(v\)</span> is the unconditional density of the
 random effects. Since this is a lower bound, we can jointly optimize the
-lower bound over the <span class="math inline">\(\vec\theta_{i1}\)</span>s and the model
+lower bound over the variational parameters <span class="math inline">\(\vec\theta_{i1}\)</span> and the model
 parameters.</p>
 <p>The correct likelihood with delayed entry is</p>
 <p><span class="math display">\[
@@ -3156,8 +3155,8 @@ U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
 \]</span></p>
 <p>This has some implications:</p>
 <ol style="list-style-type: decimal">
-<li>We still need to maximize over the <span class="math inline">\(\vec\theta_{i1}\)</span>s and the model
-parameters. However, we have to minimize over the <span class="math inline">\(\vec\theta_{i2}\)</span>s as they provide an upper
+<li>We still need to maximize over the variational parameters <span class="math inline">\(\vec\theta_{i1}\)</span> and the model parameters.
+However, we have to minimize over the variational parameters <span class="math inline">\(\vec\theta_{i2}\)</span> as they provide an upper
 bound on the log marginal likelihood. Thus, we have a maxmin problem
 rather than a pure maximization problem.</li>
 <li>The approximation is no longer guaranteed to be a lower bound on the
@@ -4828,9 +4827,10 @@ G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
 </div>
 <div id="survival-outcomes" class="section level2">
 <h2>Survival Outcomes</h2>
-<p>Let <span class="math inline">\(T_{i1}, \dots, T_{iL}\)</span> be the
-minimum of the censoring time or the observed event time and <span class="math inline">\(D_{i1}, \dots, D_{iL}\)</span> be event
-indicators. The the lower bound terms for the <span class="math inline">\(k\)</span>th time to event is</p>
+<p>For individual <span class="math inline">\(i\)</span> and outcome
+<span class="math inline">\(k\)</span>, let <span class="math inline">\(T_{ik}\)</span> be the minimum of the event time
+and the censoring time. Let <span class="math inline">\(D_{ik}\)</span>
+be the event indicator. The contribution of outcome <span class="math inline">\(k\)</span> to the lower bound is</p>
 <p><span class="math display">\[
 \int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R +
 k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds
@@ -4847,7 +4847,7 @@ b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R
 <p>As for the expected cumulative hazard term, assume that we can
 interchange the order of integration. Then the lower bound term is</p>
 <p><span class="math display">\[
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ij}}
+-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ik}}
 \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top
 M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1)
 O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
