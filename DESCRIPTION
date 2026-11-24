@@ -1,7 +1,7 @@
 Package: VAJointSurv
 Type: Package
 Title: Variational Approximation for Joint Survival and Marker Models
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
   person("Benjamin", "Christoffersen", 
          email = "boennecd@gmail.com", 

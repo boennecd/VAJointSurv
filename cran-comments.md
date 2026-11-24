@@ -1,10 +1,7 @@
-## Test environments
-* macOS (13.2.1)
-* rhub on the following platforms: valgrind, ubuntu-clang, gcc14, clang-asan
-* win-builder (devel, oldrelease, and release)
-  
-## R CMD check results
-There were no WARNINGs or ERRORs.
+## Resubmission after archival
 
-This is a resubmission. I have: 
- - Removed the doubled "https://doi.org/"
+CRAN archived VAJointSurv when its dependency SimSurvNMarker was unavailable.
+SimSurvNMarker 0.1.4 is now on CRAN.
+
+Version 0.1.2 replaces the native pipe in the plot_surv() example.
+This resolves the R 4.1 syntax NOTE while keeping the declared R minimum.
