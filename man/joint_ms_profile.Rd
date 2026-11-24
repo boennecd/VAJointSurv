@@ -123,7 +123,9 @@ model_ptr <- joint_ms_ptr(
 start_vals <- joint_ms_start_val(model_ptr)
 
 # optimize lower bound
-fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
+fit <- joint_ms_opt(
+  object = model_ptr, par = start_vals, gr_tol = .01,
+  strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 
 # compute the Hessian
 hess <- joint_ms_hess(object = model_ptr,par = fit$par)
@@ -142,7 +144,8 @@ delta <- 2*se[which_prof]
 # for the first association parameter
 profile_CI <- joint_ms_profile(
   object = model_ptr, opt_out = fit, which_prof = which_prof,
-  delta= delta, gr_tol = .01)
+  delta = delta, gr_tol = .01,
+  strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 
 # comparison of CIs
 profile_CI$confs

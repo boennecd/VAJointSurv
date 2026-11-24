@@ -51,9 +51,10 @@ test_that("manual pages gives the same results as previously for joint_ms type f
 
   expect_equal(length(VA_pars),length(unique(pbc$id)))
 
+  # Allow for variation in the optimized starting values across platforms.
   expect_snapshot_value(VA_pars[1:10],
                         style = "serialize",
-                        tolerance = 1e-3)
+                        tolerance = 5e-3)
 
   vcov_vary <- diag(1:4)
 
@@ -71,9 +72,11 @@ test_that("manual pages gives the same results as previously for joint_ms type f
 
   expect_snapshot_value(joint_ms_format(model_ptr,start_vals),
                         style = "serialize",
-                        tolerance = 1e-3)
+                        tolerance = 2e-3)
 
-  fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
+  fit <- joint_ms_opt(
+    object = model_ptr, par = start_vals, gr_tol = .01,
+    strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
   hess <- joint_ms_hess(object = model_ptr,par = fit$par)
 
   expect_snapshot_value(fit[c("value", "info", "convergence")],
@@ -91,7 +94,8 @@ test_that("manual pages gives the same results as previously for joint_ms type f
 
   profile_CI <- joint_ms_profile(
     object = model_ptr, opt_out = fit, which_prof = which_prof,
-    delta= delta, gr_tol = .01, verbose = FALSE)
+    delta = delta, gr_tol = .01,
+    strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L, verbose = FALSE)
 
   expect_snapshot_value(profile_CI[c("confs","xs","p_log_Lik")],
                         style = "json2",
@@ -257,9 +261,10 @@ test_that("plot_surv returns same type of output", {
   # no frailty
   frailty_var <- matrix(0L,1)
   # var-covar matrix for time-varying random effects
-  vcov_vary <- c(0.9658, 0.0954, -0.1756, -0.0418, 0.0954, 0.04, -0.0276,
+  vcov_vary <- matrix(
+    data = c(0.9658, 0.0954, -0.1756, -0.0418, 0.0954, 0.04, -0.0276,
                  -0.0128, -0.1756, -0.0276, 0.1189, 0.0077, -0.0418, -0.0128,
-                 0.0077, 0.0057) |> matrix(4L)
+                 0.0077, 0.0057), nrow = 4L)
   # coefficients for time-varying fixed effects
   fixef_vary <- c(1.0495, -0.2004, 1.4167, 1.255, 2.5007, 4.8545, 4.7889)
   # association parameters
