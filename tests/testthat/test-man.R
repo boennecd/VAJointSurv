@@ -70,9 +70,10 @@ test_that("manual pages gives the same results as previously for joint_ms type f
     joint_ms_format(object = model_ptr, par = alter_pars)$vcov$vcov_vary,
     vcov_vary)
 
+  # The first marker intercept varies by about 0.22% across platforms.
   expect_snapshot_value(joint_ms_format(model_ptr,start_vals),
                         style = "serialize",
-                        tolerance = 2e-3)
+                        tolerance = 3e-3)
 
   fit <- joint_ms_opt(
     object = model_ptr, par = start_vals, gr_tol = .01,

@@ -1,6 +1,6 @@
-## Resubmission after archival
+## New version submission
 
-CRAN archived VAJointSurv when its dependency SimSurvNMarker was unavailable.
+CRAN archived VAJointSurv on 2026-02-15 because SimSurvNMarker was unavailable.
 SimSurvNMarker 0.1.4 is now on CRAN.
 
 Version 0.1.2 replaces the native pipe in the plot_surv() example.

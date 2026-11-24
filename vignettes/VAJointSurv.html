@@ -4847,7 +4847,7 @@ b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R
 <p>As for the expected cumulative hazard term, assume that we can
 interchange the order of integration. Then the lower bound term is</p>
 <p><span class="math display">\[
--\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{R +k})\int_0^{t_{ik}}
+-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{i,R+k})\int_0^{t_{ik}}
 \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top
 M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1)
 O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
@@ -4855,7 +4855,7 @@ O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
 <p>where</p>
 <p><span class="math display">\[
 O_{ik}(s) = \begin{pmatrix}M(s) &amp; 0 \\ 0 &amp; 1\end{pmatrix}
-  \Omega_{(1:R, R + k), (1:R, R + k)}
+  \Omega_{i,(1:R, R + k), (1:R, R + k)}
     \begin{pmatrix}M(s)^\top &amp; 0 \\ 0 &amp; 1\end{pmatrix}.
 \]</span></p>
 </div>
