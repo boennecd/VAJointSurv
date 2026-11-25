@@ -60,6 +60,9 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Install the OpenBLAS runtime required by Fedora R binaries
+        if: matrix.config.label == 'gcc-asan'
+        run: dnf install -y openblas-threads
       - uses: r-hub/actions/setup-deps@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
