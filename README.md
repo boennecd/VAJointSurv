@@ -26,7 +26,7 @@ Install the development version from GitHub:
 remotes::install_github(repo = "boennecd/VAJointSurv", build_vignettes = TRUE)
 ```
 
-When the package is available on CRAN, install the release with:
+Install the release from CRAN.
 
 ``` r
 install.packages(pkgs = "VAJointSurv")
