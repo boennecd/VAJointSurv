@@ -96,6 +96,11 @@ jobs:
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+      - name: Build nloptr against the R-hub LAPACK
+        if: matrix.config.label == 'gcc-asan'
+        run: |
+          Rscript -e 'install.packages(pkgs = "nloptr", repos = "https://cloud.r-project.org", type = "source")'
+          Rscript -e 'library(package = "nloptr")'
       - uses: r-hub/actions/run-check@v1
         with:
           job-config: ${{ matrix.config.job-config }}
