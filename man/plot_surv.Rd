@@ -18,7 +18,8 @@ plot_surv(
   ylab = "Hazard",
   ders = NULL,
   newdata = NULL,
-  ...
+  ...,
+  panel.first = NULL
 )
 }
 \arguments{
@@ -57,6 +58,9 @@ the survival outcome is linked to the markers. 0 implies present values,
 value of the random effect for all markers.}
 
 \item{newdata}{\code{data.frame} with data for the weights if any.}
+
+\item{panel.first}{Expression to evaluate after the grid and before the
+first curve of a new plot.}
 }
 \value{
 A list containing data for plotting.

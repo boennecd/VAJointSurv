@@ -14,7 +14,8 @@ plot_marker(
   xlab = "Time",
   ylab = "Marker",
   newdata = NULL,
-  ...
+  ...,
+  panel.first = NULL
 )
 }
 \arguments{
@@ -35,6 +36,9 @@ plot_marker(
 \item{xlab, ylab, ...}{arguments passed to \code{\link{plot}}.}
 
 \item{newdata}{\code{data.frame} with data for the weights if any.}
+
+\item{panel.first}{Expression to evaluate after the grid and quantile band
+and before the mean curve.}
 }
 \value{
 A list containing data for plotting.
