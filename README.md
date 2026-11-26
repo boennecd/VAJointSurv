@@ -23,7 +23,8 @@ joineRML](https://github.com/boennecd/VAJointSurv/tree/main/comparisons).
 Install the development version from GitHub:
 
 ``` r
-remotes::install_github(repo = "boennecd/VAJointSurv", build_vignettes = TRUE)
+remotes::install_github(repo = "boennecd/VAJointSurv", dependencies = TRUE,
+                        build_vignettes = TRUE)
 ```
 
 Install the release from CRAN.
