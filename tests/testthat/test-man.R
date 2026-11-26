@@ -36,25 +36,28 @@ test_that("manual pages gives the same results as previously for joint_ms type f
 
   # find the starting values
   start_vals <- joint_ms_start_val(model_ptr)
-  start_vals_to_test <- head(start_vals, 500)
+  reference_start <- readRDS(file = test_path("fixtures", "pbc-start.rds"))
+  start_vals_to_test <- head(x = start_vals, n = length(reference_start))
 
   attributes(start_vals_to_test) <- attributes(start_vals)
 
-  expect_snapshot_value(
-    start_vals_to_test, style = "serialize",
-    tolerance = 1e-3)
+  expect_equal(object = start_vals_to_test, expected = reference_start,
+               tolerance = 1e-3)
 
   expect_equal(attr(start_vals,"value"),
                joint_ms_lb(model_ptr,par = start_vals))
 
-  VA_pars <- joint_ms_va_par(object = model_ptr,par = start_vals)
+  # The stored prefix covers every model parameter and the first ten
+  # individuals. Use it to test extraction independently of the optimizer.
+  extraction_par <- model_ptr$start_val
+  extraction_par[seq_along(reference_start)] <- reference_start
+  VA_pars <- joint_ms_va_par(object = model_ptr, par = extraction_par)
 
   expect_equal(length(VA_pars),length(unique(pbc$id)))
 
-  # Allow for variation in the optimized starting values across platforms.
   expect_snapshot_value(VA_pars[1:10],
                         style = "serialize",
-                        tolerance = 5e-3)
+                        tolerance = 1e-12)
 
   vcov_vary <- diag(1:4)
 
@@ -70,10 +73,9 @@ test_that("manual pages gives the same results as previously for joint_ms type f
     joint_ms_format(object = model_ptr, par = alter_pars)$vcov$vcov_vary,
     vcov_vary)
 
-  # The first marker intercept varies by about 0.22% across platforms.
-  expect_snapshot_value(joint_ms_format(model_ptr,start_vals),
+  expect_snapshot_value(joint_ms_format(object = model_ptr, par = extraction_par),
                         style = "serialize",
-                        tolerance = 3e-3)
+                        tolerance = 1e-12)
 
   fit <- joint_ms_opt(
     object = model_ptr, par = start_vals, gr_tol = .01,
