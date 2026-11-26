@@ -3916,12 +3916,6 @@ surv_obs <- surv_term(
 comp_obj <- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
                          max_threads = 4L)
-#> Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#> of bounds (index 0 >= vector size 0)
-#> Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#> of bounds (index 0 >= vector size 0)
-#> Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#> of bounds (index 0 >= vector size 0)
 rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values
