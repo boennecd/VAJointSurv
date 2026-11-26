@@ -102,9 +102,11 @@ time_rng <- list(m1$time_rng, m2$time_rng)
 # no frailty
 frailty_var <- matrix(0L,1)
 # var-covar matrix for time-varying random effects
-vcov_vary <- c(0.9658, 0.0954, -0.1756, -0.0418, 0.0954, 0.04, -0.0276,
+vcov_vary <- matrix(
+  data = c(0.9658, 0.0954, -0.1756, -0.0418, 0.0954, 0.04, -0.0276,
                -0.0128, -0.1756, -0.0276, 0.1189, 0.0077, -0.0418, -0.0128,
-               0.0077, 0.0057) |> matrix(4L)
+               0.0077, 0.0057),
+  nrow = 4L)
 # coefficients for time-varying fixed effects
 fixef_vary <- c(1.0495, -0.2004, 1.4167, 1.255, 2.5007, 4.8545, 4.7889)
 # association parameters

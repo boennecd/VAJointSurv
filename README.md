@@ -1,193 +1,117 @@
 Joint Survival and Marker Models
 ================
 
-[![](https://www.r-pkg.org/badges/version/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
+[![R-CMD-check](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/boennecd/VAJointSurv/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+version](https://www.r-pkg.org/badges/version/VAJointSurv)](https://CRAN.R-project.org/package=VAJointSurv)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/last-month/VAJointSurv)](https://cranlogs.r-pkg.org/)
 
-This package provides means of estimating joint models for a mixture of
-different types of markers and different types of survival outcomes. The
-models are estimated with Gaussian variational approximations (GVAs).
-Description of the supported models and multiple examples are given in
-this document. A presentation of the package is available
-[here](https://rpubs.com/boennecd/MEB-VAJointSurv) which includes a
-simulation study to investigate bias of the parameter estimates and
-coverage of approximate likelihood ratio based confidence intervals.
+VAJointSurv fits joint models for longitudinal markers and time-to-event
+outcomes using Gaussian variational approximations (GVAs). The examples
+below start with one marker and extend to recurrent events, observation
+times, and delayed entry.
 
-A comparison with the JM, JMbayes, and joineRML is provided on Github at
-[github.com/boennecd/VAJointSurv/tree/main/comparisons](https://github.com/boennecd/VAJointSurv/tree/main/comparisons).
+The [package presentation](https://rpubs.com/boennecd/MEB-VAJointSurv)
+includes a simulation study of bias in parameter estimates and coverage
+of approximate likelihood ratio confidence intervals. The repository
+also includes [comparisons with JM, JMbayes, and
+joineRML](https://github.com/boennecd/VAJointSurv/tree/main/comparisons).
 
 ## Installation
 
-The package can be installed from Github by calling:
+Install the development version from GitHub:
 
 ``` r
-remotes::install_github("boennecd/VAJointSurv", build_vignettes = TRUE)
+remotes::install_github(repo = "boennecd/VAJointSurv", dependencies = TRUE,
+                        build_vignettes = TRUE)
 ```
 
-It can also be installed from CRAN by calling:
+Install the release from CRAN.
 
 ``` r
-install.packages("VAJointSurv")
+install.packages(pkgs = "VAJointSurv")
 ```
 
 ## The Model
 
-We will start by covering the model, then cover some examples, and end
-with details about the implementation.
-
 ### The Markers
 
-We assume that there are
-![L](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;L
-"L") observed markers at each time point. We let ![\\vec
-Y\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20Y_%7Bij%7D
-"\\vec Y_{ij}") denote the
-![j](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;j
-"j")th observed markers for individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i") and let
-![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-"s_{ij}") be the observation time. The model for the markers is
+Each observation contains $L$ markers. For individual $i$, the vector
+$\vec Y_{ij}$ contains the marker values at observation time $s_{ij}$.
+The marker model is
 
-  
-![\\begin{align\*}
-\\vec Y\_{ij}&= \\vec\\mu\_i(s\_{ij}, \\vec U\_i) + \\vec\\epsilon\_{ij}
-\\\\
-\\epsilon\_{ij} &\\sim N^{(L)}(\\vec 0, \\Sigma) \\\\
-\\mu\_{i1}(s, \\vec U\_i) &= \\vec x\_{i1}^\\top\\vec\\gamma\_1 + \\vec
-g\_1(s)^\\top\\vec\\beta\_1 + 
-\\vec m\_1(s)^\\top\\vec U\_{i1} \\\\
-\\vdots &\\hphantom{=}\\vdots\\\\\\
-\\mu\_{iL}(s, \\vec U\_i) &= \\vec x\_{iL}^\\top\\vec\\gamma\_L + \\vec
-g\_L(s)^\\top\\vec\\beta\_L + 
-\\vec m\_L(s)^\\top\\vec U\_{iL} \\\\
-\\vec U\_i &= \\begin{pmatrix}
-\\vec U\_{i1} \\\\ \\vdots \\\\ \\vec U\_{iL}
-\\end{pmatrix}\\sim N^{(R)}(\\vec0, \\Psi) 
-\\end{align\*}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cbegin%7Balign%2A%7D%0A%5Cvec%20Y_%7Bij%7D%26%3D%20%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%2B%20%5Cvec%5Cepsilon_%7Bij%7D%20%5C%5C%0A%5Cepsilon_%7Bij%7D%20%26%5Csim%20N%5E%7B%28L%29%7D%28%5Cvec%200%2C%20%5CSigma%29%20%5C%5C%0A%5Cmu_%7Bi1%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7Bi1%7D%5E%5Ctop%5Cvec%5Cgamma_1%20%2B%20%5Cvec%20g_1%28s%29%5E%5Ctop%5Cvec%5Cbeta_1%20%2B%20%0A%20%20%5Cvec%20m_1%28s%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%5C%5C%5C%0A%5Cmu_%7BiL%7D%28s%2C%20%5Cvec%20U_i%29%20%26%3D%20%5Cvec%20x_%7BiL%7D%5E%5Ctop%5Cvec%5Cgamma_L%20%2B%20%5Cvec%20g_L%28s%29%5E%5Ctop%5Cvec%5Cbeta_L%20%2B%20%0A%20%20%5Cvec%20m_L%28s%29%5E%5Ctop%5Cvec%20U_%7BiL%7D%20%5C%5C%0A%5Cvec%20U_i%20%20%26%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cvec%20U_%7BiL%7D%0A%20%20%5Cend%7Bpmatrix%7D%5Csim%20N%5E%7B%28R%29%7D%28%5Cvec0%2C%20%5CPsi%29%20%0A%5Cend%7Balign%2A%7D
-"\\begin{align*}
-\\vec Y_{ij}&= \\vec\\mu_i(s_{ij}, \\vec U_i) + \\vec\\epsilon_{ij} \\\\
-\\epsilon_{ij} &\\sim N^{(L)}(\\vec 0, \\Sigma) \\\\
-\\mu_{i1}(s, \\vec U_i) &= \\vec x_{i1}^\\top\\vec\\gamma_1 + \\vec g_1(s)^\\top\\vec\\beta_1 + 
-  \\vec m_1(s)^\\top\\vec U_{i1} \\\\
-\\vdots &\\hphantom{=}\\vdots\\\\\\
-\\mu_{iL}(s, \\vec U_i) &= \\vec x_{iL}^\\top\\vec\\gamma_L + \\vec g_L(s)^\\top\\vec\\beta_L + 
-  \\vec m_L(s)^\\top\\vec U_{iL} \\\\
-\\vec U_i  &= \\begin{pmatrix}
-    \\vec U_{i1} \\\\ \\vdots \\\\ \\vec U_{iL}
-  \\end{pmatrix}\\sim N^{(R)}(\\vec0, \\Psi) 
-\\end{align*}")  
+$$
+\begin{aligned}
+\vec Y_{ij}&= \vec\mu_i(s_{ij}, \vec U_i) + \vec\epsilon_{ij} \\
+\epsilon_{ij} &\sim N^{(L)}(\vec 0, \Sigma) \\
+\mu_{i1}(s, \vec U_i) &= \vec x_{i1}^\top\vec\gamma_1 + \vec g_1(s)^\top\vec\beta_1 +
+  \vec m_1(s)^\top\vec U_{i1} \\
+\vdots &\quad \vdots\\
+\mu_{iL}(s, \vec U_i) &= \vec x_{iL}^\top\vec\gamma_L + \vec g_L(s)^\top\vec\beta_L +
+  \vec m_L(s)^\top\vec U_{iL} \\
+\vec U_i  &= \begin{pmatrix}
+    \vec U_{i1} \\ \vdots \\ \vec U_{iL}
+  \end{pmatrix}\sim N^{(R)}(\vec0, \Psi)
+\end{aligned}
+$$
 
-where
-![\\vec\\epsilon\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Cepsilon_%7Bij%7D
-"\\vec\\epsilon_{ij}") is an error term of the observation, ![\\vec
-U\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20U_i
-"\\vec U_i") is the
-![R](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;R
-"R") dimensional unobserved random effect for individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i"), and the ![\\vec
-g\_k](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20g_k
-"\\vec g_k")s and ![\\vec
-m\_k](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20m_k
-"\\vec m_k")s are basis expansions. We can write the model more
-compactly by letting
+where $\vec\epsilon_{ij}$ is the measurement error and $\vec U_i$ is the
+unobserved random effect of dimension $R$ for individual $i$. The
+functions $\vec g_k$ and $\vec m_k$ give the basis expansions for marker
+$k$. We can write the model more compactly by letting
 
-  
-![G(s) = \\begin{pmatrix} 
-\\vec g\_1(s)^\\top & 0^\\top & \\cdots & \\vec 0^\\top \\\\
-\\vec 0^\\top & \\vec g\_2(s)^\\top & \\ddots & \\vdots \\\\
-\\vdots & \\ddots & \\ddots & \\vec 0^\\top \\\\
-\\vec 0^\\top & \\cdots & \\vec 0^\\top & \\vec g\_L(s)^\\top
-\\end{pmatrix}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;G%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7D%20%0A%20%20%5Cvec%20g_1%28s%29%5E%5Ctop%20%26%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_2%28s%29%5E%5Ctop%20%26%20%5Cddots%20%26%20%5Cvdots%20%5C%5C%0A%20%20%5Cvdots%20%26%20%5Cddots%20%26%20%5Cddots%20%26%20%5Cvec%200%5E%5Ctop%20%5C%5C%0A%20%20%5Cvec%200%5E%5Ctop%20%26%20%5Ccdots%20%26%20%5Cvec%200%5E%5Ctop%20%26%20%5Cvec%20g_L%28s%29%5E%5Ctop%20%5Cend%7Bpmatrix%7D
-"G(s) = \\begin{pmatrix} 
-  \\vec g_1(s)^\\top & 0^\\top & \\cdots & \\vec 0^\\top \\\\
-  \\vec 0^\\top & \\vec g_2(s)^\\top & \\ddots & \\vdots \\\\
-  \\vdots & \\ddots & \\ddots & \\vec 0^\\top \\\\
-  \\vec 0^\\top & \\cdots & \\vec 0^\\top & \\vec g_L(s)^\\top \\end{pmatrix}")  
+$$
+G(s) = \begin{pmatrix}
+  \vec g_1(s)^\top & 0^\top & \cdots & \vec 0^\top \\
+  \vec 0^\top & \vec g_2(s)^\top & \ddots & \vdots \\
+  \vdots & \ddots & \ddots & \vec 0^\top \\
+  \vec 0^\top & \cdots & \vec 0^\top & \vec g_L(s)^\top \end{pmatrix}
+$$
 
-and defining
-![M(s)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M%28s%29
-"M(s)") and
-![X\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;X_i
-"X_i") similarly. Furthermore, let ![\\vec\\gamma =
-(\\vec\\gamma\_1^\\top,\\dots,\\vec\\gamma\_L^\\top)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Cgamma%20%3D%20%28%5Cvec%5Cgamma_1%5E%5Ctop%2C%5Cdots%2C%5Cvec%5Cgamma_L%5E%5Ctop%29
-"\\vec\\gamma = (\\vec\\gamma_1^\\top,\\dots,\\vec\\gamma_L^\\top)") and
-define
-![\\vec\\beta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Cbeta
-"\\vec\\beta") similarly. Then the conditional mean vector at time
-![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-"s_{ij}") is
+and defining $M(s)$ and $X_i$ similarly. Furthermore, let
+$\vec\gamma = (\vec\gamma_1^\top,\dots,\vec\gamma_L^\top)$ and define
+$\vec\beta$ similarly. Then the conditional mean vector at time $s_{ij}$
+is
 
-  
-![\\vec\\mu\_i(s\_{ij}, \\vec U\_i) = X\_i\\vec\\gamma +
-G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec
-U\_i.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Cmu_i%28s_%7Bij%7D%2C%20%5Cvec%20U_i%29%20%3D%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20U_i.
-"\\vec\\mu_i(s_{ij}, \\vec U_i) = X_i\\vec\\gamma + G(s_{ij})\\vec\\beta + M(s_{ij})\\vec U_i.")  
+$$
+\vec\mu_i(s_{ij}, \vec U_i) = X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec U_i.
+$$
 
 ### The Survival Outcomes
 
-We assume that there are
-![H](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;H
-"H") different types of survival outcomes. The conditional hazards of
-the survival outcomes are
+We assume that there are $H$ different types of survival outcomes. The
+conditional hazards of the survival outcomes are
 
-  
-![\\begin{align\*}
-h\_{i1}(t\\mid \\vec U\_i, \\vec\\xi\_i) &= \\exp\\left( 
-\\vec z\_{i1}^\\top\\vec \\delta\_1 + 
-\\omega\_1^\\top \\vec b\_1(t) + 
-\\vec\\alpha\_1^\\top M(t)\\vec U\_i + \\xi\_{i1}
-\\right) \\\\
-\\vdots &\\hphantom{=}\\vdots \\\\
-h\_{iH}(t\\mid \\vec U\_i,\\vec \\xi\_i) &= \\exp\\left( 
-\\vec z\_{iL}^\\top\\vec \\delta\_H + 
-\\omega\_H^\\top\\vec b\_H(t) + 
-\\vec\\alpha\_H^\\top M(t)\\vec U\_i + \\xi\_{iH}
-\\right) \\\\
-\\vec\\xi\_i = \\begin{pmatrix}\\xi\_{i1} \\\\ \\vdots \\\\
-\\xi\_{iH}\\end{pmatrix}
-&\\sim N^{(H)}(\\vec 0, \\Xi).
-\\end{align\*}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cbegin%7Balign%2A%7D%0Ah_%7Bi1%7D%28t%5Cmid%20%5Cvec%20U_i%2C%20%5Cvec%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%0A%20%20%5Cvec%20z_%7Bi1%7D%5E%5Ctop%5Cvec%20%5Cdelta_1%20%2B%20%0A%20%20%5Comega_1%5E%5Ctop%20%5Cvec%20b_1%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7Bi1%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvdots%20%26%5Chphantom%7B%3D%7D%5Cvdots%20%5C%5C%0Ah_%7BiH%7D%28t%5Cmid%20%5Cvec%20U_i%2C%5Cvec%20%5Cxi_i%29%20%26%3D%20%5Cexp%5Cleft%28%20%20%0A%20%20%5Cvec%20z_%7BiL%7D%5E%5Ctop%5Cvec%20%5Cdelta_H%20%2B%20%0A%20%20%5Comega_H%5E%5Ctop%5Cvec%20b_H%28t%29%20%2B%20%0A%20%20%5Cvec%5Calpha_H%5E%5Ctop%20M%28t%29%5Cvec%20U_i%20%2B%20%5Cxi_%7BiH%7D%0A%20%20%5Cright%29%20%5C%5C%0A%5Cvec%5Cxi_i%20%3D%20%5Cbegin%7Bpmatrix%7D%5Cxi_%7Bi1%7D%20%5C%5C%20%5Cvdots%20%5C%5C%20%5Cxi_%7BiH%7D%5Cend%7Bpmatrix%7D%0A%20%20%26%5Csim%20N%5E%7B%28H%29%7D%28%5Cvec%200%2C%20%5CXi%29.%0A%5Cend%7Balign%2A%7D
-"\\begin{align*}
-h_{i1}(t\\mid \\vec U_i, \\vec\\xi_i) &= \\exp\\left( 
-  \\vec z_{i1}^\\top\\vec \\delta_1 + 
-  \\omega_1^\\top \\vec b_1(t) + 
-  \\vec\\alpha_1^\\top M(t)\\vec U_i + \\xi_{i1}
-  \\right) \\\\
-\\vdots &\\hphantom{=}\\vdots \\\\
-h_{iH}(t\\mid \\vec U_i,\\vec \\xi_i) &= \\exp\\left(  
-  \\vec z_{iL}^\\top\\vec \\delta_H + 
-  \\omega_H^\\top\\vec b_H(t) + 
-  \\vec\\alpha_H^\\top M(t)\\vec U_i + \\xi_{iH}
-  \\right) \\\\
-\\vec\\xi_i = \\begin{pmatrix}\\xi_{i1} \\\\ \\vdots \\\\ \\xi_{iH}\\end{pmatrix}
-  &\\sim N^{(H)}(\\vec 0, \\Xi).
-\\end{align*}")  
+$$
+\begin{aligned}
+h_{i1}(t\mid \vec U_i, \vec\xi_i) &= \exp\left(
+  \vec z_{i1}^\top\vec \delta_1 +
+  \omega_1^\top \vec b_1(t) +
+  \vec\alpha_1^\top M(t)\vec U_i + \xi_{i1}
+  \right) \\
+\vdots &\quad \vdots \\
+h_{iH}(t\mid \vec U_i,\vec \xi_i) &= \exp\left(
+  \vec z_{iH}^\top\vec \delta_H +
+  \omega_H^\top\vec b_H(t) +
+  \vec\alpha_H^\top M(t)\vec U_i + \xi_{iH}
+  \right) \\
+\vec\xi_i = \begin{pmatrix}\xi_{i1} \\ \vdots \\ \xi_{iH}\end{pmatrix}
+  &\sim N^{(H)}(\vec 0, \Xi).
+\end{aligned}
+$$
 
-The
-![\\vec\\alpha](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Calpha
-"\\vec\\alpha")s are association parameters which makes the markers and
-the survival outcomes marginally dependent. The
-![\\exp\\xi\_{ih}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cexp%5Cxi_%7Bih%7D
-"\\exp\\xi_{ih}")s are frailty effects which makes the survival outcomes
-marginally dependent even if ![\\vec\\alpha =
-\\vec 0](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Calpha%20%3D%20%5Cvec%200
-"\\vec\\alpha = \\vec 0"). By default, these are not included as it is
-assumed that events are often terminal in which case identifying the
-frailty may be hard and evidence of a frailty is both evidence of
-non-proportional hazards and heterogeneity.
+The association parameters $\vec\alpha_h$ link the markers to survival
+outcome $h$. The frailty effects $\exp(\xi_{ih})$ can induce marginal
+dependence between survival outcomes even when $\vec\alpha_h = \vec 0$
+for all $h$. The default model omits frailty. For terminal events, both
+heterogeneity and non-proportional hazards can explain evidence of
+frailty.
 
-The observation process, the
-![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-"s_{ij}")s, can be modeled as one of
-![H](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;H
-"H") different types of survival process. This can be done by adding
-each
-![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-"s_{ij}") as a left-truncated outcome of the given type of process
-except for
-![s\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bi1%7D
-"s_{i1}") which is not left-truncated.
+The observation times $s_{ij}$ can form one of the $H$ survival
+processes. This can be done by adding each $s_{ij}$ as a left-truncated
+outcome of the given type of process except for $s_{i1}$ which is not
+left-truncated.
 
 #### More General Survival Sub-model
 
@@ -195,54 +119,33 @@ The conditional hazards shown above only allows the hazard to be
 associated with the population deviation for the mean marker through the
 current value
 
-  
-![M(t)\\vec U\_i = \\begin{pmatrix}
-\\vec m\_1(t)^\\top\\vec U\_{i1} \\\\
-\\vdots \\\\
-\\vec m\_L(t)^\\top\\vec U\_{i1}
-\\end{pmatrix}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M%28t%29%5Cvec%20U_i%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%20%20%5Cvdots%20%5C%5C%0A%20%20%20%20%5Cvec%20m_L%28t%29%5E%5Ctop%5Cvec%20U_%7Bi1%7D%0A%20%20%5Cend%7Bpmatrix%7D.
-"M(t)\\vec U_i = \\begin{pmatrix}
-    \\vec m_1(t)^\\top\\vec U_{i1} \\\\
-    \\vdots \\\\
-    \\vec m_L(t)^\\top\\vec U_{i1}
-  \\end{pmatrix}.")  
+$$
+M(t)\vec U_i = \begin{pmatrix}
+    \vec m_1(t)^\top\vec U_{i1} \\
+    \vdots \\
+    \vec m_L(t)^\top\vec U_{iL}
+  \end{pmatrix}.
+$$
 
 However, the researcher may be interested in using the cumulative value,
-![\\int^t \\vec m\_k(s)^\\top ds\\vec
-U\_{ik}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cint%5Et%20%5Cvec%20m_k%28s%29%5E%5Ctop%20ds%5Cvec%20U_%7Bik%7D
-"\\int^t \\vec m_k(s)^\\top ds\\vec U_{ik}"), the derivative,
-![\\partial\\vec m\_k(t)^\\top\\vec U\_{ik}/\\partial
-t](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cpartial%5Cvec%20m_k%28t%29%5E%5Ctop%5Cvec%20U_%7Bik%7D%2F%5Cpartial%20t
-"\\partial\\vec m_k(t)^\\top\\vec U_{ik}/\\partial t"), or a combination
-of these and the current value. This is supported in the package through
-the `ders` argument of `surv_term`. As an example, if we let ![\\vec
-d\_k(t) = \\int^t \\vec m\_k(s)
-ds](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20d_k%28t%29%20%3D%20%5Cint%5Et%20%5Cvec%20m_k%28s%29%20ds
-"\\vec d_k(t) = \\int^t \\vec m_k(s) ds"), ![\\vec r\_k(t) =
-\\partial\\vec m\_k(t)/\\partial
-t](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20r_k%28t%29%20%3D%20%5Cpartial%5Cvec%20m_k%28t%29%2F%5Cpartial%20t
-"\\vec r_k(t) = \\partial\\vec m_k(t)/\\partial t"), and ![L
-= 3](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;L%20%3D%203
-"L = 3") then it is possible to replace the ![\\vec\\alpha\_1^\\top
-M(t)\\vec
-U\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Calpha_1%5E%5Ctop%20M%28t%29%5Cvec%20U_i
-"\\vec\\alpha_1^\\top M(t)\\vec U_i") in the hazard with
+$\int^t \vec m_k(s)^\top ds\vec U_{ik}$, the derivative,
+$\partial\vec m_k(t)^\top\vec U_{ik}/\partial t$, or a combination of
+these and the current value. This is supported in the package through
+the `ders` argument of `surv_term`. As an example, if we let
+$\vec d_k(t) = \int^t \vec m_k(s) ds$,
+$\vec r_k(t) = \partial\vec m_k(t)/\partial t$, and $L = 3$ then it is
+possible to replace the $\vec\alpha_1^\top M(t)\vec U_i$ in the hazard
+with
 
-  
-![\\vec\\alpha\_1^\\top\\begin{pmatrix}
-\\vec d\_1(t)^\\top \\vec U\_{i1} \\\\
-\\vec m\_1(t)^\\top \\vec U\_{i1} \\\\
-\\vec m\_2(t)^\\top \\vec U\_{i2} \\\\
-\\vec d\_3(t)^\\top \\vec U\_{i3} \\\\
-\\vec r\_3(t)^\\top \\vec U\_{i3} \\\\
-\\end{pmatrix}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Calpha_1%5E%5Ctop%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%20d_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_1%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi1%7D%20%5C%5C%0A%20%20%5Cvec%20m_2%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi2%7D%20%5C%5C%0A%20%20%5Cvec%20d_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%20%20%5Cvec%20r_3%28t%29%5E%5Ctop%20%5Cvec%20U_%7Bi3%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D
-"\\vec\\alpha_1^\\top\\begin{pmatrix}
-  \\vec d_1(t)^\\top \\vec U_{i1} \\\\
-  \\vec m_1(t)^\\top \\vec U_{i1} \\\\
-  \\vec m_2(t)^\\top \\vec U_{i2} \\\\
-  \\vec d_3(t)^\\top \\vec U_{i3} \\\\
-  \\vec r_3(t)^\\top \\vec U_{i3} \\\\
-\\end{pmatrix}")  
+$$
+\vec\alpha_1^\top\begin{pmatrix}
+  \vec d_1(t)^\top \vec U_{i1} \\
+  \vec m_1(t)^\top \vec U_{i1} \\
+  \vec m_2(t)^\top \vec U_{i2} \\
+  \vec d_3(t)^\top \vec U_{i3} \\
+  \vec r_3(t)^\top \vec U_{i3} \\
+\end{pmatrix}
+$$
 
 That is, a cumulative and current value for the first marker, only the
 current value for the second marker, and the cumulative and derivative
@@ -252,91 +155,73 @@ for the third marker.
 
 The package can handle
 
-  - Mixed type of basis expansions in
-    ![G](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;G
-    "G"),
-    ![M](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;M
-    "M"), and
-    ![b\_1,\\dots,b\_H](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;b_1%2C%5Cdots%2Cb_H
-    "b_1,\\dots,b_H").
-  - A maximum ![L
-    = 31](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;L%20%3D%2031
-    "L = 31") different markers, and an arbitrary number survival
-    outcome types,
-    ![H](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;H
-    "H") (though, identification of parameters quickly becomes an
-    issue).
-  - Only observing a subset of the
-    ![L](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;L
-    "L") markers at a given point in time
-    ![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-    "s_{ij}") (i.e. some may be missing).
-  - Any number of observed markers and survival outcomes for each
-    individual.
-  - Left-truncation and right-censoring.
-  - Time-varying effects for covariates (both fixed and random effects)
-    and non-proportional hazard effects for covariates.
+- Mixed type of basis expansions in $G$, $M$, and $b_1,\dots,b_H$.
+- A maximum $L = 31$ different markers, and an arbitrary number survival
+  outcome types, $H$ (though, identification of parameters quickly
+  becomes an issue).
+- Only observing a subset of the $L$ markers at a given point in time
+  $s_{ij}$ (i.e. some may be missing).
+- Any number of observed markers and survival outcomes for each
+  individual.
+- Left-truncation and right-censoring.
+- Time-varying effects for covariates (both fixed and random effects)
+  and non-proportional hazard effects for covariates.
 
 The following is not supported
 
-  - Interval-censoring and left-censoring are not supported although
-    this is not a complicated extension.
-  - There cannot be multiple observed markers of the same type at each
-    point
-    ![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-    "s_{ij}") for each individual
-    ![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-    "i"). This is not too complicated to implement but not yet
-    implemented.
+- Interval-censoring and left-censoring are not supported although this
+  is not a complicated extension.
+- There cannot be multiple observed markers of the same type at each
+  point $s_{ij}$ for each individual $i$. This is not too complicated to
+  implement but not yet implemented.
 
 ## Examples
 
 We show a few examples of using this package and illustrate its API in
 this section. The examples includes:
 
-  - Only one marker in the [Univariate Marker
-    Example](#univariate-marker-example) section where we can compare
-    with lme4. The section also includes some remarks about the
-    implemented expansions.
-  - Two markers in the [Two Markers](#two-markers) section.
-  - A recurrent event in the [Recurrent Event](#recurrent-event)
-    section. It is also shown how to change the quadrature rule that is
-    used to approximate the approximate expected cumulative hazard.
-  - An example with two markers and a recurrent event is given in the
-    [Two Markers and a Recurrent
-    Event](#two-markers-and-a-recurrent-event) section. The section also
-    includes an example of how to construct approximate profile
-    likelihood based confidence intervals and how to obtain Wald type
-    tests and confidence intervals from the observed information matrix.
-  - A similar example is provided but without the frailty in the [Two
-    Markers and a Recurrent Event Without
-    Frailty](#two-markers-and-a-recurrent-event-without-frailty)
-    section. Notice that this is the default with `surv_term`. It is
-    also shown how one can get the variational parameters for each
-    individual.
-  - An example with two markers, the observation process, and a terminal
-    event is given in the [Two Markers, the Observation Time Process,
-    and a Terminal
-    Event](#two-markers-the-observation-time-process-and-a-terminal-event)
-    section. The observation time process and the markers are not
-    marginally independent in the true model. Thus, they need to be
-    modeled together or the dependence accounted for in some other way.
-    Examples and comments regarding caching of the expansions are also
-    provided.
-  - A similar example is provided in the [Two Markers, the Observation
-    Time Process, and a Terminal Event with Delayed
-    Entry](#two-markers-the-observation-time-process-and-a-terminal-event-with-delayed-entry)
-    section but where there is delayed entry.
-  - A similar example is provided in the [Two Markers, the Observation
-    Time Process, and a Terminal Event with Time-varying
-    Effects](#two-markers-the-observation-time-process-and-a-terminal-event-with-time-varying-effects)
-    section but where there time-varying fixed and random covariate
-    effects along with non-proportional hazard effects.
-  - A similar example is provided in the [Two Markers, the Observation
-    Time Process, a Terminal Event and Mixed
-    Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
-    section but where a mixture of the cumulative, the present value,
-    and the derivative is used in the sub-survival models.
+- Only one marker in the [Univariate Marker
+  Example](#univariate-marker-example) section where we can compare with
+  lme4. The section also includes some remarks about the implemented
+  expansions.
+- Two markers in the [Two Markers](#two-markers) section.
+- A recurrent event in the [Recurrent Event](#recurrent-event) section.
+  It is also shown how to change the quadrature rule that is used to
+  approximate the approximate expected cumulative hazard.
+- An example with two markers and a recurrent event is given in the [Two
+  Markers and a Recurrent Event](#two-markers-and-a-recurrent-event)
+  section. The section also includes an example of how to construct
+  approximate profile likelihood based confidence intervals and how to
+  obtain Wald type tests and confidence intervals from the observed
+  information matrix.
+- A similar example is provided but without the frailty in the [Two
+  Markers and a Recurrent Event Without
+  Frailty](#two-markers-and-a-recurrent-event-without-frailty) section.
+  Notice that this is the default with `surv_term`. It is also shown how
+  one can get the variational parameters for each individual.
+- An example with two markers, the observation process, and a terminal
+  event is given in the [Two Markers, the Observation Time Process, and
+  a Terminal
+  Event](#two-markers-the-observation-time-process-and-a-terminal-event)
+  section. The observation time process and the markers are not
+  marginally independent in the true model. Thus, they need to be
+  modeled together or the dependence accounted for in some other way.
+  Examples and comments regarding caching of the expansions are also
+  provided.
+- A similar example is provided in the [Two Markers, the Observation
+  Time Process, and a Terminal Event with Delayed
+  Entry](#two-markers-the-observation-time-process-and-a-terminal-event-with-delayed-entry)
+  section but where there is delayed entry.
+- A similar example is provided in the [Two Markers, the Observation
+  Time Process, and a Terminal Event with Time-varying
+  Effects](#two-markers-the-observation-time-process-and-a-terminal-event-with-time-varying-effects)
+  section but where there time-varying fixed and random covariate
+  effects along with non-proportional hazard effects.
+- A similar example is provided in the [Two Markers, the Observation
+  Time Process, a Terminal Event, and Mixed
+  Dependencies](#two-markers-the-observation-time-process-a-terminal-event-and-mixed-dependencies)
+  section but where a mixture of the cumulative, the present value, and
+  the derivative is used in the sub-survival models.
 
 We start first with some general remarks.
 
@@ -344,10 +229,10 @@ We start first with some general remarks.
 
 There is not intercept by default in the splines. Usually, you almost
 always want one in the both the random effect and fixed effect part. The
-intercept is included by default in `formula` (unless you do `. ~ ...
-- 1` and there is not factor variable). Thus, you do not want an
-intercept in the `time_fixef` in both `marker_term` and `surv_term`. On
-the other hand, you do need yourself to include the intercept in the
+intercept is included by default in `formula` (unless you do
+`. ~ ... - 1` and there is not factor variable). Thus, you do not want
+an intercept in the `time_fixef` in both `marker_term` and `surv_term`.
+On the other hand, you do need yourself to include the intercept in the
 `time_rng` argument of `marker_term`. Thus, a typical call may look like
 
 ``` r
@@ -375,10 +260,9 @@ because some of the scale matrices do not have full rank.
 We make a comparison below with one marker only with the lme4 package.
 We do this as we can check that
 
-  - We get almost the same (the lower bound can be equal to the log
-    marginal likelihood in this case).
-  - The lower bound is less than or equal to the log marginal
-    likelihood.
+- We get almost the same (the lower bound can be equal to the log
+  marginal likelihood in this case).
+- The lower bound is less than or equal to the log marginal likelihood.
 
 lme4 should be used in this case as the linear model is tractable and
 this is used by the lme4 package. The computation time comparison is not
@@ -574,10 +458,9 @@ element. The latter element can be used to evaluate the basis, the
 derivatives of the basis if the `der` argument is greater than zero, or
 the integral
 
-  
-![\\vec d(u) = \\int\_l^u \\vec m(s)
-ds](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20d%28u%29%20%3D%20%5Cint_l%5Eu%20%5Cvec%20m%28s%29%20ds
-"\\vec d(u) = \\int_l^u \\vec m(s) ds")  
+$$
+\vec d(u) = \int_l^u \vec m(s) ds
+$$
 
 if the `der` argument is equal to minus one. The lower limit is passed
 with the `lower_limit` argument to the `eval` function. We illustrate
@@ -751,7 +634,7 @@ all.equal( t(n$eval(-1, der = -1, lower_limit = -3)), do_int(-1, f, -3), 1e-6)
 #> [1] TRUE
 ```
 
-Caution: the B-splines are only tested with `degree = 3`\!
+Caution: the B-splines are only tested with `degree = 3`!
 
 #### Log Transformations
 
@@ -838,21 +721,16 @@ t(jacobian(f, 4.33))
 
 We may also be interested in
 
-  - Time-varying fixed effects for a covariate.
-  - Time-varying random effects for a covariate.
-  - Non-proportional hazard effects for a covariate.
+- Time-varying fixed effects for a covariate.
+- Time-varying random effects for a covariate.
+- Non-proportional hazard effects for a covariate.
 
 The way that we allow for this is with the `weighted_term` and
 `stacked_term` functions. The `weighted_term` function takes a basis
-expansion which we can denote as ![\\vec
-g(t)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20g%28t%29
-"\\vec g(t)") and a symbol (weight) for a covariate which we denote by
-![x](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;x
-"x") and computes ![x\\vec
-g(t)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;x%5Cvec%20g%28t%29
-"x\\vec g(t)"). Two examples of using the function are given below. Note
-that the symbol is not evaluated till you call the `eval` function on
-the returned object.
+expansion which we can denote as $\vec g(t)$ and a symbol (weight) for a
+covariate which we denote by $x$ and computes $x\vec g(t)$. Two examples
+of using the function are given below. Note that the symbol is not
+evaluated till you call the `eval` function on the returned object.
 
 ``` r
 # define two bases
@@ -1367,16 +1245,12 @@ c(estimate = sqrt(fmt_est$vcov$vcov_surv), truth = sqrt(vcov_surv))
 #### Note on Quadrature Rule
 
 A quadrature rule is used to integrate the expected cumulative hazard.
-The user can pass any quadrature rule with
-![n](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;n
-"n") nodes and weights each denoted by ![(n\_i,
-w\_i)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28n_i%2C%20w_i%29
-"(n_i, w_i)") such that
+The user can pass any quadrature rule with $n$ nodes and weights each
+denoted by $(n_i, w_i)$ such that
 
-  
-![\\int\_0^1f(x) dx \\approx \\sum\_{i = 1}^nw\_i
-f(n\_i).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cint_0%5E1f%28x%29%20dx%20%5Capprox%20%5Csum_%7Bi%20%3D%201%7D%5Enw_i%20f%28n_i%29.
-"\\int_0^1f(x) dx \\approx \\sum_{i = 1}^nw_i f(n_i).")  
+$$
+\int_0^1f(x) dx \approx \sum_{i = 1}^nw_i f(n_i).
+$$
 
 By default Gauss–Legendre quadrature is used. A very simple alternative
 is to use the midpoint rule. This is illustrated below.
@@ -2927,12 +2801,12 @@ if the same quadrature rule is used. This is done by setting the
 expensive basis expansions are only evaluated once which may decrees the
 computation time. The cons are
 
-  - We no longer use the CPU cache efficiently with present hardware.
-    Thus, you may not see great advantages of using many threads and the
-    performance  
-    may even be worse. This is more likely to be an issue with larger
-    data set.
-  - It requires a lot more memory which may be an issue larger problems.
+- We no longer use the CPU cache efficiently with present hardware.
+  Thus, you may not see great advantages of using many threads and the
+  performance  
+  may even be worse. This is more likely to be an issue with larger data
+  set.
+- It requires a lot more memory which may be an issue larger problems.
 
 We illustrate this by showing the computation time where we change the
 number of threads we use.
@@ -2993,99 +2867,56 @@ delayed entry as described by Crowther et al. (2016) and Berg and
 Drepper (2016).
 
 To show the likelihood we use, assume that there is only one type of
-survival outcome, ![H
-= 1](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;H%20%3D%201
-"H = 1"). The log marginal likelihood of individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i") where we do not properly account for the delayed entry is
+survival outcome, $H = 1$. The log marginal likelihood of individual $i$
+where we do not properly account for the delayed entry is
 
-  
-![\\log E\\left( f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid
-\\vec U\_i)^{d\_{i1}} \\frac{S\_{i1}(t\_{i1}\\mid \\vec
-U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec
-U\_i)}\\right)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20E%5Cleft%28%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29
-"\\log E\\left( f_i(\\vec y_i\\mid \\vec U_i)h_{i1}(t_{i1}\\mid \\vec U_i)^{d_{i1}} \\frac{S_{i1}(t_{i1}\\mid \\vec U_i)}{S_{i1}(v_{i1}\\mid \\vec U_i)}\\right)")  
+$$
+\log E\left( f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}} \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right)
+$$
 
-where ![\\vec
-y\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20y_i
-"\\vec y_i") is observed markers of individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i"),
-![f\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;f_i
-"f_i") is the conditional density for the markers of individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i") given the random effects ![\\vec
-U\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%20U_i
-"\\vec U_i"),
-![t\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t_%7Bi1%7D
-"t_{i1}") is the observed time,
-![d\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;d_%7Bi1%7D
-"d_{i1}") is an event indicator,
-![h\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;h_%7Bi1%7D
-"h_{i1}") is the conditional hazard,
-![S\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;S_%7Bi1%7D
-"S_{i1}") is the conditional survival function, and ![v\_{i1}\\in
-\[0,\\infty)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;v_%7Bi1%7D%5Cin%20%5B0%2C%5Cinfty%29
-"v_{i1}\\in [0,\\infty)") is the left-truncation time. We approximate
-the log marginal likelihood term with a lower bound given by
+where $\vec y_i$ is observed markers of individual $i$, $f_i$ is the
+conditional density for the markers of individual $i$ given the random
+effects $\vec U_i$, $t_{i1}$ is the observed time, $d_{i1}$ is an event
+indicator, $h_{i1}$ is the conditional hazard, $S_{i1}$ is the
+conditional survival function, and $v_{i1}\in [0,\infty)$ is the
+left-truncation time. We approximate the log marginal likelihood term
+with a lower bound given by
 
-  
-![\\log E\\left( f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid
-\\vec U\_i)^{d\_{i1}} \\frac{S\_{i1}(t\_{i1}\\mid \\vec
-U\_i)}{S\_{i1}(v\_{i1}\\mid \\vec U\_i)}\\right) \\geq
-E\_{Q\_{i1}}\\left(\\log\\left( f\_i(\\vec y\_i\\mid \\vec
-U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}}
-\\frac{S\_{i1}(t\_{i1}\\mid \\vec U\_i)v(\\vec U\_i)}
-{S\_{i1}(v\_{i1}\\mid \\vec U\_i)q\_{\\vec\\theta\_{i1}}(\\vec U\_i)}
-\\right)\\right)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20E%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%7D%5Cright%29%20%5Cgeq%20%20E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20%5Cfrac%7BS_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29v%28%5Cvec%20U_i%29%7D%20%20%7BS_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%20%20%5Cright%29%5Cright%29
-"\\log E\\left(  f_i(\\vec y_i\\mid \\vec U_i)h_{i1}(t_{i1}\\mid \\vec U_i)^{d_{i1}}  \\frac{S_{i1}(t_{i1}\\mid \\vec U_i)}{S_{i1}(v_{i1}\\mid \\vec U_i)}\\right) \\geq  E_{Q_{i1}}\\left(\\log\\left(  f_i(\\vec y_i\\mid \\vec U_i)h_{i1}(t_{i1}\\mid \\vec U_i)^{d_{i1}}  \\frac{S_{i1}(t_{i1}\\mid \\vec U_i)v(\\vec U_i)}  {S_{i1}(v_{i1}\\mid \\vec U_i)q_{\\vec\\theta_{i1}}(\\vec U_i)}  \\right)\\right)")  
+$$
+\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)}{S_{i1}(v_{i1}\mid \vec U_i)}\right) \geq  E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  \frac{S_{i1}(t_{i1}\mid \vec U_i)v(\vec U_i)}  {S_{i1}(v_{i1}\mid \vec U_i)q_{\vec\theta_{i1}}(\vec U_i)}  \right)\right)
+$$
 
 where the expectation on the right-hand side is using the density
-![q\_{\\vec\\theta\_{i1}}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;q_%7B%5Cvec%5Ctheta_%7Bi1%7D%7D
-"q_{\\vec\\theta_{i1}}") and
-![v](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;v
-"v") is the unconditional density of the random effects. Since this is a
-lower bound, we can jointly optimize the lower bound over the
-![\\vec\\theta\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Ctheta_%7Bi1%7D
-"\\vec\\theta_{i1}")s and the model parameters.
+$q_{\vec\theta_{i1}}$ and $v$ is the unconditional density of the random
+effects. Since this is a lower bound, we can jointly optimize the lower
+bound over the variational parameters $\vec\theta_{i1}$ and the model
+parameters.
 
 The correct likelihood with delayed entry is
 
-  
-![\\log E\\left( f\_i(\\vec y\_i\\mid \\vec U\_i)h\_{i1}(t\_{i1}\\mid
-\\vec U\_i)^{d\_{i1}} S\_{i1}(t\_{i1}\\mid \\vec U\_i)\\right) - \\log
-E\\left(S\_{i1}(v\_{i1}\\mid \\vec
-U\_i)\\right).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20E%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29%20%20-%20%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29.
-"\\log E\\left(  f_i(\\vec y_i\\mid \\vec U_i)h_{i1}(t_{i1}\\mid \\vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\\mid \\vec U_i)\\right)  - \\log E\\left(S_{i1}(v_{i1}\\mid \\vec U_i)\\right).")  
+$$
+\log E\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\right)  - \log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right).
+$$
 
 Of course, we can replace this with an approximation in the form of
 
-  
-![E\_{Q\_{i1}}\\left(\\log\\left( f\_i(\\vec y\_i\\mid \\vec
-U\_i)h\_{i1}(t\_{i1}\\mid \\vec U\_i)^{d\_{i1}} S\_{i1}(t\_{i1}\\mid
-\\vec U\_i)\\frac{v(\\vec U\_i)}{q\_{\\theta\_{i1}}(\\vec U\_i)}
-\\right)\\right) - E\_{Q\_{i2}}\\left(\\log\\left(S\_{i1}(v\_{i1}\\mid
-\\vec U\_i) \\frac{v(\\vec U\_i)}{q\_{\\theta\_{i2}}(\\vec
-U\_i)}\\right)\\right).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;E_%7BQ_%7Bi1%7D%7D%5Cleft%28%5Clog%5Cleft%28%20%20f_i%28%5Cvec%20y_i%5Cmid%20%5Cvec%20U_i%29h_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5E%7Bd_%7Bi1%7D%7D%20%20S_%7Bi1%7D%28t_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi1%7D%7D%28%5Cvec%20U_i%29%7D%20%20%5Cright%29%5Cright%29%20%20-%20E_%7BQ_%7Bi2%7D%7D%5Cleft%28%5Clog%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%20%20%5Cfrac%7Bv%28%5Cvec%20U_i%29%7D%7Bq_%7B%5Ctheta_%7Bi2%7D%7D%28%5Cvec%20U_i%29%7D%5Cright%29%5Cright%29.
-"E_{Q_{i1}}\\left(\\log\\left(  f_i(\\vec y_i\\mid \\vec U_i)h_{i1}(t_{i1}\\mid \\vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\\mid \\vec U_i)\\frac{v(\\vec U_i)}{q_{\\theta_{i1}}(\\vec U_i)}  \\right)\\right)  - E_{Q_{i2}}\\left(\\log\\left(S_{i1}(v_{i1}\\mid \\vec U_i)  \\frac{v(\\vec U_i)}{q_{\\theta_{i2}}(\\vec U_i)}\\right)\\right).")  
+$$
+E_{Q_{i1}}\left(\log\left(  f_i(\vec y_i\mid \vec U_i)h_{i1}(t_{i1}\mid \vec U_i)^{d_{i1}}  S_{i1}(t_{i1}\mid \vec U_i)\frac{v(\vec U_i)}{q_{\theta_{i1}}(\vec U_i)}  \right)\right)  - E_{Q_{i2}}\left(\log\left(S_{i1}(v_{i1}\mid \vec U_i)  \frac{v(\vec U_i)}{q_{\theta_{i2}}(\vec U_i)}\right)\right).
+$$
 
 This has some implications:
 
-1.  We still need to maximize over the
-    ![\\vec\\theta\_{i1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Ctheta_%7Bi1%7D
-    "\\vec\\theta_{i1}")s and the model parameters. However, we have to
-    minimize over the
-    ![\\vec\\theta\_{i2}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Ctheta_%7Bi2%7D
-    "\\vec\\theta_{i2}")s as they provide an upper bound on the log
-    marginal likelihood. Thus, we have a maxmin problem rather than a
-    pure maximization problem.
+1.  We still need to maximize over the variational parameters
+    $\vec\theta_{i1}$ and the model parameters. However, we have to
+    minimize over the variational parameters $\vec\theta_{i2}$ as they
+    provide an upper bound on the log marginal likelihood. Thus, we have
+    a maxmin problem rather than a pure maximization problem.
 2.  The approximation is no longer guaranteed to be a lower bound on the
     log marginal likelihood because we are adding a lower bound on one
     term with an upper bound on the other term.
-3.  The approximation of ![\\log E\\left(S\_{i1}(v\_{i1}\\mid \\vec
-    U\_i)\\right)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20E%5Cleft%28S_%7Bi1%7D%28v_%7Bi1%7D%5Cmid%20%5Cvec%20U_i%29%5Cright%29
-    "\\log E\\left(S_{i1}(v_{i1}\\mid \\vec U_i)\\right)") may be poor
-    as we do not have the multivariate normal density from the markers.
+3.  The approximation of
+    $\log E\left(S_{i1}(v_{i1}\mid \vec U_i)\right)$ may be poor as we
+    do not have the multivariate normal density from the markers.
 
 Currently, we compute the terms in the marginal likelihood due to
 delayed entry with adaptive Gauss-Hermite quadrature. This can be quite
@@ -4724,31 +4555,22 @@ vcov_surv
 We provide a few technical details in this section. The concatenated
 coefficient is given by
 
-  
-![\\vec\\theta = \\begin{pmatrix}
-\\vec\\gamma \\\\ \\vec\\beta\\\\
-\\vec\\omega\_1 \\\\ \\vec\\delta\_1 \\\\ \\vec\\alpha\_1 \\\\
-\\vdots \\\\
-\\vec\\omega\_H \\\\ \\vec\\delta\_H \\\\ \\vec\\alpha\_H \\\\
-\\text{vec}(\\Sigma) \\\\ \\text{vec}(\\Psi) \\\\ \\text{vec}(\\Xi)
-\\end{pmatrix}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Ctheta%20%3D%20%5Cbegin%7Bpmatrix%7D%0A%20%20%5Cvec%5Cgamma%20%5C%5C%20%5Cvec%5Cbeta%5C%5C%0A%20%20%5Cvec%5Comega_1%20%5C%5C%20%5Cvec%5Cdelta_1%20%5C%5C%20%5Cvec%5Calpha_1%20%5C%5C%0A%20%20%5Cvdots%20%5C%5C%0A%20%20%5Cvec%5Comega_H%20%5C%5C%20%5Cvec%5Cdelta_H%20%5C%5C%20%5Cvec%5Calpha_H%20%5C%5C%0A%20%20%20%20%5Ctext%7Bvec%7D%28%5CSigma%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CPsi%29%20%5C%5C%20%5Ctext%7Bvec%7D%28%5CXi%29%0A%5Cend%7Bpmatrix%7D
-"\\vec\\theta = \\begin{pmatrix}
-  \\vec\\gamma \\\\ \\vec\\beta\\\\
-  \\vec\\omega_1 \\\\ \\vec\\delta_1 \\\\ \\vec\\alpha_1 \\\\
-  \\vdots \\\\
-  \\vec\\omega_H \\\\ \\vec\\delta_H \\\\ \\vec\\alpha_H \\\\
-    \\text{vec}(\\Sigma) \\\\ \\text{vec}(\\Psi) \\\\ \\text{vec}(\\Xi)
-\\end{pmatrix}")  
+$$
+\vec\theta = \begin{pmatrix}
+  \vec\gamma \\ \vec\beta\\
+  \vec\omega_1 \\ \vec\delta_1 \\ \vec\alpha_1 \\
+  \vdots \\
+  \vec\omega_H \\ \vec\delta_H \\ \vec\alpha_H \\
+    \text{vec}(\Sigma) \\ \text{vec}(\Psi) \\ \text{vec}(\Xi)
+\end{pmatrix}
+$$
 
-where
-![\\text{vec}(\\cdot)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctext%7Bvec%7D%28%5Ccdot%29
-"\\text{vec}(\\cdot)") is the vectorization function that stacks the
-column of a matrix on top of each other.
-![\\vec\\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Ctheta
-"\\vec\\theta") is with the parameters from the variational
-approximation. We work with log Cholesky decompositions of the
-covariance matrices in practice. The `joint_ms_format` is a utility
-functions which returns a list with each of parameter separately.
+where $\text{vec}(\cdot)$ is the vectorization function that stacks the
+column of a matrix on top of each other. $\vec\theta$ is with the
+parameters from the variational approximation. We work with log Cholesky
+decompositions of the covariance matrices in practice. The
+`joint_ms_format` is a utility functions which returns a list with each
+of parameter separately.
 
 There are different types of terms in the lower bound in the GVA. We
 cover the types below. The lower bound has many parameters even with a
@@ -4757,161 +4579,98 @@ bound using the [psqn package](https://github.com/boennecd/psqn).
 
 ## Kullback–Leibler Divergence Term
 
-In the GVA, we assume that the conditional distribution of ![(\\vec
-U\_i^\\top,
-\\vec\\xi\_i^\\top)^\\top](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop
-"(\\vec U_i^\\top, \\vec\\xi_i^\\top)^\\top") is a normal distribution
-with mean
-![\\vec\\zeta\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Czeta_i
-"\\vec\\zeta_i") and covariance matrix
-![\\Omega\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5COmega_i
-"\\Omega_i"). One of the terms in the lower bound of the GVA is the
-Kullback–Leibler (KL) divergence term between the unconditional
-distribution of ![(\\vec U\_i^\\top,
-\\vec\\xi\_i^\\top)^\\top](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28%5Cvec%20U_i%5E%5Ctop%2C%20%5Cvec%5Cxi_i%5E%5Ctop%29%5E%5Ctop
-"(\\vec U_i^\\top, \\vec\\xi_i^\\top)^\\top") and the assumed
-conditional distribution. This term is given by
+In the GVA, we assume that the conditional distribution of
+$(\vec U_i^\top, \vec\xi_i^\top)^\top$ is a normal distribution with
+mean $\vec\zeta_i$ and covariance matrix $\Omega_i$. One of the terms in
+the lower bound of the GVA is the Kullback–Leibler (KL) divergence term
+between the unconditional distribution of
+$(\vec U_i^\top, \vec\xi_i^\top)^\top$ and the assumed conditional
+distribution. This term is given by
 
-  
-![\\begin{multline\*}
-\\frac{1}{2}\\Big(\\log\\lvert\\Omega\_i\\rvert -
-\\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert
--\\vec\\zeta\_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta\_{i,1:R}-\\vec\\zeta\_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta\_{i,(-1:R)}
-\\\\- \\text{tr}\\Omega\_{i,1:R,1:R}\\Psi^{-1}-
-\\text{tr}\\Omega\_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R +
-H\\Big)\\end{multline\*}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cbegin%7Bmultline%2A%7D%0A%5Cfrac%7B1%7D%7B2%7D%5CBig%28%5Clog%5Clvert%5COmega_i%5Crvert%20-%20%5Clog%5Clvert%5CPsi%5Crvert%20-%20%5Clog%5Clvert%5CXi%5Crvert%20-%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%5CPsi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D-%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%5CXi%5E%7B-1%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%20%5C%5C-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5CPsi%5E%7B-1%7D-%20%5Ctext%7Btr%7D%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%5CXi%5E%7B-1%7D%2B%20R%20%2B%20H%5CBig%29%5Cend%7Bmultline%2A%7D
-"\\begin{multline*}
-\\frac{1}{2}\\Big(\\log\\lvert\\Omega_i\\rvert - \\log\\lvert\\Psi\\rvert - \\log\\lvert\\Xi\\rvert -\\vec\\zeta_{i,1:R}^\\top\\Psi^{-1}\\vec\\zeta_{i,1:R}-\\vec\\zeta_{i,(-1:R)}^\\top\\Xi^{-1}\\vec\\zeta_{i,(-1:R)} \\\\- \\text{tr}\\Omega_{i,1:R,1:R}\\Psi^{-1}- \\text{tr}\\Omega_{i,(-1:R),(-1:R)}\\Xi^{-1}+ R + H\\Big)\\end{multline*}")  
+$$
+\begin{aligned}&
+\frac{1}{2}\Big(\log\lvert\Omega_i\rvert - \log\lvert\Psi\rvert - \log\lvert\Xi\rvert -\vec\zeta_{i,1:R}^\top\Psi^{-1}\vec\zeta_{i,1:R}-\vec\zeta_{i,(-1:R)}^\top\Xi^{-1}\vec\zeta_{i,(-1:R)} \\
+&- \text{tr}\Omega_{i,1:R,1:R}\Psi^{-1}- \text{tr}\Omega_{i,(-1:R),(-1:R)}\Xi^{-1}+ R + H\Big)\end{aligned}
+$$
 
-where
-![\\text{tr}(\\cdot)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctext%7Btr%7D%28%5Ccdot%29
-"\\text{tr}(\\cdot)") returns the trace of a matrix. Thus, the
-derivatives w.r.t.
-![\\Omega\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5COmega_i
-"\\Omega_i"),
-![\\Psi](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5CPsi
-"\\Psi"),
-![\\Xi](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5CXi
-"\\Xi"),
-![\\vec\\zeta\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cvec%5Czeta_i
-"\\vec\\zeta_i") are respectively
+where $\text{tr}(\cdot)$ returns the trace of a matrix. Thus, the
+derivatives w.r.t. $\Omega_i$, $\Psi$, $\Xi$, $\vec\zeta_i$ are
+respectively
 
-  
-![\\frac{1}{2}\\left(\\Omega\_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0
-\\\\ 0 &
-\\Xi^{-1}\\end{pmatrix}\\right)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5COmega_i%5E%7B-1%7D%20-%20%5Cbegin%7Bpmatrix%7D%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%200%20%26%20%5CXi%5E%7B-1%7D%5Cend%7Bpmatrix%7D%5Cright%29
-"\\frac{1}{2}\\left(\\Omega_i^{-1} - \\begin{pmatrix} \\Psi^{-1} & 0 \\\\ 0 & \\Xi^{-1}\\end{pmatrix}\\right)")  
+$$
+\frac{1}{2}\left(\Omega_i^{-1} - \begin{pmatrix} \Psi^{-1} & 0 \\ 0 & \Xi^{-1}\end{pmatrix}\right)
+$$
 
-  
-![\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta\_{i,1:R}\\vec\\zeta\_{i,1:R}^\\top
-+ \\Omega\_{i,1:R,1:R} -
-\\Psi)\\Psi^{-1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cfrac%7B1%7D%7B2%7D%5CPsi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5E%5Ctop%20%2B%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%20-%20%5CPsi%29%5CPsi%5E%7B-1%7D
-"\\frac{1}{2}\\Psi^{-1}(\\vec\\zeta_{i,1:R}\\vec\\zeta_{i,1:R}^\\top + \\Omega_{i,1:R,1:R} - \\Psi)\\Psi^{-1}")  
+$$
+\frac{1}{2}\Psi^{-1}(\vec\zeta_{i,1:R}\vec\zeta_{i,1:R}^\top + \Omega_{i,1:R,1:R} - \Psi)\Psi^{-1}
+$$
 
-  
-![\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta\_{i,(-1:R)}\\vec\\zeta\_{i,(-1:R)}^\\top+
-\\Omega\_{i,(-1:R),(-1:R)} -
-\\Xi)\\Xi^{-1}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cfrac%7B1%7D%7B2%7D%5CXi%5E%7B-1%7D%28%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5Cvec%5Czeta_%7Bi%2C%28-1%3AR%29%7D%5E%5Ctop%2B%20%5COmega_%7Bi%2C%28-1%3AR%29%2C%28-1%3AR%29%7D%20-%20%5CXi%29%5CXi%5E%7B-1%7D.
-"\\frac{1}{2}\\Xi^{-1}(\\vec\\zeta_{i,(-1:R)}\\vec\\zeta_{i,(-1:R)}^\\top+ \\Omega_{i,(-1:R),(-1:R)} - \\Xi)\\Xi^{-1}.")  
+$$
+\frac{1}{2}\Xi^{-1}(\vec\zeta_{i,(-1:R)}\vec\zeta_{i,(-1:R)}^\top+ \Omega_{i,(-1:R),(-1:R)} - \Xi)\Xi^{-1}.
+$$
 
-  
-![-\\begin{pmatrix}
-\\Psi^{-1} & 0 \\\\
-0 & \\Xi^{-1} 
-\\end{pmatrix}\\vec\\zeta\_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;-%5Cbegin%7Bpmatrix%7D%0A%20%20%5CPsi%5E%7B-1%7D%20%26%200%20%5C%5C%0A%20%200%20%26%20%5CXi%5E%7B-1%7D%20%0A%5Cend%7Bpmatrix%7D%5Cvec%5Czeta_i
-"-\\begin{pmatrix}
-  \\Psi^{-1} & 0 \\\\
-  0 & \\Xi^{-1} 
-\\end{pmatrix}\\vec\\zeta_i")  
+$$
+-\begin{pmatrix}
+  \Psi^{-1} & 0 \\
+  0 & \Xi^{-1}
+\end{pmatrix}\vec\zeta_i
+$$
 
 ## Marker Terms
 
-The log conditional density term of observation
-![j](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;j
-"j") of individual
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i
-"i") at time
-![s\_{ij}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;s_%7Bij%7D
-"s_{ij}") is
+The log conditional density term of observation $j$ of individual $i$ at
+time $s_{ij}$ is
 
-  
-![\\int \\log\\left(\\phi^{(L)}\\left(\\vec y\_{ij}; X\_i\\vec\\gamma +
-G(s\_{ij})\\vec\\beta + M(s\_{ij})\\vec w,
-\\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta\_{i,1:R},
-\\Omega\_{i,1:R,1:R}\\right) d\\vec
-w](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cint%20%5Clog%5Cleft%28%5Cphi%5E%7B%28L%29%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%3B%20X_i%5Cvec%5Cgamma%20%2B%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20%2B%20M%28s_%7Bij%7D%29%5Cvec%20w%2C%20%5CSigma%5Cright%29%5Cright%29%5Cphi%5E%7B%28R%29%7D%5Cleft%28%5Cvec%20w%3B%20%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%2C%20%5COmega_%7Bi%2C1%3AR%2C1%3AR%7D%5Cright%29%20d%5Cvec%20w
-"\\int \\log\\left(\\phi^{(L)}\\left(\\vec y_{ij}; X_i\\vec\\gamma + G(s_{ij})\\vec\\beta + M(s_{ij})\\vec w, \\Sigma\\right)\\right)\\phi^{(R)}\\left(\\vec w; \\vec\\zeta_{i,1:R}, \\Omega_{i,1:R,1:R}\\right) d\\vec w")  
+$$
+\int \log\left(\phi^{(L)}\left(\vec y_{ij}; X_i\vec\gamma + G(s_{ij})\vec\beta + M(s_{ij})\vec w, \Sigma\right)\right)\phi^{(R)}\left(\vec w; \vec\zeta_{i,1:R}, \Omega_{i,1:R,1:R}\right) d\vec w
+$$
+
 which gives
 
-  
-![\\begin{multline\*}-\\frac{L}{2}\\log 2\\pi -\\frac {1}{2}
-\\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y\_{ij} -
-X\_i\\vec\\gamma - G(s\_{ij})\\vec\\beta -
-M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right)^\\top \\\\
-\\Sigma^{-1}\\left(\\vec y\_{ij} - X\_i\\vec\\gamma -
-G(s\_{ij})\\vec\\beta - M(s\_{ij})\\vec\\zeta\_{i,1:R}\\right) -
-\\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s\_{ij})\\Omega\_{i,1:R,1:R}M(s\_{ij})^\\top.
-\\end{multline\*}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cbegin%7Bmultline%2A%7D-%5Cfrac%7BL%7D%7B2%7D%5Clog%202%5Cpi%20%20-%5Cfrac%20%7B1%7D%7B2%7D%20%5Clog%5Clvert%5CSigma%20%5Crvert%20-%20%5Cfrac%7B1%7D%7B2%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%5E%5Ctop%20%5C%5C%20%5CSigma%5E%7B-1%7D%5Cleft%28%5Cvec%20y_%7Bij%7D%20-%20X_i%5Cvec%5Cgamma%20-%20G%28s_%7Bij%7D%29%5Cvec%5Cbeta%20-%20M%28s_%7Bij%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%5Cright%29%20-%20%5Cfrac%7B1%7D%7B2%7D%5Ctext%7Btr%7D%5CSigma%5E%7B-1%7DM%28s_%7Bij%7D%29%5COmega_%7Bi%2C1%3AR%2C1%3AR%7DM%28s_%7Bij%7D%29%5E%5Ctop.%20%5Cend%7Bmultline%2A%7D
-"\\begin{multline*}-\\frac{L}{2}\\log 2\\pi  -\\frac {1}{2} \\log\\lvert\\Sigma \\rvert - \\frac{1}{2}\\left(\\vec y_{ij} - X_i\\vec\\gamma - G(s_{ij})\\vec\\beta - M(s_{ij})\\vec\\zeta_{i,1:R}\\right)^\\top \\\\ \\Sigma^{-1}\\left(\\vec y_{ij} - X_i\\vec\\gamma - G(s_{ij})\\vec\\beta - M(s_{ij})\\vec\\zeta_{i,1:R}\\right) - \\frac{1}{2}\\text{tr}\\Sigma^{-1}M(s_{ij})\\Omega_{i,1:R,1:R}M(s_{ij})^\\top. \\end{multline*}")  
+$$
+\begin{aligned}&-\frac{L}{2}\log 2\pi  -\frac {1}{2} \log\lvert\Sigma \rvert - \frac{1}{2}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right)^\top \\
+& \Sigma^{-1}\left(\vec y_{ij} - X_i\vec\gamma - G(s_{ij})\vec\beta - M(s_{ij})\vec\zeta_{i,1:R}\right) - \frac{1}{2}\text{tr}\Sigma^{-1}M(s_{ij})\Omega_{i,1:R,1:R}M(s_{ij})^\top. \end{aligned}
+$$
 
 ## Survival Outcomes
 
-Let ![T\_{i1}, \\dots,
-T\_{iL}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;T_%7Bi1%7D%2C%20%5Cdots%2C%20T_%7BiL%7D
-"T_{i1}, \\dots, T_{iL}") be the minimum of the censoring time or the
-observed event time and ![D\_{i1}, \\dots,
-D\_{iL}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;D_%7Bi1%7D%2C%20%5Cdots%2C%20D_%7BiL%7D
-"D_{i1}, \\dots, D_{iL}") be event indicators. The the lower bound terms
-for the
-![k](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;k
-"k")th time to event is
+For individual $i$ and outcome $k$, let $T_{ik}$ be the minimum of the
+event time and the censoring time. Let $D_{ik}$ be the event indicator.
+The contribution of outcome $k$ to the lower bound is
 
-  
-![\\int \\left(d\_{ik}\\log h\_{ik}(t\_{ik}\\mid \\vec w\_{1:R}, w\_{R +
-k})-\\int\_0^{t\_{ik}} h\_{ik}(s\\mid \\vec w\_{1:R}, w\_{R + k})ds
-\\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta\_i, \\Omega\_i)d\\vec
-w.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cint%20%5Cleft%28d_%7Bik%7D%5Clog%20h_%7Bik%7D%28t_%7Bik%7D%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29-%5Cint_0%5E%7Bt_%7Bik%7D%7D%20%20h_%7Bik%7D%28s%5Cmid%20%5Cvec%20w_%7B1%3AR%7D%2C%20w_%7BR%20%2B%20k%7D%29ds%20%5Cright%29%5Cphi%5E%7B%28R%20%2B%20H%29%7D%28%5Cvec%20w%3B%20%5Cvec%5Czeta_i%2C%20%5COmega_i%29d%5Cvec%20w.
-"\\int \\left(d_{ik}\\log h_{ik}(t_{ik}\\mid \\vec w_{1:R}, w_{R + k})-\\int_0^{t_{ik}}  h_{ik}(s\\mid \\vec w_{1:R}, w_{R + k})ds \\right)\\phi^{(R + H)}(\\vec w; \\vec\\zeta_i, \\Omega_i)d\\vec w.")  
+$$
+\int \left(d_{ik}\log h_{ik}(t_{ik}\mid \vec w_{1:R}, w_{R + k})-\int_0^{t_{ik}}  h_{ik}(s\mid \vec w_{1:R}, w_{R + k})ds \right)\phi^{(R + H)}(\vec w; \vec\zeta_i, \Omega_i)d\vec w.
+$$
 
 Left-truncation is easily handled by replacing the zero in the lower
 limit by the left-truncation point. The log hazard term gives the
 following lower bound terms
 
-  
-![d\_{ik}\\left(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\omega\_k^\\top
-\\vec b\_k(t\_{ik}) + \\vec\\alpha\_k^\\top
-M(t\_{ik})\\vec\\zeta\_{i,1:R} + \\zeta\_{i,R +
-k}\\right).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;d_%7Bik%7D%5Cleft%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28t_%7Bik%7D%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28t_%7Bik%7D%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%20%5Czeta_%7Bi%2CR%20%2B%20k%7D%5Cright%29.
-"d_{ik}\\left(\\vec z_{ik}^\\top\\vec\\delta_k + \\omega_k^\\top \\vec b_k(t_{ik}) +  \\vec\\alpha_k^\\top M(t_{ik})\\vec\\zeta_{i,1:R} + \\zeta_{i,R + k}\\right).")  
+$$
+d_{ik}\left(\vec z_{ik}^\top\vec\delta_k + \omega_k^\top \vec b_k(t_{ik}) +  \vec\alpha_k^\top M(t_{ik})\vec\zeta_{i,1:R} + \zeta_{i,R + k}\right).
+$$
 
 As for the expected cumulative hazard term, assume that we can
 interchange the order of integration. Then the lower bound term is
 
-  
-![-\\exp(\\vec z\_{ik}^\\top\\vec\\delta\_k + \\zeta\_{R
-+k})\\int\_0^{t\_{ij}} \\exp\\left(\\omega\_k^\\top \\vec b\_k(s) +
-\\vec\\alpha\_k^\\top M(s)\\vec\\zeta\_{i,1:R} +\\frac{1}{2}
-(\\vec\\alpha\_k^\\top, 1) O\_{ik}(s)\\begin{pmatrix} \\vec\\alpha\_k
-\\\\ 1 \\end{pmatrix}\\right)
-ds](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;-%5Cexp%28%5Cvec%20z_%7Bik%7D%5E%5Ctop%5Cvec%5Cdelta_k%20%2B%20%5Czeta_%7BR%20%2Bk%7D%29%5Cint_0%5E%7Bt_%7Bij%7D%7D%20%5Cexp%5Cleft%28%5Comega_k%5E%5Ctop%20%5Cvec%20b_k%28s%29%20%2B%20%20%5Cvec%5Calpha_k%5E%5Ctop%20M%28s%29%5Cvec%5Czeta_%7Bi%2C1%3AR%7D%20%2B%5Cfrac%7B1%7D%7B2%7D%20%20%28%5Cvec%5Calpha_k%5E%5Ctop%2C%201%29%20O_%7Bik%7D%28s%29%5Cbegin%7Bpmatrix%7D%20%5Cvec%5Calpha_k%20%5C%5C%201%20%5Cend%7Bpmatrix%7D%5Cright%29%20ds
-"-\\exp(\\vec z_{ik}^\\top\\vec\\delta_k + \\zeta_{R +k})\\int_0^{t_{ij}} \\exp\\left(\\omega_k^\\top \\vec b_k(s) +  \\vec\\alpha_k^\\top M(s)\\vec\\zeta_{i,1:R} +\\frac{1}{2}  (\\vec\\alpha_k^\\top, 1) O_{ik}(s)\\begin{pmatrix} \\vec\\alpha_k \\\\ 1 \\end{pmatrix}\\right) ds")  
+$$
+-\exp(\vec z_{ik}^\top\vec\delta_k + \zeta_{i,R+k})\int_0^{t_{ik}} \exp\left(\omega_k^\top \vec b_k(s) +  \vec\alpha_k^\top M(s)\vec\zeta_{i,1:R} +\frac{1}{2}  (\vec\alpha_k^\top, 1) O_{ik}(s)\begin{pmatrix} \vec\alpha_k \\ 1 \end{pmatrix}\right) ds
+$$
 
 where
 
-  
-![O\_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
-\\Omega\_{(1:R, R + k), (1:R, R + k)}
-\\begin{pmatrix}M(s)^\\top & 0 \\\\ 0
-& 1\\end{pmatrix}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;O_%7Bik%7D%28s%29%20%3D%20%5Cbegin%7Bpmatrix%7DM%28s%29%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D%0A%20%20%5COmega_%7B%281%3AR%2C%20R%20%2B%20k%29%2C%20%281%3AR%2C%20R%20%2B%20k%29%7D%0A%20%20%20%20%5Cbegin%7Bpmatrix%7DM%28s%29%5E%5Ctop%20%26%200%20%5C%5C%200%20%26%201%5Cend%7Bpmatrix%7D.
-"O_{ik}(s) = \\begin{pmatrix}M(s) & 0 \\\\ 0 & 1\\end{pmatrix}
-  \\Omega_{(1:R, R + k), (1:R, R + k)}
-    \\begin{pmatrix}M(s)^\\top & 0 \\\\ 0 & 1\\end{pmatrix}.")  
+$$
+O_{ik}(s) = \begin{pmatrix}M(s) & 0 \\ 0 & 1\end{pmatrix}
+  \Omega_{i,(1:R, R + k), (1:R, R + k)}
+    \begin{pmatrix}M(s)^\top & 0 \\ 0 & 1\end{pmatrix}.
+$$
 
 ## References
 
-<div id="refs" class="references">
+<div id="refs" class="references csl-bib-body hanging-indent"
+entry-spacing="0">
 
-<div id="ref-Gerard16">
+<div id="ref-Gerard16" class="csl-entry">
 
 Berg, Gerard J. van den, and Bettina Drepper. 2016. “Inference for
 Shared-Frailty Survival Models with Left-Truncated Data.” *Econometric
@@ -4920,7 +4679,7 @@ Reviews* 35 (6): 1075–98.
 
 </div>
 
-<div id="ref-Crowther16">
+<div id="ref-Crowther16" class="csl-entry">
 
 Crowther, Michael J., Therese M.-L Andersson, Paul C. Lambert, Keith R.
 Abrams, and Keith Humphreys. 2016. “Joint Modelling of Longitudinal and

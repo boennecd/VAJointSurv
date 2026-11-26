@@ -4,7 +4,7 @@ setwd("vignettes")
 render("VAJointSurv.Rmd", output_format = html_document(
   css = "VAJointSurv.css"))
 render("VAJointSurv.Rmd", output_format = github_document(
-  pandoc_args = "--webtex=https://render.githubusercontent.com/render/math?math="),
+  math_method = "default", html_preview = FALSE),
   output_file = "README.md")
 file.copy("README.md", file.path("..", "README.md"), overwrite = TRUE)
 unlink("README.md")

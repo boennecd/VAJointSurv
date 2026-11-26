@@ -111,7 +111,7 @@ test_that("The plot_surv works with one-dimensional basis", {
   m1_basis <- poly_term(degree = 1, raw = TRUE, intercept = TRUE)
   m2_basis <- poly_term(degree = 0, raw = TRUE, intercept = TRUE)
 
-  vcov_vary <- structure(c(0.021875, 5e-04, -0.003125, 5e-04, 0.012, -0.0015, -0.003125, -0.0015, 0.02), .Dim = c(3L, 3L))
+  vcov_vary <- structure(c(0.021875, 5e-04, -0.003125, 5e-04, 0.012, -0.0015, -0.003125, -0.0015, 0.02), dim = c(3L, 3L))
 
   # the survival parameters
   fixef_surv <- c(-3, .4)

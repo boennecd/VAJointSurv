@@ -687,7 +687,9 @@ joint_ms_lb_gr <- function(object, par, n_threads = object$max_threads,
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
+#' fit <- joint_ms_opt(
+#'   object = model_ptr, par = start_vals, gr_tol = .01,
+#'   strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 #'
 #' # compute the Hessian
 #' hess <- joint_ms_hess(object = model_ptr,par = fit$par)
@@ -782,7 +784,9 @@ joint_ms_hess <- function(
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
+#' fit <- joint_ms_opt(
+#'   object = model_ptr, par = start_vals, gr_tol = .01,
+#'   strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 #'
 #' # formatted maximum likelihood estimators
 #' joint_ms_format(model_ptr, fit$par)}
@@ -875,11 +879,8 @@ joint_ms_opt <- function(
 #'   markers = list(m1, m2), survival_terms = s_term,
 #'   max_threads = 2L, ders = list(0L, c(0L, -1L)))
 #'
-#' # find the starting values
-#' start_vals <- joint_ms_start_val(model_ptr)
-#'
-#' # format the starting values
-#' joint_ms_format(model_ptr,start_vals)
+#' # format the initial parameters stored in the model object
+#' joint_ms_format(object = model_ptr)
 #' @export
 joint_ms_format <- function(object, par = object$start_val){
   # TODO: add tests for this function
@@ -991,7 +992,9 @@ joint_ms_format <- function(object, par = object$start_val){
 #' start_vals <- joint_ms_start_val(model_ptr)
 #'
 #' # optimize lower bound
-#' fit <- joint_ms_opt(object = model_ptr, par = start_vals, gr_tol = .01)
+#' fit <- joint_ms_opt(
+#'   object = model_ptr, par = start_vals, gr_tol = .01,
+#'   strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 #'
 #' # compute the Hessian
 #' hess <- joint_ms_hess(object = model_ptr,par = fit$par)
@@ -1010,7 +1013,8 @@ joint_ms_format <- function(object, par = object$start_val){
 #' # for the first association parameter
 #' profile_CI <- joint_ms_profile(
 #'   object = model_ptr, opt_out = fit, which_prof = which_prof,
-#'   delta= delta, gr_tol = .01)
+#'   delta = delta, gr_tol = .01,
+#'   strong_wolfe = FALSE, cg_tol = .1, pre_method = 1L)
 #'
 #' # comparison of CIs
 #' profile_CI$confs

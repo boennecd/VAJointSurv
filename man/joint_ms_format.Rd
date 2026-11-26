@@ -65,9 +65,6 @@ model_ptr <- joint_ms_ptr(
   markers = list(m1, m2), survival_terms = s_term,
   max_threads = 2L, ders = list(0L, c(0L, -1L)))
 
-# find the starting values
-start_vals <- joint_ms_start_val(model_ptr)
-
-# format the starting values
-joint_ms_format(model_ptr,start_vals)
+# format the initial parameters stored in the model object
+joint_ms_format(object = model_ptr)
 }
