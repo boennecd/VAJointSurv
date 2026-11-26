@@ -19,7 +19,8 @@ plot_surv(
   ders = NULL,
   newdata = NULL,
   ...,
-  panel.first = NULL
+  panel.first = NULL,
+  add = FALSE
 )
 }
 \arguments{
@@ -61,6 +62,9 @@ value of the random effect for all markers.}
 
 \item{panel.first}{Expression to evaluate after the grid and before the
 first curve of a new plot.}
+
+\item{add}{If \code{TRUE}, draw the grid and then the curves on the current
+plot.}
 }
 \value{
 A list containing data for plotting.

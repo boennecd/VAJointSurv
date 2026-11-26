@@ -91,6 +91,8 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' @param newdata \code{data.frame} with data for the weights if any.
 #' @param panel.first Expression to evaluate after the grid and before the
 #' first curve of a new plot.
+#' @param add If \code{TRUE}, draw the grid and then the curves on the current
+#' plot.
 #' @param ders a \code{\link{list}} with \code{\link{integer}} vectors for how
 #' the survival outcome is linked to the markers. 0 implies present values,
 #' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
@@ -163,7 +165,8 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
                       associations, xlab = "Time", ylab = "Hazard",
-                      ders = NULL, newdata = NULL, ..., panel.first = NULL){
+                      ders = NULL, newdata = NULL, ..., panel.first = NULL,
+                      add = FALSE){
   # checks
   is_valid_expansion(time_fixef)
   if(is.list(time_rng))
@@ -209,12 +212,13 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
 
     exp(qnorm(p = ps, mean = log_haz, sd = sqrt(log_haz_var)))
   }))
+  if (add) grid()
   matplot(x = tis, y = hazs, lty = 1, type = "l", col = "black", bty = "l",
           xlab = xlab, xaxs = "i", yaxs = "i", ylab = ylab,
           ylim = range(hazs, 0), panel.first = {
             grid()
             panel.first
-          }, ...)
+          }, ..., add = add)
 
   invisible(list(time = tis, hazard = hazs))
 }

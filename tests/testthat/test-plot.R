@@ -13,6 +13,10 @@ test_that(desc = "The grid is drawn before the curves without padding the axes",
     record_layer(layer = "band")
     graphics::polygon(...)
   }
+  plot_env$matplot <- function(..., add = FALSE) {
+    if (add) record_layer(layer = "overlay")
+    graphics::matplot(..., add = add)
+  }
   draw_marker <- plot_marker
   draw_surv <- plot_surv
   environment(draw_marker) <- plot_env
@@ -40,4 +44,11 @@ test_that(desc = "The grid is drawn before the curves without padding the axes",
     panel.last = record_layer(layer = "after curve"))
   expect_identical(object = layers, expected = c("grid", "before curve", "after curve"))
   expect_equal(object = graphics::par("usr")[1:3], expected = c(time_range, 0))
+
+  layers <- character()
+  draw_surv(
+    time_fixef = fixed, time_rng = list(random), fixef_vary = .1,
+    x_range = time_range, vcov_vary = vcov, frailty_var = 0, associations = 1,
+    add = TRUE)
+  expect_identical(object = layers, expected = c("grid", "overlay"))
 })
