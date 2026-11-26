@@ -7,6 +7,8 @@
 #' @param p coverage of the two quantiles.
 #' @param xlab,ylab,... arguments passed to \code{\link{plot}}.
 #' @param newdata \code{data.frame} with data for the weights if any.
+#' @param panel.first Expression to evaluate after the grid and quantile band
+#' and before the mean curve.
 #'
 #' @return
 #' A list containing data for plotting.
@@ -41,7 +43,7 @@
 #' @export
 plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
                         p = .95, xlab = "Time", ylab = "Marker",
-                        newdata = NULL, ...){
+                        newdata = NULL, ..., panel.first = NULL){
 
   is_valid_expansion(time_fixef)
   is_valid_expansion(time_rng)
@@ -58,11 +60,13 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
   sds <- sds * qnorm((1 + p) / 2)
   lbs <- mea - sds
   ubs <- mea + sds
-  plot(xs, mea, ylim = range(lbs, ubs), type = "l", bty = "l", xlab = xlab,
-       ylab = ylab, xaxs = "i", ...)
-  polygon(x = c(xs, rev(xs)), y = c(lbs, rev(ubs)), border = NA,
-          col = gray(0, .1))
-  grid()
+  plot(x = xs, y = mea, ylim = range(lbs, ubs), type = "l", bty = "l",
+       xlab = xlab, ylab = ylab, xaxs = "i", panel.first = {
+         grid()
+         polygon(x = c(xs, rev(x = xs)), y = c(lbs, rev(x = ubs)),
+                 border = NA, col = gray(level = 0, alpha = .1))
+         panel.first
+       }, ...)
 
   invisible(list(lbs = lbs, ubs = ubs, mea = mea))
 }
@@ -85,6 +89,10 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 #' supplied.
 #' @param xlab,ylab,... arguments passed to \code{\link{matplot}}.
 #' @param newdata \code{data.frame} with data for the weights if any.
+#' @param panel.first Expression to evaluate after the grid and before the
+#' first curve of a new plot.
+#' @param add If \code{TRUE}, draw the grid and then the curves on the current
+#' plot.
 #' @param ders a \code{\link{list}} with \code{\link{integer}} vectors for how
 #' the survival outcome is linked to the markers. 0 implies present values,
 #' -1 is integral of, and 1 is the derivative. \code{NULL} implies the present
@@ -157,7 +165,8 @@ plot_marker <- function(time_fixef, time_rng, fixef_vary, x_range, vcov_vary,
 plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
                       frailty_var, ps = c(.025, .5, .975), log_hazard_shift = 0,
                       associations, xlab = "Time", ylab = "Hazard",
-                      ders = NULL, newdata = NULL, ...){
+                      ders = NULL, newdata = NULL, ..., panel.first = NULL,
+                      add = FALSE){
   # checks
   is_valid_expansion(time_fixef)
   if(is.list(time_rng))
@@ -203,10 +212,13 @@ plot_surv <- function(time_fixef, time_rng, x_range, fixef_vary, vcov_vary,
 
     exp(qnorm(p = ps, mean = log_haz, sd = sqrt(log_haz_var)))
   }))
-  matplot(tis, hazs, lty = 1, type = "l", col = "black", bty = "l",
+  if (add) grid()
+  matplot(x = tis, y = hazs, lty = 1, type = "l", col = "black", bty = "l",
           xlab = xlab, xaxs = "i", yaxs = "i", ylab = ylab,
-          ylim = range(hazs, 0), ...)
-  grid()
+          ylim = range(hazs, 0), panel.first = {
+            grid()
+            panel.first
+          }, ..., add = add)
 
   invisible(list(time = tis, hazard = hazs))
 }
