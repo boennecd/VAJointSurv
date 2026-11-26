@@ -4084,12 +4084,6 @@ surv_obs &lt;- surv_term(
 comp_obj &lt;- joint_ms_ptr(markers = list(marker_1, marker_2),
                          survival_terms = list(surv_terminal, surv_obs),
                          max_threads = 4L)
-#&gt; Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#&gt; of bounds (index 0 &gt;= vector size 0)
-#&gt; Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#&gt; of bounds (index 0 &gt;= vector size 0)
-#&gt; Warning in .joint_ms_ptr(markers, survival_terms, max_threads = max_threads, : subscript out
-#&gt; of bounds (index 0 &gt;= vector size 0)
 rm(marker_1, marker_2, surv_terminal, surv_obs)
 
 # get the starting values
